@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Folkvizag - Devotee Management App</title>
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://folkvizag.app/">
+    <meta property="og:title" content="Folkvizag - Devotee Management System">
+    <meta property="og:description" content="A comprehensive platform for devotee management, sadhana tracking, and community engagement.">
+    <meta property="og:image" content="/logo.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://folkvizag.app/">
+    <meta property="twitter:title" content="Folkvizag - Devotee Management System">
+    <meta property="twitter:description" content="A comprehensive platform for devotee management, sadhana tracking, and community engagement.">
+    <meta property="twitter:image" content="/logo.png">
+
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FF9933" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+      // Self-Healing Strategy: Detect blank page or asset failures
+      window.onerror = function(msg, url, line, col, error) {
+        console.error("Critical error detected:", msg, "at", url);
+        // If it's a chunk load error, it's likely a stale service worker cache
+        if (msg.toLowerCase().indexOf('chunk') > -1 || msg.toLowerCase().indexOf('loading fail') > -1) {
+          if (!sessionStorage.getItem('recovery_attempted')) {
+            sessionStorage.setItem('recovery_attempted', 'true');
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(regs => {
+                for(let reg of regs) reg.unregister();
+                window.location.reload(true);
+              });
+            } else {
+              window.location.reload(true);
+            }
+          }
+        }
+        return false;
+      };
+
+      // Clear all service workers to ensure fresh assets
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        });
+        
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('New Service Worker registered'))
+            .catch(err => console.error('SW registration failed', err));
+        });
+      }
+
+      // Safety: If app is still blank after 8 seconds, force a hard reload
+      setTimeout(() => {
+        if (!document.getElementById('root').hasChildNodes() && !sessionStorage.getItem('recovery_attempted')) {
+           sessionStorage.setItem('recovery_attempted', 'true');
+           window.location.reload(true);
+        }
+      }, 8000);
+    </script>
+
+  </head>
+  <body class="bg-[#FFF8E7] text-gray-800 antialiased font-['Inter']">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

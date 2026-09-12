@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
+    }
+
+    // Admin or Folks Head (staff)
+    function isStaff() {
+      return role() in ['admin', 'folks_head'];
+    }
+
+    function isSuperAdmin() {
+      return role() == 'admin';
+    }
+
+    // ---------------- EVENTS ----------------
+    // Publicly readable so logged-out users can see the events on the landing page.
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isStaff();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // ---------------- NOTIFICATIONS ----------------
+    match /notifications/{notifId} {
+      allow read: if isSignedIn();
+      allow create: if isStaff();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // ---------------- USERS ----------------
+    // Users read their own profile; staff can read/update everyone.
+    // Non-admin users may never change the role field (prevents privilege escalation).
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isStaff());
+      allow create: if isSignedIn() && (request.auth.uid == userId || isStaff());
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+        || isStaff()
+      );
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- REGISTRATIONS (event RSVPs) ----------------
+    match /registrations/{regId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isStaff());
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- SADHANA LOGS ----------------
+    match /sadhana_logs/{logId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- ATTENDANCE / PRASADAM LOGS ----------------
+    // Only staff create these (they are produced by admin scanners during check-in).
+    match /attendance/{attId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow create, update: if isStaff();
+      allow delete: if isSuperAdmin();
+    }
+
+    match /prasadam_logs/{logId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow create, update: if isStaff();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- ACCOMMODATION REQUESTS ----------------
+    match /accommodation_requests/{reqId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isStaff();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- SEVAS ----------------
+    // Any logged-in devotee may modify only `countRegistered` (join/leave transactions).
+    match /sevas/{sevaId} {
+      allow read: if isSignedIn();
+      allow create: if isStaff();
+      allow update: if isStaff() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['countRegistered']));
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- SEVA REGISTRATIONS ----------------
+    match /seva_registrations/{regId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isStaff());
+      allow delete: if false;
+    }
+
+    // ---------------- PAYMENTS ----------------
+    // Created by the client (own donation) or the server via admin SDK.
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isStaff();
+      allow delete: if false;
+    }
+  }
+}
