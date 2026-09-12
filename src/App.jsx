@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import MainLayout from './components/layout/MainLayout'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminSetup from './pages/AdminSetup'
 import Events from './pages/Events'
 import SadhanaTracker from './pages/SadhanaTracker'
 import Accommodation from './pages/Accommodation'
@@ -22,9 +23,44 @@ import UserRoleGuard from './components/auth/UserRoleGuard'
 import ScanningOverlay from './components/qr/ScanningOverlay'
 import InstallPrompt from './components/layout/InstallPrompt'
 
+// Map every app "tab" to a real URL path. This is what makes links like
+// /admin, /events, /hostels actually open their pages instead of reloading
+// the home screen.
+const TAB_TO_PATH = {
+  admin: '/admin',
+  'admin-setup': '/createadmin',
+  devotees: '/devotees',
+  events: '/events',
+  dashboard: '/',
+  accommodation: '/accommodation',
+  hostels: '/hostels',
+  attendance: '/attendance',
+  seva: '/seva',
+  profile: '/profile',
+  about: '/about',
+  trips: '/trips',
+  gallery: '/gallery',
+  calendar: '/calendar',
+  contact: '/contact',
+  donate: '/donate',
+};
+
+// Longer paths first so /admin-setup isn't matched by /admin.
+const PATH_TO_TAB = Object.fromEntries(
+  Object.entries(TAB_TO_PATH)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([tab, path]) => [path, tab])
+);
+
+const getPathname = () => window.location.pathname || '/';
+
+const pathToTab = (path) => PATH_TO_TAB[path] || PATH_TO_TAB[path + '/'] || 'dashboard';
+
+const tabToPath = (tab) => TAB_TO_PATH[tab] || '/';
+
 function App() {
   const { user, loading } = useAuth()
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTabState] = useState(() => pathToTab(getPathname()))
   const [showLanding, setShowLanding] = useState(() => {
     try {
       return !localStorage.getItem('fast_load_cache');
@@ -34,16 +70,37 @@ function App() {
   });
   const [globalScanner, setGlobalScanner] = useState({ isOpen: false, mode: 'attendance' });
 
+  // Navigation: set tab + keep the URL in sync (pushState so Back works).
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabState(tab);
+    const path = tabToPath(tab);
+    if (getPathname() !== path) {
+      window.history.pushState(null, '', path);
+    }
+  }, []);
 
+  // Handle browser Back/Forward and manual URL edits.
+  useEffect(() => {
+    const onPopState = () => setActiveTabState(pathToTab(getPathname()));
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  // After auth state settles, land staff on the Command Center. If the user
+  // manually came in via a URL like /hostels, keep that tab instead of
+  // overriding it back to the dashboard.
   useEffect(() => {
     if (user) {
-      if (user.role === 'folks_head' || user.role === 'admin') {
-        setActiveTab('admin')
+      const staffOnlyTabs = ['admin', 'admin-setup', 'devotees', 'attendance'];
+      const fromUrl = pathToTab(getPathname());
+      const isStaff = user.role === 'folks_head' || user.role === 'admin';
+      if (isStaff) {
+        setActiveTab(fromUrl === 'dashboard' ? 'admin' : fromUrl)
       } else {
-        setActiveTab('dashboard')
+        setActiveTab(staffOnlyTabs.includes(fromUrl) ? 'dashboard' : fromUrl)
       }
     }
-  }, [user]);
+  }, [user, setActiveTab]);
 
   if (loading) {
     return (
@@ -54,7 +111,7 @@ function App() {
   }
 
   if (!user) {
-    if (showLanding) {
+    if (showLanding && pathToTab(getPathname()) === 'dashboard') {
       return (
         <>
           <InstallPrompt />
@@ -76,6 +133,8 @@ function App() {
 
   const renderContent = () => {
     switch(activeTab) {
+      case 'admin-setup':
+        return <AdminSetup setActiveTab={setActiveTab} />
       case 'devotees': 
         return <UserRoleGuard allowedRoles={['admin', 'folks_head']}><Devotees /></UserRoleGuard>
       case 'events': 
