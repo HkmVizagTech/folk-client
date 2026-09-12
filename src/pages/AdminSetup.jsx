@@ -102,7 +102,13 @@ const AdminSetup = ({ setActiveTab }) => {
               <Mail size={14} className="text-gray-400" /> sign-in: <span className="text-gray-500">admin (auto-mapped)</span>
             </div>
           </div>
-          {isAdmin ? (
+          {!user ? (
+            <p className="text-xs font-bold text-center bg-blue-50 text-blue-600 rounded-xl px-3 py-3">
+              Please sign in with an admin account to manage the site. The shared
+              login is created by an existing admin (see steps below) - or log in
+              with your own admin account from the top-right of the page.
+            </p>
+          ) : isAdmin ? (
             <>
               <Button
                 onClick={createSiteAdmin}

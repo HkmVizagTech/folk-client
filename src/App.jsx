@@ -109,12 +109,25 @@ function App() {
   }
 
   if (!user) {
-    if (showLanding && pathToTab(getPathname()) === 'dashboard') {
+    const tabFromUrl = pathToTab(getPathname());
+    // Landing page only for the root path when there's no cached session.
+    if (showLanding && tabFromUrl === 'dashboard') {
       return (
         <>
           <InstallPrompt />
           <Landing onLoginClick={() => setShowLanding(false)} />
         </>
+      )
+    }
+    // Admin URLs are never dead-ends: show the Site Admin page (which asks the
+    // visitor to sign in) instead of a bare login form, so it is obvious the
+    // route exists and what it is for.
+    if (tabFromUrl === 'admin' || tabFromUrl === 'admin-setup') {
+      return (
+        <MainLayout activeTab={activeTab} setActiveTab={setActiveTab}>
+          <InstallPrompt />
+          <AdminSetup setActiveTab={setActiveTab} />
+        </MainLayout>
       )
     }
     return (
@@ -130,6 +143,7 @@ function App() {
   }
 
   const renderContent = () => {
+    const isStaff = user && (user.role === 'folks_head' || user.role === 'admin');
     switch(activeTab) {
       case 'admin-setup':
         return <AdminSetup setActiveTab={setActiveTab} />
@@ -168,13 +182,17 @@ function App() {
       case 'donate':
         return <Donate />
       case 'admin':
-        return (
-          <UserRoleGuard allowedRoles={['admin', 'folks_head']}>
-            <AdminDashboard 
-              setActiveTab={setActiveTab} 
-              onOpenScanner={(mode) => setGlobalScanner({ isOpen: true, mode })}
-            />
-          </UserRoleGuard>
+        // A real staff member gets the full Command Center. Anyone else who
+        // lands on /admin sees the Site Admin page, which explains access and
+        // lets an owner create the shared admin login - no more dead-end
+        // redirects back to the home tab.
+        return isStaff ? (
+          <AdminDashboard 
+            setActiveTab={setActiveTab} 
+            onOpenScanner={(mode) => setGlobalScanner({ isOpen: true, mode })}
+          />
+        ) : (
+          <AdminSetup setActiveTab={setActiveTab} />
         )
       default: 
         return (
