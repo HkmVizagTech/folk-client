@@ -9,6 +9,15 @@ export const callApi = async (functionName, data = {}) => {
   const user = auth.currentUser;
   const token = user ? await user.getIdToken() : null;
 
+  // A missing/unset backend URL would make fetch hit THIS site (the static
+  // frontend host), which rejects POST with 405. Fail loudly with the actual
+  // cause instead of a cryptic "API Error 405".
+  if (!CONFIG.BACKEND_URL || !/^https?:\/\//i.test(CONFIG.BACKEND_URL)) {
+    throw new Error(
+      'Backend URL is not configured. Set VITE_BACKEND_URL in the client environment (e.g. your Railway URL) and redeploy.'
+    );
+  }
+
   const url = `${CONFIG.BACKEND_URL}/${functionName}`;
   
   const headers = {
@@ -31,6 +40,17 @@ export const callApi = async (functionName, data = {}) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    // 405 here means the POST landed on a host that only serves static files
+    // (wrong/missing VITE_BACKEND_URL). 404 "Cannot POST" means the backend is
+    // running an OLD build that doesn't have this route yet — redeploy it.
+    if (response.status === 405 || response.status === 404) {
+      throw new Error(
+        `The backend rejected ${functionName} (HTTP ${response.status}). ` +
+        `${response.status === 405
+          ? 'The API URL is pointing at a static site — check VITE_BACKEND_URL.'
+          : 'The server is running an outdated build without this route — redeploy the backend.'}`
+      );
+    }
     throw new Error(errorData.error?.message || `API Error: ${response.status} ${response.statusText}`);
   }
 
