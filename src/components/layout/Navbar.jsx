@@ -60,6 +60,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
   const { user, logout } = useAuth()
   const [showNotifs, setShowNotifs] = useState(false)
   const [showAllNotifs, setShowAllNotifs] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const notifRef = useRef(null)
 
   const menuItems = NAV_ITEMS.filter(item => item.roles.includes(user?.role));
@@ -84,14 +85,35 @@ const Navbar = ({ activeTab, setActiveTab }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // The bar is `fixed`, not `sticky`, so it can never scroll away - sticky
+  // silently breaks whenever an ancestor (html/body included) becomes a
+  // scroll container. Past ~60px we shrink it and float it as a rounded
+  // pill, the same behaviour as harekrishnavizag.org / folkexclusive.com.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <header className="h-16 sm:h-20 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 flex items-center justify-between gap-4 border-b border-saffron/10 shadow-sm transition-all duration-500">
+    <header
+      className={cn(
+        'fixed z-40 flex items-center justify-between gap-4 bg-white/95 backdrop-blur-md transition-all duration-300',
+        scrolled
+          ? 'top-2 left-2 right-2 md:left-6 md:right-6 h-14 sm:h-16 px-3 sm:px-6 rounded-2xl border border-saffron/10 shadow-premium-xl'
+          : 'top-0 left-0 right-0 h-16 sm:h-20 px-4 sm:px-8 border-b border-saffron/10 shadow-sm'
+      )}
+    >
       <div className="flex items-center gap-4 shrink-0">
         <div className="flex items-center drop-shadow-sm hover:drop-shadow-md transition-all duration-300">
           <img
             src="/logo.png"
             alt="Folkvizag Logo"
-            className="h-8 sm:h-12 w-auto object-contain hover:scale-[1.02] transition-transform cursor-pointer drop-shadow-md brightness-0 opacity-90"
+            className={cn(
+              'w-auto object-contain hover:scale-[1.02] transition-all duration-300 cursor-pointer drop-shadow-md brightness-0 opacity-90',
+              scrolled ? 'h-7 sm:h-9' : 'h-8 sm:h-12'
+            )}
           />
         </div>
         <span className="hidden md:inline font-black text-lg bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent whitespace-nowrap">

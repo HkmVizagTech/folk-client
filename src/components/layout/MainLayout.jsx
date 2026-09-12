@@ -13,6 +13,12 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
       <main className="transition-all duration-300 min-h-screen flex flex-col pb-32 md:pb-0">
         <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
+        {/* The navbar is position:fixed (so it can never scroll away), which
+            takes it out of the document flow - this spacer reserves the room
+            it would otherwise have occupied. Heights must match the navbar's
+            un-scrolled height (h-16 sm:h-20). */}
+        <div className="h-16 sm:h-20 shrink-0" aria-hidden="true" />
+
         <div className="flex-1 p-4 sm:p-6 md:p-10 max-w-[1600px] mx-auto w-full relative z-10 transition-all">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {children}
