@@ -1,5 +1,5 @@
 // Service Worker for Folkvizag (PWA)
-const CACHE_NAME = 'folkvizag-v1.5'; // Increment version to force update
+const CACHE_NAME = 'folkvizag-v2.0'; // Increment version to force update
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -27,10 +27,11 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: Network First for index.html/root, Stale-While-Revalidate for others
+// Fetch: Network First for every page navigation and entry point, so all
+// routes (/admin, /createadmin, /events, ...) always load the latest build.
+// Stale-While-Revalidate for everything else (cached assets).
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  const BACKEND_URL = 'https://hrm-backend-uzim.onrender.com';
 
   // Bypass the Service Worker for non-GET requests (e.g. POST, PUT API calls)
   if (event.request.method !== 'GET') {
@@ -38,12 +39,12 @@ self.addEventListener('fetch', event => {
   }
 
   // Bypass the Service Worker for backend API calls
-  if (event.request.url.startsWith(BACKEND_URL) || event.request.url.includes('googleapis.com')) {
+  if (url.pathname.startsWith('/api/') || event.request.url.includes('googleapis.com')) {
     return; // Let the browser handle the fetch directly
   }
 
-  // For the main app entry point, always try network first
-  if (url.pathname === '/' || url.pathname === '/index.html') {
+  // For page navigations and the main entry point, always try network first
+  if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
     event.respondWith(
       fetch(event.request)
         .then(response => {

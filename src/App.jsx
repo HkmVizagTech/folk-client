@@ -86,18 +86,16 @@ function App() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // After auth state settles, land staff on the Command Center. If the user
-  // manually came in via a URL like /hostels, keep that tab instead of
-  // overriding it back to the dashboard.
+  // Only intervene on the root path: land staff on the Command Center. Any
+  // deep link (/admin, /createadmin, /hostels, ...) always wins so it never
+  // bounces back to the home page. Non-admin users reaching an admin URL are
+  // handled inside the pages themselves (AdminSetup explains access).
   useEffect(() => {
     if (user) {
-      const staffOnlyTabs = ['admin', 'admin-setup', 'devotees', 'attendance'];
       const fromUrl = pathToTab(getPathname());
       const isStaff = user.role === 'folks_head' || user.role === 'admin';
-      if (isStaff) {
-        setActiveTab(fromUrl === 'dashboard' ? 'admin' : fromUrl)
-      } else {
-        setActiveTab(staffOnlyTabs.includes(fromUrl) ? 'dashboard' : fromUrl)
+      if (fromUrl === 'dashboard') {
+        setActiveTab(isStaff ? 'admin' : 'dashboard')
       }
     }
   }, [user, setActiveTab]);
