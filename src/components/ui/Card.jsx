@@ -12,7 +12,7 @@ const Card = ({ children, className, hover = true, ...props }) => {
     <motion.div
       whileHover={hover ? { y: -5 } : {}}
       className={cn(
-        "bg-white/70 backdrop-blur-xl border border-white/40 shadow-premium-xl rounded-[2.5rem] p-8",
+        "bg-white/70 backdrop-blur-xl border border-white/40 shadow-premium-xl rounded-[1.75rem] sm:rounded-[2.5rem] p-5 sm:p-8",
         className
       )}
       {...props}

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import QRScanner from './QRScanner';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -49,31 +49,36 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
       if (!event) throw new Error('No active events found. Please create an event in the dashboard first.');
 
       if (scanMode === 'attendance') {
-        const checkinQ = query(collection(db, 'attendance'), 
-          where('userId', '==', devotee.id),
-          where('eventId', '==', event.id)
-        );
-        const checkinSnap = await getDocs(checkinQ);
-        
-        if (!checkinSnap.empty) throw new Error(`${devotee.name} already checked in!`);
-        
-        // Mark Attendance
-        await addDoc(collection(db, 'attendance'), {
-          userId: devotee.id,
-          name: devotee.name,
-          eventId: event.id,
-          session: event.title,
-          status: 'On-time',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          createdAt: serverTimestamp()
+        // Deterministic doc id + transaction instead of a separate
+        // read-then-write, so two near-simultaneous scans of the same
+        // devotee can't both slip past the "already checked in?" check.
+        const attendanceRef = doc(db, 'attendance', `${event.id}_${devotee.id}`);
+        let alreadyCheckedIn = false;
+        await runTransaction(db, async (transaction) => {
+          const existing = await transaction.get(attendanceRef);
+          if (existing.exists()) {
+            alreadyCheckedIn = true;
+            return;
+          }
+          transaction.set(attendanceRef, {
+            userId: devotee.id,
+            name: devotee.name,
+            eventId: event.id,
+            session: event.title,
+            status: 'On-time',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            createdAt: serverTimestamp()
+          });
         });
+
+        if (alreadyCheckedIn) throw new Error(`${devotee.name} already checked in!`);
 
         // Check for Accommodation
         let accInfo = null;
         try {
-          const accQ = query(collection(db, 'accommodation_requests'), 
+          const accQ = query(collection(db, 'accommodation_requests'),
             where('userId', '==', devotee.id),
-            where('status', '==', 'Approved')
+            where('status', '==', 'approved')
           );
           const accSnap = await getDocs(accQ);
           if (!accSnap.empty) accInfo = accSnap.docs[0].data();
@@ -86,23 +91,26 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
           accommodation: accInfo
         });
       } else {
-        // Prasadam Logic
-        const prasadamQ = query(collection(db, 'prasadam_logs'), 
-          where('userId', '==', devotee.id),
-          where('eventId', '==', event.id)
-        );
-        const prasadamSnap = await getDocs(prasadamQ);
-        
-        if (!prasadamSnap.empty) throw new Error(`${devotee.name} already received prasadam!`);
-        
-        await addDoc(collection(db, 'prasadam_logs'), {
-          userId: devotee.id,
-          name: devotee.name,
-          eventId: event.id,
-          eventTitle: event.title,
-          received: true,
-          timestamp: serverTimestamp()
+        // Prasadam Logic - same deterministic-id + transaction approach.
+        const prasadamRef = doc(db, 'prasadam_logs', `${event.id}_${devotee.id}`);
+        let alreadyReceived = false;
+        await runTransaction(db, async (transaction) => {
+          const existing = await transaction.get(prasadamRef);
+          if (existing.exists()) {
+            alreadyReceived = true;
+            return;
+          }
+          transaction.set(prasadamRef, {
+            userId: devotee.id,
+            name: devotee.name,
+            eventId: event.id,
+            eventTitle: event.title,
+            received: true,
+            timestamp: serverTimestamp()
+          });
         });
+
+        if (alreadyReceived) throw new Error(`${devotee.name} already received prasadam!`);
 
         setVerifyResult({ 
           success: true, 
@@ -132,37 +140,38 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
         />
 
         {/* Scanner / Result Window */}
-        <motion.div 
+        <motion.div
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 50, opacity: 0 }}
-          className="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+          className="relative w-full max-w-xl bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl overflow-x-hidden overflow-y-auto max-h-[90vh]"
         >
           {!verifyResult ? (
             <>
               {/* Header */}
-              <div className="p-8 border-b border-gray-100 flex items-center justify-between">
-                <div>
+              <div className="p-5 sm:p-8 border-b border-gray-100 flex items-center justify-between gap-3">
+                <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shrink-0" />
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Scanner Live</span>
                   </div>
-                  <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight italic">
+                  <h3 className="text-xl sm:text-2xl font-black text-gray-900 uppercase tracking-tight italic">
                     Universal Verification
                   </h3>
                 </div>
-                <button 
+                <button
                   onClick={onClose}
-                  className="p-3 bg-gray-100 text-gray-400 hover:text-gray-600 rounded-2xl transition-all"
+                  aria-label="Close"
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0 bg-gray-100 text-gray-400 hover:text-gray-600 rounded-2xl transition-all"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Mode Toggle */}
-              <div className="px-8 mt-6">
+              <div className="px-5 sm:px-8 mt-6">
                 <div className="flex gap-2 p-1.5 bg-gray-100 rounded-2xl">
-                  <button 
+                  <button
                     onClick={() => setScanMode('attendance')}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                       scanMode === 'attendance' ? 'bg-white shadow-lg text-saffron' : 'text-gray-400 hover:text-gray-600'
@@ -170,7 +179,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
                   >
                     <Users size={14} /> Attendance
                   </button>
-                  <button 
+                  <button
                     onClick={() => setScanMode('prasadam')}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                       scanMode === 'prasadam' ? 'bg-white shadow-lg text-orange-600' : 'text-gray-400 hover:text-gray-600'
@@ -182,13 +191,13 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
               </div>
 
               {/* Scanner Area */}
-              <div className="p-8">
+              <div className="p-5 sm:p-8">
                 <div className="relative rounded-[2rem] overflow-hidden border-4 border-gray-50 bg-gray-50 aspect-square">
                   <QRScanner onScan={handleScan} onClose={onClose} mode={scanMode} />
                   {verifying && (
                     <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-50">
                       <Zap className="text-saffron animate-bounce" size={40} />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Verifying Identity...</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 text-center px-4">Verifying Identity...</p>
                     </div>
                   )}
                 </div>
@@ -196,7 +205,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
             </>
           ) : (
             /* Verification Result (ALLOWED Modal) */
-            <div className={`p-10 text-center ${verifyResult.success ? 'bg-white' : 'bg-red-50'}`}>
+            <div className={`p-6 sm:p-10 text-center ${verifyResult.success ? 'bg-white' : 'bg-red-50'}`}>
               <div className="flex justify-center mb-8">
                 {verifyResult.success ? (
                   <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center shadow-lg shadow-green-100">
@@ -215,7 +224,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
                     <span className="px-4 py-1.5 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4 inline-block">
                       {scanMode === 'attendance' ? 'Entry Allowed' : 'Prasadam Allowed'}
                     </span>
-                    <h4 className="text-3xl font-black text-gray-900 uppercase tracking-tight italic mb-2">
+                    <h4 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tight italic mb-2 break-words">
                       {verifyResult.devotee?.fullName || verifyResult.devotee?.displayName}
                     </h4>
                     <p className="text-gray-500 font-bold">{verifyResult.message}</p>

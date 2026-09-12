@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ArrowRight, Github, Users, Shield, CheckCircle2, Lock, User, Phone, Key } from 'lucide-react';
+import { Mail, ArrowRight, Users, CheckCircle2, Lock, User, Phone, Key } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const Login = () => {
@@ -8,7 +8,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [selectedRole, setSelectedRole] = useState(null);
+  const [selectedRole, setSelectedRole] = useState('devotee');
   
   // Auth Modes
   const [authMethod, setAuthMethod] = useState('email'); // 'email' | 'phone'
@@ -99,15 +99,10 @@ const Login = () => {
 
   const handleCompleteProfile = async () => {
     if (!selectedRole) return;
-    
-    // Strict domain validation for Folks Head
-    if (selectedRole === 'folks_head') {
-      if (!user?.email || !user.email.endsWith('@hkmvizag.org')) {
-        setError('Folks Head registration strictly requires an @hkmvizag.org email address. Phone registrations are not permitted.');
-        return;
-      }
-    }
 
+    // Every new account starts as a Devotee - Folks Head / Admin access is
+    // granted afterwards by an existing admin, not chosen here (this is
+    // enforced server-side by firestore.rules regardless of what the UI sends).
     if (isSignUp && !name) {
       setError('Please provide your Full Name to complete registration.');
       return;
@@ -179,14 +174,13 @@ const Login = () => {
           {user?.requiresRole ? (
             <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="space-y-6">
               <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-800 mb-1">Identify Your Path</h2>
-                <p className="text-gray-400 text-xs">Select your role to continue your journey</p>
+                <h2 className="text-xl font-bold text-gray-800 mb-1">Welcome, Devotee</h2>
+                <p className="text-gray-400 text-xs">Confirm your name to continue your journey</p>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
                 {[
-                  { id: 'devotee', title: 'Devotee', desc: 'Log sadhana, track attendance, and join events.', icon: <Users className="text-saffron" size={20} /> },
-                  { id: 'folks_head', title: 'Folks Head', desc: 'Manage devotees, approve stays, create events.', icon: <Shield className="text-gold" size={20} /> }
+                  { id: 'devotee', title: 'Devotee', desc: 'Log sadhana, track attendance, and join events.', icon: <Users className="text-saffron" size={20} /> }
                 ].map((role) => (
                   <button key={role.id} onClick={() => setSelectedRole(role.id)} className={`flex items-start gap-4 p-5 rounded-[2rem] border-2 transition-all text-left group relative overflow-hidden ${selectedRole === role.id ? 'border-saffron bg-saffron/5 shadow-premium scale-[1.02]' : 'border-gray-50 hover:border-gray-100 bg-gray-50/50'}`}>
                     {selectedRole === role.id && <div className="absolute top-0 right-0 w-24 h-24 bg-saffron/5 rounded-full -mr-12 -mt-12 blur-2xl" />}
@@ -207,6 +201,9 @@ const Login = () => {
                   {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <ArrowRight size={18} />}
                   <span>Enter Application</span>
                 </motion.button>
+                <p className="text-center text-[10px] text-gray-400 font-medium leading-relaxed px-4">
+                  Folks Head or Admin access is granted by an existing admin after you sign up.
+                </p>
               </div>
             </motion.div>
           ) : (

@@ -205,7 +205,7 @@ const Profile = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className={cn(
-              "fixed top-6 right-6 z-[100] px-6 py-3 rounded-2xl shadow-premium-xl flex items-center gap-3 font-bold text-sm",
+              "fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:top-6 z-[100] px-5 sm:px-6 py-3 rounded-2xl shadow-premium-xl flex items-center gap-3 font-bold text-sm",
               toast.type === 'error' ? "bg-red-500 text-white" : "bg-green-600 text-white"
             )}
           >
@@ -256,10 +256,10 @@ const Profile = () => {
           </div>
 
           <div className="text-center">
-            <h1 className="text-3xl font-black text-gray-800 mb-2 font-poppins tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-800 mb-2 font-poppins tracking-tight break-words">
               {formData.name || 'Your Name'}
             </h1>
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
               <span className="px-3 py-1 bg-white/80 rounded-full text-[10px] font-black text-gray-500 shadow-sm border border-gray-100 uppercase tracking-widest">
                 ID: {user?.qrToken?.substring(0, 8).toUpperCase() || 'NEW-USER'}
               </span>
@@ -274,28 +274,31 @@ const Profile = () => {
 
           {/* Edit Button */}
           <div className="absolute top-6 right-6 md:top-8 md:right-8 flex gap-2">
-            <button 
+            <button
               onClick={() => isEditing ? handleSave() : setIsEditing(true)}
               disabled={loading}
+              aria-label={isEditing ? 'Save profile' : 'Edit profile'}
               className={cn(
-                "w-12 h-12 rounded-2xl shadow-lg border flex items-center justify-center transition-all group",
+                "w-11 h-11 sm:w-12 sm:h-12 rounded-2xl shadow-lg border flex items-center justify-center transition-all group",
                 isEditing ? "bg-saffron text-white border-saffron shadow-saffron/20" : "bg-white text-saffron border-saffron/10 hover:bg-saffron hover:text-white"
               )}
             >
               {loading ? <Loader2 size={24} className="animate-spin" /> : (isEditing ? <Save size={24} /> : <Edit2 size={24} />)}
             </button>
             {!isEditing && (
-              <button 
+              <button
                 onClick={logout}
-                className="w-12 h-12 bg-white text-gray-400 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition-all"
+                aria-label="Log out"
+                className="w-11 h-11 sm:w-12 sm:h-12 bg-white text-gray-400 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition-all"
               >
                 <LogOut size={22} />
               </button>
             )}
             {isEditing && (
-              <button 
+              <button
                 onClick={() => setIsEditing(false)}
-                className="w-12 h-12 bg-white text-gray-400 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-all"
+                aria-label="Cancel editing"
+                className="w-11 h-11 sm:w-12 sm:h-12 bg-white text-gray-400 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-all"
               >
                 <X size={24} />
               </button>
@@ -311,18 +314,19 @@ const Profile = () => {
           { id: 'attendance', icon: <Calendar size={18} />, label: 'Attendance' },
           { id: 'payments', icon: <CreditCard size={18} />, label: 'Payments' }
         ].map((tab) => (
-          <button 
+          <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id)}
+            aria-pressed={activeSubTab === tab.id}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all",
-              activeSubTab === tab.id 
-                ? "bg-saffron text-white shadow-lg shadow-saffron/20" 
+              "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-1 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all",
+              activeSubTab === tab.id
+                ? "bg-saffron text-white shadow-lg shadow-saffron/20"
                 : "text-gray-400 hover:text-saffron hover:bg-saffron/5"
             )}
           >
             {tab.icon}
-            {tab.label}
+            <span>{tab.label}</span>
           </button>
         ))}
       </div>
@@ -386,12 +390,12 @@ const Profile = () => {
             ) : myAttendance.length > 0 ? (
               <div className="space-y-3">
                 {myAttendance.map((att) => (
-                  <div key={att.id} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-saffron/5 shadow-sm">
-                    <div>
-                      <p className="font-bold text-gray-800">{att.session || att.eventTitle || 'Temple Visit'}</p>
+                  <div key={att.id} className="flex items-center justify-between gap-3 p-4 sm:p-5 bg-white rounded-2xl border border-saffron/5 shadow-sm">
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-800 truncate">{att.session || att.eventTitle || 'Temple Visit'}</p>
                       <p className="text-xs text-gray-400 font-medium mt-0.5">{formatDate(att.createdAt)}</p>
                     </div>
-                    <span className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase tracking-wider">Verified</span>
+                    <span className="shrink-0 text-[10px] font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase tracking-wider">Verified</span>
                   </div>
                 ))}
               </div>
@@ -418,12 +422,12 @@ const Profile = () => {
             ) : myPayments.length > 0 ? (
               <div className="space-y-3">
                 {myPayments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-saffron/5 shadow-sm">
-                    <div>
-                      <p className="font-bold text-gray-800">{p.sevaType || (p.eventId ? 'Event Contribution' : 'Donation')}</p>
+                  <div key={p.id} className="flex items-center justify-between gap-3 p-4 sm:p-5 bg-white rounded-2xl border border-saffron/5 shadow-sm">
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-800 truncate">{p.sevaType || (p.eventId ? 'Event Contribution' : 'Donation')}</p>
                       <p className="text-xs text-gray-400 font-medium mt-0.5">{formatDate(p.createdAt)}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <p className="font-black text-saffron-dark">₹{Number(p.amount || 0).toLocaleString('en-IN')}</p>
                       <span className={cn(
                         "text-[10px] font-black uppercase tracking-wider",
@@ -444,7 +448,7 @@ const Profile = () => {
       </AnimatePresence>
 
       {/* Profile Completion Indicator */}
-      <div className="mt-12 p-10 bg-gradient-to-br from-saffron/5 to-gold/10 rounded-[3rem] border border-saffron/10 relative overflow-hidden group">
+      <div className="mt-12 p-6 sm:p-10 bg-gradient-to-br from-saffron/5 to-gold/10 rounded-[2rem] sm:rounded-[3rem] border border-saffron/10 relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-8 text-saffron opacity-[0.03] group-hover:scale-110 transition-transform">
           <Award size={160} />
         </div>
@@ -454,16 +458,16 @@ const Profile = () => {
             <h3 className="text-xl font-black text-gray-800 tracking-tight">Profile Completion</h3>
           </div>
           <p className="text-sm text-gray-500 mb-8 max-w-sm font-medium leading-relaxed">Complete your profile to unlock special community badges and digital ID features.</p>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <div className="flex-1 h-4 bg-white rounded-full overflow-hidden shadow-inner ring-1 ring-gold/10">
-              <motion.div 
+              <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${completionPercent}%` }}
                 transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-saffron to-gold" 
+                className="h-full bg-gradient-to-r from-saffron to-gold"
               />
             </div>
-            <span className="text-3xl font-black text-saffron-dark drop-shadow-sm leading-none">{completionPercent}%</span>
+            <span className="text-2xl sm:text-3xl font-black text-saffron-dark drop-shadow-sm leading-none">{completionPercent}%</span>
           </div>
         </div>
       </div>

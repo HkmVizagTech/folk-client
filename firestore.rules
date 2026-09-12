@@ -20,12 +20,34 @@ service cloud.firestore {
       return role() == 'admin';
     }
 
+    // The one hardcoded root account. This is a real Firebase Auth UID, so it
+    // can never be spoofed by another signed-in user - only the person who
+    // actually owns that Firebase account can ever satisfy request.auth.uid == this.
+    function isRootAdminUid() {
+      return request.auth.uid == 'wRbvUaFiBOYeXEEtF8OuXnzGWXs2';
+    }
+
     // ---------------- EVENTS ----------------
     // Publicly readable so logged-out users can see the events on the landing page.
     match /events/{eventId} {
       allow read: if true;
       allow create: if isStaff();
-      allow update, delete: if isSuperAdmin();
+      // Any signed-in devotee may bump attendingCount/declinedCount by
+      // exactly +-1 when they RSVP (Events.jsx) - this was previously
+      // isSuperAdmin()-only, which meant every RSVP from a non-admin failed
+      // with "Missing or insufficient permissions". Every other field stays
+      // admin-only.
+      allow update: if isSuperAdmin() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendingCount', 'declinedCount']) &&
+        request.resource.data.attendingCount is int &&
+        request.resource.data.declinedCount is int &&
+        request.resource.data.attendingCount >= 0 &&
+        request.resource.data.declinedCount >= 0 &&
+        (request.resource.data.attendingCount - resource.data.get('attendingCount', 0)) in [-1, 0, 1] &&
+        (request.resource.data.declinedCount - resource.data.get('declinedCount', 0)) in [-1, 0, 1]
+      );
+      allow delete: if isSuperAdmin();
     }
 
     // ---------------- NOTIFICATIONS ----------------
@@ -36,23 +58,64 @@ service cloud.firestore {
     }
 
     // ---------------- USERS ----------------
-    // Users read their own profile; staff can read/update everyone.
-    // Non-admin users may never change the role field (prevents privilege escalation).
+    // Every new account is created as a plain "devotee" - the only exception
+    // is the single hardcoded root admin uid, which nobody can spoof (see
+    // isRootAdminUid above). Nobody can self-assign folks_head/admin at
+    // signup any more; an existing admin has to promote them afterwards
+    // through the `update` rule below. This closes the privilege-escalation
+    // hole where any signed-up user could set role:"admin" on themselves.
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isStaff());
-      allow create: if isSignedIn() && (request.auth.uid == userId || isStaff());
-      allow update: if isSignedIn() && (
-        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
-        || isStaff()
+
+      allow create: if isSignedIn() && (
+        // Self-registration always starts as a plain devotee, except the
+        // one hardcoded (unspoofable) root admin uid.
+        (
+          request.auth.uid == userId &&
+          (
+            (isRootAdminUid() && request.resource.data.role == 'admin') ||
+            (!isRootAdminUid() && request.resource.data.role == 'devotee')
+          )
+        ) ||
+        // Staff manually adding a profile for someone without an account yet
+        // (e.g. the "Add Devotee" form) - always created as a plain devotee;
+        // an admin can promote them afterwards via the `update` rule below.
+        // folks_head cannot hand out admin/folks_head this way either.
+        (isStaff() && request.resource.data.role == 'devotee') ||
+        // A super admin may create a profile with any role directly.
+        isSuperAdmin()
       );
+
+      // Anyone may update their own non-role fields. Staff (admin/folks_head)
+      // may update anyone's non-role fields (e.g. assignedGroup, phone).
+      // Only an admin may ever change the `role` field itself - folks_head
+      // can no longer promote anyone (including themselves) to admin.
+      allow update: if isSignedIn() && (
+        isSuperAdmin() ||
+        (
+          (request.auth.uid == userId || isStaff()) &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+        )
+      );
+
       allow delete: if isSuperAdmin();
     }
 
     // ---------------- REGISTRATIONS (event RSVPs) ----------------
+    // Owners may freely update their own registration (status/token toggle
+    // on re-RSVP) but can never repoint it at a different event or user -
+    // that would corrupt the manual check-in lookup staff rely on.
     match /registrations/{regId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isStaff());
+      allow update: if isSignedIn() && (
+        isStaff() ||
+        (
+          request.auth.uid == resource.data.userId &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.eventId == resource.data.eventId
+        )
+      );
       allow delete: if isSuperAdmin();
     }
 
@@ -78,37 +141,65 @@ service cloud.firestore {
     }
 
     // ---------------- ACCOMMODATION REQUESTS ----------------
+    // Devotees can submit their own request and read it (staff read all).
+    // Status changes (approve/reject/recommend) are NOT done from the client
+    // any more - they go through the backend's /updateAccommodationStatus,
+    // which enforces "folks_head can only recommend, and only for their own
+    // assigned group" and sends the WhatsApp confirmation. The Admin SDK
+    // bypasses these rules, so the backend can still write here; no direct
+    // client write (by anyone, staff included) is allowed.
     match /accommodation_requests/{reqId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isStaff();
+      allow update: if false;
       allow delete: if isSuperAdmin();
     }
 
     // ---------------- SEVAS ----------------
-    // Any logged-in devotee may modify only `countRegistered` (join/leave transactions).
+    // Any signed-in devotee may adjust `countRegistered` themselves (this is
+    // how join/cancel works client-side), but only by exactly +1 or -1, and
+    // never below 0 or past maxVolunteers - closing the hole where anyone
+    // could set the count to an arbitrary number.
     match /sevas/{sevaId} {
       allow read: if isSignedIn();
       allow create: if isStaff();
-      allow update: if isStaff() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['countRegistered']));
+      allow update: if isStaff() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['countRegistered']) &&
+        request.resource.data.countRegistered >= 0 &&
+        (
+          request.resource.data.countRegistered == resource.data.countRegistered + 1 ||
+          request.resource.data.countRegistered == resource.data.countRegistered - 1
+        ) &&
+        (!('maxVolunteers' in resource.data) || request.resource.data.countRegistered <= resource.data.maxVolunteers)
+      );
       allow delete: if isSuperAdmin();
     }
 
     // ---------------- SEVA REGISTRATIONS ----------------
+    // Owners can register/cancel themselves, but only staff can ever mark a
+    // registration "completed" - otherwise a devotee could credit themselves
+    // for seva they never performed.
     match /seva_registrations/{regId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isStaff());
+      allow update: if isSignedIn() && (
+        isStaff() ||
+        (request.auth.uid == resource.data.userId && request.resource.data.status != 'completed')
+      );
       allow delete: if false;
     }
 
     // ---------------- PAYMENTS ----------------
-    // Created by the client (own donation) or the server via admin SDK.
+    // Every payments doc is created and updated exclusively by the server
+    // (createOrder + the Razorpay webhook), using the Admin SDK, which
+    // bypasses these rules entirely. No client - devotee, folks_head, or
+    // admin - ever needs to write here, so all client writes are denied.
+    // This is what makes the webhook the single source of truth: nobody can
+    // forge a "completed"/"verified" donation from the browser.
     match /payments/{paymentId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isStaff();
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
   }
 }

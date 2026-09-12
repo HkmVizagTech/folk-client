@@ -159,12 +159,12 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             <h1 className="text-3xl font-bold font-poppins text-saffron-dark">Haribol, {user?.name || user?.displayName?.split(' ')[0] || 'Devotee'} 👋</h1>
             <Sparkles className="text-gold animate-pulse" size={24} />
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-gray-500 italic">
-              <Quote size={14} className="text-saffron opacity-50" />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-gray-500 italic min-w-0">
+              <Quote size={14} className="text-saffron opacity-50 shrink-0" />
                <p className="text-sm">&ldquo;The soul is the same in all, but the quality of devotion shines uniquely.&rdquo;</p>
             </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0 ${
               backendStatus === 'online' ? 'bg-green-100 text-green-600' : 
               backendStatus === 'offline' ? 'bg-red-100 text-red-600' : 
               'bg-gray-100 text-gray-400'
@@ -174,10 +174,10 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             </div>
           </div>
         </div>
-        <div className="flex gap-4">
-          <motion.div whileHover={{ scale: 1.05 }}>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <motion.div whileHover={{ scale: 1.05 }} className="w-full sm:w-auto">
             <Card className="px-6 py-3 flex items-center gap-4 bg-white shadow-premium border-none" hover={false}>
-              <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center shrink-0">
                 <Flame className="text-saffron" fill="#FF9933" size={20} />
               </div>
               <div>
@@ -188,7 +188,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
           </motion.div>
           <Button
                onClick={() => setShowDigitalId(true)}
-               className="bg-gradient-to-r from-saffron to-gold shadow-lg shadow-saffron/20 border-none px-8 font-bold rounded-xl hidden md:flex"
+               className="w-full sm:w-auto bg-gradient-to-r from-saffron to-gold shadow-lg shadow-saffron/20 border-none px-8 font-bold rounded-xl flex items-center justify-center"
              >
               Digital ID
             </Button>
@@ -321,9 +321,9 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                           </span>
                         </td>
                         <td className="py-4 text-right">
-                          <Button 
+                          <Button
                             onClick={() => setActiveTab('accommodation')}
-                            className="py-1 px-4 text-[10px] bg-saffron/10 text-saffron-dark font-bold rounded-lg border-none hover:bg-saffron hover:text-white transition-all"
+                            className="py-2 px-4 text-[10px] bg-saffron/10 text-saffron-dark font-bold rounded-lg border-none hover:bg-saffron hover:text-white transition-all"
                           >
                             Manage
                           </Button>
@@ -522,7 +522,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                   <p className="text-[10px] font-black uppercase text-saffron mb-1">Total Active Community</p>
                   <p className="text-2xl font-black text-saffron-dark">{allUsers.length}</p>
                </div>
-               <Button variant="secondary" onClick={generateGrowthAudit} className="w-full border-gray-100 text-gray-400 text-xs font-bold uppercase tracking-widest hover:text-saffron hover:border-saffron/20">
+               <Button variant="secondary" onClick={generateGrowthAudit} className="w-full py-3 border-gray-100 text-gray-400 text-xs font-bold uppercase tracking-widest hover:text-saffron hover:border-saffron/20">
                 Generate Growth Audit
                </Button>
             </div>
@@ -568,10 +568,11 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-white rounded-[3.5rem] shadow-premium-xl p-10 overflow-hidden text-center border border-white"
+              className="relative w-full max-w-sm max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white rounded-[2.5rem] sm:rounded-[3.5rem] shadow-premium-xl p-6 sm:p-10 text-center border border-white"
             >
               <button
                 onClick={() => setShowDigitalId(false)}
+                aria-label="Close"
                 className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
               >
                 <X size={20} />
@@ -622,10 +623,11 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-3xl shadow-premium-xl p-8"
+              className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-premium-xl p-6 sm:p-8"
             >
               <button
                 onClick={() => setDonation(null)}
+                aria-label="Close"
                 className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
               >
                 <X size={18} />
@@ -637,12 +639,12 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
               <h3 className="text-2xl font-black text-gray-900 tracking-tight">{donation.title}</h3>
               <p className="text-sm text-gray-500 mt-1 mb-8">Choose an amount for your contribution.</p>
 
-              <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
                 {[101, 501, 1001, 5001, 10001].map((amt) => (
                   <button
                     key={amt}
                     onClick={() => setDonationAmount(amt)}
-                    className={`py-3 rounded-2xl font-black text-sm transition-all border-2 ${
+                    className={`py-3 px-1 rounded-2xl font-black text-xs sm:text-sm transition-all border-2 ${
                       donationAmount === amt
                         ? 'bg-saffron/5 border-saffron text-saffron'
                         : 'bg-gray-50 border-transparent text-gray-500 hover:border-saffron/30'

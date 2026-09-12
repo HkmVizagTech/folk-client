@@ -44,11 +44,16 @@ const NavItem = ({ icon, label, active, isOpen, onClick }) => (
 const Sidebar = ({ isOpen, setIsOpen, activeTab, setActiveTab }) => {
   const { user } = useAuth();
   
+  // "Management" labels imply staff-only capability (create/edit/approve).
+  // Devotees only get to browse + RSVP/join on these same pages, so they get
+  // a plainer label to avoid implying admin powers they don't have.
+  const isStaffUser = user?.role === 'admin' || user?.role === 'folks_head';
+
   const allItems = [
     { id: 'admin', icon: <Shield />, label: "Command Center", roles: ['admin', 'folks_head'] },
     { id: 'devotees', icon: <User />, label: "Devotees", roles: ['admin', 'folks_head'] },
-    { id: 'events', icon: <Calendar />, label: "Event Management", roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'seva', icon: <Heart />, label: "Seva Management", roles: ['admin', 'folks_head', 'devotee'] },
+    { id: 'events', icon: <Calendar />, label: isStaffUser ? "Event Management" : "Events", roles: ['admin', 'folks_head', 'devotee'] },
+    { id: 'seva', icon: <Heart />, label: isStaffUser ? "Seva Management" : "Seva", roles: ['admin', 'folks_head', 'devotee'] },
     { id: 'dashboard', icon: <TrendingUp />, label: "Sadhana Tracker", roles: ['admin', 'folks_head', 'devotee'] },
     { id: 'profile', icon: <User />, label: "My Profile", roles: ['admin', 'folks_head', 'devotee'] },
     { id: 'accommodation', icon: <Home />, label: "Accommodation", roles: ['admin', 'folks_head', 'devotee'] },

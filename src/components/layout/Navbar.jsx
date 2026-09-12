@@ -62,9 +62,10 @@ const Navbar = ({ setActiveTab }) => {
           
           {/* Realtime Notification Bell */}
           <div className="relative" ref={notifRef}>
-            <button 
+            <button
               onClick={() => setShowNotifs(!showNotifs)}
-              className="p-2.5 text-gray-400 hover:text-saffron hover:bg-saffron/5 rounded-xl transition-all relative group"
+              aria-label="Notifications"
+              className="p-2.5 min-w-[44px] min-h-[44px] text-gray-400 hover:text-saffron hover:bg-saffron/5 rounded-xl transition-all relative group flex items-center justify-center"
             >
               <Bell size={22} className={showNotifs ? 'text-saffron' : ''} />
               {notifications?.length > 0 && (
@@ -73,11 +74,11 @@ const Navbar = ({ setActiveTab }) => {
             </button>
             <AnimatePresence>
               {showNotifs && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-3 w-80 bg-white rounded-3xl shadow-premium-xl border border-gray-100 overflow-hidden z-50 origin-top-right"
+                  className="absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-[320px] sm:w-80 bg-white rounded-3xl shadow-premium-xl border border-gray-100 overflow-hidden z-50 origin-top-right"
                 >
                   <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                     <h3 className="font-bold text-gray-800">Notifications</h3>
@@ -105,7 +106,13 @@ const Navbar = ({ setActiveTab }) => {
                       <div className="p-8 text-center text-gray-400 text-sm">No new notifications</div>
                     )}
                   </div>
-                  <div className="p-3 text-center border-t border-gray-50 bg-gray-50/50 hover:bg-gray-100 cursor-pointer transition-colors text-xs font-bold text-saffron" onClick={() => { setShowNotifs(false); setShowAllNotifs(true); }}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => { setShowNotifs(false); setShowAllNotifs(true); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowNotifs(false); setShowAllNotifs(true); } }}
+                    className="p-3 text-center border-t border-gray-50 bg-gray-50/50 hover:bg-gray-100 cursor-pointer transition-colors text-xs font-bold text-saffron"
+                  >
                     View All Activity
                   </div>
                 </motion.div>
@@ -129,10 +136,10 @@ const Navbar = ({ setActiveTab }) => {
                 )}
               </div>
               {user?.role === 'folks_head' && (
-                <p className="text-[10px] text-gold-dark font-bold uppercase tracking-widest hidden xs:block">Folks Head</p>
+                <p className="text-[10px] text-gold-dark font-bold uppercase tracking-widest hidden sm:block">Folks Head</p>
               )}
               {user?.role === 'devotee' && (
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest hidden xs:block">Devotee</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest hidden sm:block">Devotee</p>
               )}
               {!user?.role && (
                 <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest">Unassigned</p>
@@ -145,10 +152,11 @@ const Navbar = ({ setActiveTab }) => {
             </div>
           </div>
           
-          <button 
+          <button
             onClick={logout}
-            className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50/50 rounded-xl transition-all"
+            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50/50 rounded-xl transition-all"
             title="Sign Out"
+            aria-label="Sign out"
           >
             <LogOut size={22} />
           </button>
@@ -176,7 +184,8 @@ const Navbar = ({ setActiveTab }) => {
                 <h3 className="font-bold text-gray-800">All Activity</h3>
                 <button
                   onClick={() => setShowAllNotifs(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+                  aria-label="Close"
+                  className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
                 >
                   <X size={18} />
                 </button>

@@ -49,26 +49,27 @@ const InstallPrompt = () => {
           exit={{ y: -50, opacity: 0 }}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-[500] w-[95%] max-w-md px-4"
         >
-          <div className="bg-white/90 backdrop-blur-xl border border-white/40 rounded-[2.5rem] p-1.5 pr-5 shadow-premium-xl flex items-center gap-4">
+          <div className="bg-white/90 backdrop-blur-xl border border-white/40 rounded-[2.5rem] p-1.5 pr-2 sm:pr-3 shadow-premium-xl flex items-center gap-2 sm:gap-4">
              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md border border-gray-100 overflow-hidden shrink-0">
                 <img src="/logo_pwa.png" alt="logo" className="w-9 h-9 object-contain" />
              </div>
              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-1">
-                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0" />
                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none truncate">Get Mobile App</p>
                 </div>
-                <p className="text-sm font-black text-gray-900 leading-none italic uppercase tracking-tight">Open in app</p>
+                <p className="text-sm font-black text-gray-900 leading-none italic uppercase tracking-tight truncate">Open in app</p>
              </div>
-             <button 
+             <button
                onClick={handleInstallClick}
-               className="px-5 py-2.5 bg-gradient-to-r from-saffron to-gold text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-saffron/20 hover:scale-105 active:scale-95 transition-all"
+               className="shrink-0 px-4 sm:px-5 min-h-[44px] bg-gradient-to-r from-saffron to-gold text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-saffron/20 hover:scale-105 active:scale-95 transition-all"
              >
                 Open
              </button>
-             <button 
+             <button
                onClick={() => setIsVisible(false)}
-               className="text-gray-300 hover:text-gray-500 transition-colors"
+               aria-label="Dismiss install prompt"
+               className="shrink-0 p-2.5 min-w-[40px] min-h-[40px] flex items-center justify-center text-gray-300 hover:text-gray-500 transition-colors"
              >
                 <X size={18} />
              </button>

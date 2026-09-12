@@ -271,11 +271,11 @@ const SevaDashboard = () => {
                         </div>
                         {seva.time}
                       </div>
-                      <div className="flex items-center gap-3 text-gray-600 font-bold w-full sm:w-auto">
-                        <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500">
+                      <div className="flex items-center gap-3 text-gray-600 font-bold w-full sm:w-auto min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
                            <MapPin size={16} />
                         </div>
-                        <span className="truncate">{seva.location}</span>
+                        <span className="truncate min-w-0 flex-1">{seva.location}</span>
                       </div>
                     </div>
                   </div>
@@ -404,7 +404,7 @@ const SevaDashboard = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Date</label>
                     <input
@@ -484,7 +484,7 @@ const SevaDashboard = () => {
                 <p className="text-gray-400 font-medium italic font-playfair mt-1 truncate px-4">{selectedSeva.title}</p>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-4 min-h-[300px] pr-2 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-2 custom-scrollbar">
                 {loadingParticipants ? (
                   <div className="flex flex-col items-center justify-center h-full gap-4">
                     <Loader2 className="w-10 h-10 text-saffron animate-spin" />
@@ -527,6 +527,7 @@ const SevaDashboard = () => {
                             onClick={() => handleMarkAttendance(reg.id, 'completed')}
                             className="w-10 h-10 bg-green-500 text-white rounded-xl shadow-lg shadow-green-200 flex items-center justify-center"
                             title="Mark Completed"
+                            aria-label="Mark attendance completed"
                           >
                             <UserCheck size={18} />
                           </motion.button>
@@ -538,6 +539,7 @@ const SevaDashboard = () => {
                             onClick={() => handleMarkAttendance(reg.id, 'cancelled')}
                             className="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                             title="Cancel Participation"
+                            aria-label="Cancel participation"
                           >
                             <Trash2 size={16} />
                           </motion.button>

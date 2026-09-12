@@ -348,31 +348,41 @@ const SadhanaTracker = () => {
                 initial={{ scale: 0.9, y: 50 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 50 }}
-                className="bg-white rounded-[4rem] p-12 text-center shadow-premium-xl max-w-lg w-full border border-saffron/20 relative overflow-hidden"
+                className="bg-white rounded-[2rem] sm:rounded-[3rem] md:rounded-[4rem] p-6 sm:p-10 md:p-12 text-center shadow-premium-xl max-w-lg w-full border border-saffron/20 relative overflow-hidden max-h-[90vh] overflow-y-auto"
               >
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                    <Target size={180} />
                 </div>
                 <div className="relative z-10">
-                  <div className="w-20 h-20 bg-saffron/10 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                     <Sun size={40} className="text-saffron animate-pulse" />
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-saffron/10 rounded-3xl flex items-center justify-center mx-auto mb-6 sm:mb-8">
+                     <Sun size={32} className="text-saffron animate-pulse sm:w-10 sm:h-10" />
                   </div>
-                  <div className="space-y-2 mb-8">
-                     <span className="text-[10px] font-black text-saffron uppercase tracking-[0.4rem]">Step 1: Set your daily target</span>
-                     <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase italic leading-none">Morning Vow</h2>
+                  <div className="space-y-2 mb-6 sm:mb-8">
+                     <span className="text-[10px] font-black text-saffron uppercase tracking-[0.2em] sm:tracking-[0.4em]">Step 1: Set your daily target</span>
+                     <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter uppercase italic leading-none">Morning Vow</h2>
                   </div>
-                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mb-10">Commit to your daily rounds</p>
-                  
-                  <div className="bg-gray-50 p-10 rounded-[3rem] border border-gray-100 shadow-inner mb-10">
-                     <div className="flex items-center justify-between mb-8">
-                        <button onClick={() => setTargetInput(p => Math.max(8, p - 8))} className="w-16 h-16 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-3xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95">-</button>
-                        <div className="text-7xl font-black text-gray-900 tracking-tighter tabular-nums">{targetInput}</div>
-                        <button onClick={() => setTargetInput(p => Math.min(64, p + 8))} className="w-16 h-16 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-3xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95">+</button>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mb-6 sm:mb-10">Commit to your daily rounds</p>
+
+                  <div className="bg-gray-50 p-5 sm:p-8 md:p-10 rounded-[2rem] sm:rounded-[3rem] border border-gray-100 shadow-inner mb-6 sm:mb-10">
+                     <div className="flex items-center justify-between mb-6 sm:mb-8 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setTargetInput(p => Math.max(8, p - 8))}
+                          aria-label="Decrease target by 8 rounds"
+                          className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-2xl sm:text-3xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95"
+                        >-</button>
+                        <div className="text-5xl sm:text-6xl md:text-7xl font-black text-gray-900 tracking-tighter tabular-nums">{targetInput}</div>
+                        <button
+                          type="button"
+                          onClick={() => setTargetInput(p => Math.min(64, p + 8))}
+                          aria-label="Increase target by 8 rounds"
+                          className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-2xl sm:text-3xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95"
+                        >+</button>
                      </div>
                      <p className="text-xs text-gray-400 font-medium">Sacred Goal for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</p>
                   </div>
-                  
-                  <Button onClick={handleSetTarget} disabled={submitting} className="w-full py-6 bg-gray-900 text-white font-black rounded-[2.5rem] shadow-2xl hover:bg-black group relative overflow-hidden">
+
+                  <Button onClick={handleSetTarget} disabled={submitting} className="w-full py-5 sm:py-6 bg-gray-900 text-white font-black rounded-[2.5rem] shadow-2xl hover:bg-black group relative overflow-hidden">
                      {submitting ? <Loader2 className="animate-spin mx-auto" /> : (
                        <div className="flex items-center justify-center gap-3 tracking-widest uppercase text-xs">
                            BEGIN TODAY&apos;S JOURNEY <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
@@ -398,7 +408,7 @@ const SadhanaTracker = () => {
                 initial={{ scale: 0.9, rotateY: 90 }}
                 animate={{ scale: 1, rotateY: 0 }}
                 exit={{ scale: 0.9, rotateY: -90 }}
-                className="bg-white rounded-[3.5rem] p-12 text-center shadow-premium-xl max-w-sm w-full border border-saffron/20 relative overflow-hidden"
+                className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] p-8 sm:p-12 text-center shadow-premium-xl max-w-sm w-full border border-saffron/20 relative overflow-hidden max-h-[90vh] overflow-y-auto"
               >
                 <div className="absolute inset-0 bg-gradient-to-b from-saffron/10 to-transparent" />
                 <div className="relative z-10 flex flex-col items-center">
@@ -475,7 +485,7 @@ const SadhanaTracker = () => {
              </div>
 
              <div className="flex flex-col items-center relative z-10">
-                <div className="relative mb-14 flex items-center justify-center">
+                <div className="relative mb-8 sm:mb-14 flex items-center justify-center">
                    <CircularProgress current={currentRounds} total={currentTarget || 16} />
                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <motion.span 
@@ -491,9 +501,9 @@ const SadhanaTracker = () => {
 
                 </div>
 
-                <div className="w-full max-w-sm space-y-12">
+                <div className="w-full max-w-sm space-y-8 sm:space-y-12">
                    {todayLog && (
-                     <div className="space-y-12 text-center">
+                     <div className="space-y-8 sm:space-y-12 text-center">
                         <div className="space-y-2">
                            <span className="text-[10px] font-black text-saffron uppercase tracking-[0.4em]">Step 2: Log your progress</span>
                            <h3 className="text-xl font-black text-gray-900 uppercase italic">Daily Recording</h3>
@@ -501,21 +511,31 @@ const SadhanaTracker = () => {
                         
                         <div className="bg-white p-4 rounded-[3.5rem] border border-gray-100 shadow-2xl relative group/input overflow-hidden">
                            <div className="flex items-center justify-between relative z-10">
-                             <button onClick={() => setInputRounds(prev => Math.max(0, (parseInt(prev) || 0) - 1).toString())} className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-[2.5rem] bg-gray-50 flex items-center justify-center text-gray-400 font-black text-2xl sm:text-3xl hover:bg-saffron/10 hover:text-saffron transition-all active:scale-90">-</button>
+                             <button
+                               type="button"
+                               onClick={() => setInputRounds(prev => Math.max(0, (parseInt(prev) || 0) - 1).toString())}
+                               aria-label="Decrease rounds logged by 1"
+                               className="w-14 h-14 sm:w-20 sm:h-20 shrink-0 rounded-2xl sm:rounded-[2.5rem] bg-gray-50 flex items-center justify-center text-gray-400 font-black text-2xl sm:text-3xl hover:bg-saffron/10 hover:text-saffron transition-all active:scale-90"
+                             >-</button>
                               <div className="text-center">
                                  <AnimatePresence mode="wait">
                                     <motion.span key={inputRounds} initial={{y:20, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-20, opacity:0}} className="text-5xl sm:text-7xl font-black text-gray-900 block tabular-nums leading-none mb-1">{inputRounds || 0}</motion.span>
                                  </AnimatePresence>
                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] block">Rounds Logged</span>
                               </div>
-                             <button onClick={() => setInputRounds(prev => Math.min(200, (parseInt(prev) || 0) + 1).toString())} className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-[2.5rem] bg-gray-50 flex items-center justify-center text-gray-400 font-black text-2xl sm:text-3xl hover:bg-saffron/10 hover:text-saffron transition-all active:scale-90">+</button>
+                             <button
+                               type="button"
+                               onClick={() => setInputRounds(prev => Math.min(200, (parseInt(prev) || 0) + 1).toString())}
+                               aria-label="Increase rounds logged by 1"
+                               className="w-14 h-14 sm:w-20 sm:h-20 shrink-0 rounded-2xl sm:rounded-[2.5rem] bg-gray-50 flex items-center justify-center text-gray-400 font-black text-2xl sm:text-3xl hover:bg-saffron/10 hover:text-saffron transition-all active:scale-90"
+                             >+</button>
                            </div>
                            <div className="absolute inset-0 bg-saffron/5 translate-y-full group-hover/input:translate-y-0 transition-transform duration-700 pointer-events-none" />
                         </div>
 
                         <div className="space-y-6">
                            <div className="space-y-4">
-                              <Button onClick={handleLogSadhana} disabled={submitting} className="w-full py-7 bg-gradient-to-r from-saffron to-gold text-white font-black rounded-[3rem] shadow-premium-xl relative overflow-hidden group">
+                              <Button onClick={handleLogSadhana} disabled={submitting} className="w-full py-5 sm:py-7 bg-gradient-to-r from-saffron to-gold text-white font-black rounded-[3rem] shadow-premium-xl relative overflow-hidden group">
                                  <div className="relative z-10 flex items-center justify-center gap-4 group-hover:scale-105 transition-transform uppercase tracking-[0.2em] text-xs">
                                     <ShieldCheck size={24} /> {todayLog.roundsCompleted > 0 ? 'Update Record' : 'Submit Entry'}
                                  </div>
@@ -548,13 +568,13 @@ const SadhanaTracker = () => {
           {/* Right Column */}
           <div className="lg:col-span-12 xl:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-12 h-full">
             {/* Analytics */}
-            <Card className="md:col-span-2 p-12 sm:p-14 bg-white border-none shadow-premium-xl rounded-[4rem] h-full flex flex-col min-h-[500px]">
-               <div className="flex flex-col sm:flex-row items-start justify-between gap-8 mb-16">
+            <Card className="md:col-span-2 p-6 sm:p-10 lg:p-14 bg-white border-none shadow-premium-xl rounded-[2.5rem] sm:rounded-[4rem] h-full flex flex-col min-h-[400px] sm:min-h-[500px] overflow-hidden">
+               <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-8 mb-8 sm:mb-16">
                   <div className="space-y-2">
-                     <h2 className="text-4xl font-black text-gray-900 tracking-tighter flex items-center gap-5 italic uppercase leading-none">
-                        <TrendingUp className="text-saffron" size={36} /> PERFORMANCE
+                     <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter flex items-center gap-3 sm:gap-5 italic uppercase leading-none">
+                        <TrendingUp className="text-saffron shrink-0 sm:w-9 sm:h-9" size={28} /> PERFORMANCE
                      </h2>
-                     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.3em] pl-14">Your Weekly Discipline Pulse</p>
+                     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.3em] pl-10 sm:pl-14">Your Weekly Discipline Pulse</p>
                   </div>
                   {indexBuilding && (
                     <div className="flex items-center gap-3 text-[10px] font-black text-blue-600 bg-blue-50 px-6 py-3 rounded-full animate-pulse border border-blue-100">
@@ -576,11 +596,11 @@ const SadhanaTracker = () => {
                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#00000008" />
                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill:'#9CA3AF', fontSize:11, fontWeight:900}} dy={20} />
                        <YAxis axisLine={false} tickLine={false} tick={{fill:'#9CA3AF', fontSize:11, fontWeight:900}} dx={-10} />
-                       <Tooltip 
+                       <Tooltip
                         cursor={{fill: '#00000005', radius: 20}}
-                        contentStyle={{ borderRadius: '2.5rem', border: 'none', boxShadow: '0 35px 70px -15px rgba(0,0,0,0.2)', padding: '28px' }}
+                        contentStyle={{ borderRadius: '1.5rem', border: 'none', boxShadow: '0 35px 70px -15px rgba(0,0,0,0.2)', padding: '16px 20px' }}
                        />
-                       <Bar dataKey="rounds" radius={[20, 20, 20, 20]} barSize={50}>
+                       <Bar dataKey="rounds" radius={[20, 20, 20, 20]} maxBarSize={50}>
                           {chartData.map((entry, index) => (
                              <Cell key={`cell-${index}`} fill={entry.rounds >= entry.target ? "url(#barGradient)" : "#F3F4F6"} />
                           ))}
@@ -592,17 +612,17 @@ const SadhanaTracker = () => {
 
              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
                {/* Digital Identity QR */}
-               <Card className="md:col-span-5 p-10 sm:p-12 bg-white border-none shadow-premium-xl rounded-[3.5rem] relative overflow-hidden group">
+               <Card className="md:col-span-5 p-6 sm:p-10 md:p-12 bg-white border-none shadow-premium-xl rounded-[2.5rem] sm:rounded-[3.5rem] relative overflow-hidden group">
                   <div className="absolute top-0 right-0 p-8 opacity-5 -mr-10 -mt-10 group-hover:opacity-10 transition-all duration-700">
                      <QrCode size={180} />
                   </div>
                   <div className="relative z-10 h-full flex flex-col items-center">
-                    <div className="text-center mb-8">
-                      <span className="text-[10px] font-black text-saffron uppercase tracking-[0.4rem] block mb-2 font-cinzel">VAIKUNTHA PASS</span>
-                      <h4 className="text-3xl font-black text-gray-900 tracking-tighter leading-none uppercase italic">Your ID</h4>
+                    <div className="text-center mb-6 sm:mb-8">
+                      <span className="text-[10px] font-black text-saffron uppercase tracking-[0.2em] sm:tracking-[0.4em] block mb-2 font-cinzel">VAIKUNTHA PASS</span>
+                      <h4 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter leading-none uppercase italic">Your ID</h4>
                     </div>
-                    
-                    <div className="bg-cream/50 p-6 rounded-[2.5rem] border border-saffron/10 mb-8 w-full flex justify-center">
+
+                    <div className="bg-cream/50 p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-saffron/10 mb-6 sm:mb-8 w-full flex justify-center overflow-hidden">
                        {user?.qrToken && (
                          <QRView value={user.qrToken} name={user.fullName || user.displayName || 'Devotee'} size={150} />
                        )}
@@ -636,23 +656,23 @@ const SadhanaTracker = () => {
 
              {/* Vaikuntha History */}
              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-                <Card className="p-10 bg-white border-none shadow-premium-xl rounded-[3.5rem] relative overflow-hidden group">
-                   <div className="flex items-center justify-between mb-8">
+                <Card className="p-6 sm:p-10 bg-white border-none shadow-premium-xl rounded-[2.5rem] sm:rounded-[3.5rem] relative overflow-hidden group">
+                   <div className="flex items-center justify-between mb-6 sm:mb-8">
                       <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
+                         <div className="w-12 h-12 shrink-0 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
                             <CheckCircle2 size={24} />
                          </div>
-                         <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase italic">Attendance History</h3>
+                         <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight uppercase italic">Attendance History</h3>
                       </div>
                    </div>
                    <div className="space-y-4">
                       {sadhanaData.attendance?.length > 0 ? sadhanaData.attendance.map((att, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-green-100 transition-all">
-                           <div className="flex flex-col">
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{att.session}</span>
+                        <div key={i} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-green-100 transition-all">
+                           <div className="flex flex-col min-w-0">
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{att.session}</span>
                               <span className="text-sm font-bold text-gray-900">{new Date(att.createdAt?.toDate?.() || att.createdAt).toLocaleDateString()}</span>
                            </div>
-                           <div className="text-right">
+                           <div className="text-right shrink-0">
                               <span className="text-[10px] font-black text-green-600 bg-green-100/50 px-3 py-1 rounded-full uppercase tracking-tighter">Verified</span>
                            </div>
                         </div>
@@ -662,23 +682,23 @@ const SadhanaTracker = () => {
                    </div>
                 </Card>
 
-                <Card className="p-10 bg-white border-none shadow-premium-xl rounded-[3.5rem] relative overflow-hidden group">
-                   <div className="flex items-center justify-between mb-8">
+                <Card className="p-6 sm:p-10 bg-white border-none shadow-premium-xl rounded-[2.5rem] sm:rounded-[3.5rem] relative overflow-hidden group">
+                   <div className="flex items-center justify-between mb-6 sm:mb-8">
                       <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-saffron/10 rounded-2xl flex items-center justify-center text-saffron">
+                         <div className="w-12 h-12 shrink-0 bg-saffron/10 rounded-2xl flex items-center justify-center text-saffron">
                             <Zap size={24} />
                          </div>
-                         <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase italic">Prasadam Log</h3>
+                         <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight uppercase italic">Prasadam Log</h3>
                       </div>
                    </div>
                    <div className="space-y-4">
                       {sadhanaData.prasadam?.length > 0 ? sadhanaData.prasadam.map((p, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-saffron/10 transition-all">
-                           <div className="flex flex-col">
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{p.eventTitle}</span>
+                        <div key={i} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-saffron/10 transition-all">
+                           <div className="flex flex-col min-w-0">
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{p.eventTitle}</span>
                               <span className="text-sm font-bold text-gray-900">{new Date(p.timestamp?.toDate?.() || p.timestamp).toLocaleDateString()}</span>
                            </div>
-                           <div className="text-right">
+                           <div className="text-right shrink-0">
                               <span className="text-[10px] font-black text-saffron bg-saffron/10 px-3 py-1 rounded-full uppercase tracking-tighter">Received</span>
                            </div>
                         </div>

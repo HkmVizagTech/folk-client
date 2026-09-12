@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useFirestore } from '../hooks/useFirestore';
 import {
@@ -20,12 +20,25 @@ import {
   Clock3,
   HandHeart,
   BookOpen,
+  Menu,
+  X,
 } from 'lucide-react';
 
 import Button from '../components/ui/Button';
 
+const NAV_LINKS = [
+  { href: '#about', label: 'About' },
+  { href: '#programs', label: 'Programs' },
+  { href: '#events', label: 'Events' },
+  { href: '#seva', label: 'Seva' },
+  { href: '#accommodation', label: 'Accommodation' },
+  { href: '#gallery', label: 'Gallery' },
+  { href: '#contact', label: 'Contact' },
+];
+
 const Landing = ({ onLoginClick }) => {
   const { data: events } = useFirestore('events');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Sort upcoming events by their ISO date (fall back to human date string for legacy docs)
   const sortedEvents = [...events].sort((a, b) => {
@@ -135,67 +148,63 @@ const Landing = ({ onLoginClick }) => {
               />
             </a>
 
-            <div className="hidden xl:flex items-center gap-7">
+            <div className="hidden lg:flex items-center gap-6 xl:gap-7">
 
-              <a
-                href="#about"
-                className="text-sm font-medium text-gray-600 hover:text-[#FF9933] transition"
-              >
-                About
-              </a>
-
-              <a
-                href="#programs"
-                className="text-sm font-medium text-gray-600 hover:text-[#FF9933] transition"
-              >
-                Programs
-              </a>
-
-              <a
-                href="#events"
-                className="text-sm font-medium text-gray-600 hover:text-[#FF9933] transition"
-              >
-                Events
-              </a>
-
-              <a
-                href="#seva"
-                className="text-sm font-medium text-gray-600 hover:text-[#FF9933] transition"
-              >
-                Seva
-              </a>
-
-              <a
-                href="#accommodation"
-                className="text-sm font-medium text-gray-600 hover:text-[#FF9933] transition"
-              >
-                Accommodation
-              </a>
-
-              <a
-                href="#gallery"
-                className="text-sm font-medium text-gray-600 hover:text-[#FF9933] transition"
-              >
-                Gallery
-              </a>
-
-              <a
-                href="#contact"
-                className="text-sm font-medium text-gray-600 hover:text-[#FF9933] transition"
-              >
-                Contact
-              </a>
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm font-medium text-gray-600 hover:text-[#FF9933] transition"
+                >
+                  {link.label}
+                </a>
+              ))}
 
             </div>
 
-            <Button
-              onClick={onLoginClick}
-              className="px-5 sm:px-7 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-[#FF9933] transition-all"
-            >
-              Login
-            </Button>
+            <div className="flex items-center gap-2 sm:gap-3">
+
+              <Button
+                onClick={onLoginClick}
+                className="min-h-[44px] px-5 sm:px-7 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-[#FF9933] transition-all whitespace-nowrap"
+              >
+                Login
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen((open) => !open)}
+                aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={mobileMenuOpen}
+                className="lg:hidden w-11 h-11 shrink-0 rounded-xl border border-gray-200 flex items-center justify-center text-gray-700 hover:text-[#FF9933] hover:border-[#FF9933] transition"
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+
+            </div>
 
           </div>
+
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="lg:hidden mt-3 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-lg p-3 flex flex-col gap-1"
+            >
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 hover:text-[#FF9933] hover:bg-orange-50 transition"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </motion.div>
+          )}
+
         </div>
       </nav>
 
@@ -1841,12 +1850,13 @@ const Landing = ({ onLoginClick }) => {
 
         <div className="mt-5 flex gap-3">
 
-          {[1, 2, 3].map((item) => (
+          {['Community channel', 'Kirtan playlist', 'Updates channel'].map((label) => (
 
             <button
-              key={item}
+              key={label}
               type="button"
-              className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-[#FF9933] hover:border-[#FF9933] transition"
+              aria-label={label}
+              className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-[#FF9933] hover:border-[#FF9933] transition"
             >
               <Music size={16} />
             </button>

@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, Calendar, Users, Info, Clock, CheckCircle2, Loader2, Send, Camera, RefreshCw, StopCircle, Zap, X } from 'lucide-react'
+import { Home, Calendar, Users, Info, Clock, CheckCircle2, Loader2, Send, Camera, RefreshCw, StopCircle, Zap, X, ChevronDown } from 'lucide-react'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
 import { db } from '../lib/firebase'
-import { collection, addDoc, serverTimestamp, where, query, orderBy, updateDoc, doc } from 'firebase/firestore'
+import { callApi } from '../lib/api'
+import { collection, addDoc, serverTimestamp, where, query, orderBy } from 'firebase/firestore'
 import { Html5Qrcode } from 'html5-qrcode'
 
 const Accommodation = () => {
@@ -102,7 +103,7 @@ const Accommodation = () => {
         ...formData,
         userId: user.uid,
         userName: user.name || user.displayName || 'Devotee',
-        status: 'Pending',
+        status: 'pending',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
@@ -120,24 +121,30 @@ const Accommodation = () => {
     }
   };
 
+  const [statusActionLoading, setStatusActionLoading] = useState(null);
+
+  // Routed through the backend (not a direct Firestore write) so that:
+  //  - the "folks_head can only recommend, admin can approve/reject" rule
+  //    is actually enforced (firestore.rules no longer allows a direct
+  //    client update on this collection at all), and
+  //  - the Gupshup WhatsApp confirmation to the guest actually fires.
   const handleUpdateStatus = async (requestId, newStatus) => {
+    setStatusActionLoading(requestId);
     try {
-      const requestRef = doc(db, 'accommodation_requests', requestId);
-      await updateDoc(requestRef, { 
-        status: newStatus,
-        updatedAt: serverTimestamp()
-      });
-      // Trigger notification placeholder
-      console.log(`Notification: Accommodation Request ${requestId} ${newStatus}!`);
+      await callApi('updateAccommodationStatus', { reqId: requestId, status: newStatus });
     } catch (error) {
       console.error("Error updating request:", error);
+      alert(error.message || 'Failed to update this request.');
+    } finally {
+      setStatusActionLoading(null);
     }
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Approved': return 'text-green-600 bg-green-100 border-green-200';
-      case 'Rejected': return 'text-red-600 bg-red-100 border-red-200';
+    switch ((status || '').toLowerCase()) {
+      case 'approved': return 'text-green-600 bg-green-100 border-green-200';
+      case 'rejected': return 'text-red-600 bg-red-100 border-red-200';
+      case 'recommended': return 'text-blue-600 bg-blue-100 border-blue-200';
       default: return 'text-saffron bg-saffron/10 border-saffron/20';
     }
   };
@@ -159,14 +166,14 @@ const Accommodation = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Reservation Form */}
-        <Card className="lg:col-span-2 shadow-premium border-none p-8 bg-white relative overflow-hidden">
+        <Card className="lg:col-span-2 shadow-premium border-none p-5 sm:p-8 bg-white relative overflow-hidden">
           <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
              <Home size={120} className="text-gold" />
           </div>
           <h2 className="text-xl font-bold mb-8 flex items-center gap-3 text-gray-800">
-            <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center shrink-0">
               <Home className="text-saffron" size={20} />
             </div>
             Request a Room
@@ -175,16 +182,19 @@ const Accommodation = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Accommodation Type</label>
-                <select 
-                  value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value})}
-                  className="w-full bg-cream/30 border border-saffron/10 rounded-xl px-4 py-3 outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium appearance-none"
-                >
-                  <option>Individual Guest House</option>
-                  <option>Dormitory Bed</option>
-                  <option>Family Apartment</option>
-                  <option>Volunteer Quarters</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    className="w-full bg-cream/30 border border-saffron/10 rounded-xl pl-4 pr-10 py-3 outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium appearance-none"
+                  >
+                    <option>Individual Guest House</option>
+                    <option>Dormitory Bed</option>
+                    <option>Family Apartment</option>
+                    <option>Volunteer Quarters</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Number of Guests</label>
@@ -203,7 +213,7 @@ const Accommodation = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 rotate-1">Arrival Date</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Arrival Date</label>
                 <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input 
@@ -216,7 +226,7 @@ const Accommodation = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 -rotate-1">Departure Date</label>
+                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Departure Date</label>
                  <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input 
@@ -298,12 +308,12 @@ const Accommodation = () => {
                     className="group"
                   >
                     <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all relative overflow-hidden bg-white">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-gray-300 font-mono tracking-tighter uppercase">{req.userName || 'Devotee'}</span>
-                          <span className="text-[8px] text-gray-400 font-mono tracking-tighter">REQ_{req.id.slice(0,6).toUpperCase()}</span>
+                      <div className="flex justify-between items-start gap-2 mb-3">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[10px] font-bold text-gray-400 font-mono tracking-tighter uppercase truncate">{req.userName || 'Devotee'}</span>
+                          <span className="text-[9px] text-gray-400 font-mono tracking-tighter">REQ_{req.id.slice(0,6).toUpperCase()}</span>
                         </div>
-                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border ${getStatusColor(req.status)}`}>
+                        <span className={`shrink-0 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border whitespace-nowrap ${getStatusColor(req.status)}`}>
                           {req.status}
                         </span>
                       </div>
@@ -313,19 +323,32 @@ const Accommodation = () => {
                          <span>{req.arrivalDate} to {req.departureDate}</span>
                       </div>
                       
-                      {user?.role !== 'devotee' && req.status === 'Pending' && (
+                      {user?.role === 'admin' && ['pending', 'recommended'].includes((req.status || '').toLowerCase()) && (
                         <div className="mt-4 pt-4 border-t border-gray-50 flex gap-2">
-                          <button 
-                            onClick={() => handleUpdateStatus(req.id, 'Approved')}
-                            className="flex-1 py-2 bg-green-500 text-white text-[10px] font-bold rounded-lg hover:bg-green-600 transition-colors"
+                          <button
+                            disabled={statusActionLoading === req.id}
+                            onClick={() => handleUpdateStatus(req.id, 'approved')}
+                            className="flex-1 min-h-[40px] py-2.5 bg-green-500 text-white text-xs font-bold rounded-lg hover:bg-green-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                           >
-                            Approve
+                            {statusActionLoading === req.id ? <Loader2 size={14} className="animate-spin" /> : 'Approve'}
                           </button>
-                          <button 
-                            onClick={() => handleUpdateStatus(req.id, 'Rejected')}
-                            className="flex-1 py-2 bg-red-50 text-red-500 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors"
+                          <button
+                            disabled={statusActionLoading === req.id}
+                            onClick={() => handleUpdateStatus(req.id, 'rejected')}
+                            className="flex-1 min-h-[40px] py-2.5 bg-red-50 text-red-500 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                           >
-                            Reject
+                            {statusActionLoading === req.id ? <Loader2 size={14} className="animate-spin" /> : 'Reject'}
+                          </button>
+                        </div>
+                      )}
+                      {user?.role === 'folks_head' && (req.status || '').toLowerCase() === 'pending' && (
+                        <div className="mt-4 pt-4 border-t border-gray-50">
+                          <button
+                            disabled={statusActionLoading === req.id}
+                            onClick={() => handleUpdateStatus(req.id, 'recommended')}
+                            className="w-full min-h-[40px] py-2.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                          >
+                            {statusActionLoading === req.id ? <Loader2 size={14} className="animate-spin" /> : 'Recommend'}
                           </button>
                         </div>
                       )}
@@ -341,16 +364,16 @@ const Accommodation = () => {
       </div>
 
       {user?.role !== 'devotee' && (
-        <Card className="p-8 border-none shadow-premium bg-white overflow-hidden relative">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
-              <Zap className="text-saffron" size={24} />
+        <Card className="p-5 sm:p-8 border-none shadow-premium bg-white overflow-hidden relative">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-3">
+              <Zap className="text-saffron shrink-0" size={24} />
               Quick Check-in Scanner
             </h2>
-            <Button 
+            <Button
               onClick={toggleScanner}
               variant={isScannerOpen ? "secondary" : "primary"}
-              className={`px-6 font-bold rounded-xl flex items-center gap-2 ${isScannerOpen ? 'bg-gray-100 text-gray-500 border-none' : 'bg-saffron text-white border-none'}`}
+              className={`w-full sm:w-auto px-6 font-bold rounded-xl flex items-center justify-center gap-2 ${isScannerOpen ? 'bg-gray-100 text-gray-500 border-none' : 'bg-saffron text-white border-none'}`}
             >
               {isScannerOpen ? <X size={18} /> : <Camera size={18} />}
               {isScannerOpen ? 'Close Scanner' : 'Open Scanner'}
@@ -365,7 +388,7 @@ const Accommodation = () => {
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-start">
                   <div className="space-y-6">
                     <div>
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-4">Select Scanning Device</label>
@@ -419,9 +442,10 @@ const Accommodation = () => {
                         </Button>
                       )}
                       
-                      <Button 
+                      <Button
                         onClick={() => window.location.reload()}
-                        className="p-4 bg-gray-100 text-gray-500 border-none rounded-2xl hover:bg-gray-200 transition-all"
+                        aria-label="Reload scanner"
+                        className="shrink-0 p-4 bg-gray-100 text-gray-500 border-none rounded-2xl hover:bg-gray-200 transition-all"
                       >
                          <RefreshCw size={20} />
                       </Button>

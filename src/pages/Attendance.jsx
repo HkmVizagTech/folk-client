@@ -13,7 +13,7 @@ import {
   Home
 } from 'lucide-react'
 import { db } from '../lib/firebase'
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, query, where, getDocs, serverTimestamp, doc, runTransaction } from 'firebase/firestore'
 import Card from '../components/ui/Card'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
@@ -105,31 +105,43 @@ const Attendance = ({ onOpenScanner }) => {
       if (!devoteeData) throw new Error('No registration or devotee found with this code.');
 
       if (scanMode === 'attendance') {
-        const checkinQ = query(collection(db, 'attendance'), 
-          where('userId', '==', devoteeData.id),
-          where('eventId', '==', targetEventId)
-        );
-        const checkinSnap = await getDocs(checkinQ);
-        
-        if (!checkinSnap.empty) {
+        // A deterministic doc id + transaction (instead of a separate
+        // "already checked in?" read followed by a separate write) closes a
+        // race where two near-simultaneous scans of the same devotee (two
+        // scanner stations, a flaky retry, a double-tap) could both see
+        // "not checked in yet" and both write a duplicate record.
+        const attendanceRef = doc(db, 'attendance', `${targetEventId}_${devoteeData.id}`);
+        let alreadyCheckedIn = false;
+        try {
+          await runTransaction(db, async (transaction) => {
+            const existing = await transaction.get(attendanceRef);
+            if (existing.exists()) {
+              alreadyCheckedIn = true;
+              return;
+            }
+            transaction.set(attendanceRef, {
+              userId: devoteeData.id,
+              name: devoteeData.name,
+              eventId: targetEventId,
+              session: targetEventTitle,
+              status: 'On-time',
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              createdAt: serverTimestamp()
+            });
+          });
+        } catch (txError) {
+          throw new Error(txError.message || 'Failed to record attendance.');
+        }
+
+        if (alreadyCheckedIn) {
           setVerifyResult({ success: false, message: 'Already checked in for this event!' });
         } else {
-          await addDoc(collection(db, 'attendance'), {
-            userId: devoteeData.id,
-            name: devoteeData.name,
-            eventId: targetEventId,
-            session: targetEventTitle,
-            status: 'On-time',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            createdAt: serverTimestamp()
-          });
-
           // Check for Accommodation
           let accInfo = null;
           try {
-            const accQ = query(collection(db, 'accommodation_requests'), 
+            const accQ = query(collection(db, 'accommodation_requests'),
               where('userId', '==', devoteeData.id),
-              where('status', '==', 'Approved')
+              where('status', '==', 'approved')
             );
             const accSnap = await getDocs(accQ);
             if (!accSnap.empty) accInfo = accSnap.docs[0].data();
@@ -145,31 +157,40 @@ const Attendance = ({ onOpenScanner }) => {
           setTokenInput('');
         }
       } else {
-        // Universal Manual Token for Prasadam
-        const prasadamQ = query(collection(db, 'prasadam_logs'), 
-          where('userId', '==', devoteeData.id),
-          where('eventId', '==', targetEventId)
-        );
-        const prasadamSnap = await getDocs(prasadamQ);
-        
-        if (!prasadamSnap.empty) {
+        // Universal Manual Token for Prasadam - same deterministic-id +
+        // transaction approach as attendance above, to avoid duplicate
+        // prasadam records from near-simultaneous submissions.
+        const prasadamRef = doc(db, 'prasadam_logs', `${targetEventId}_${devoteeData.id}`);
+        let alreadyReceived = false;
+        try {
+          await runTransaction(db, async (transaction) => {
+            const existing = await transaction.get(prasadamRef);
+            if (existing.exists()) {
+              alreadyReceived = true;
+              return;
+            }
+            transaction.set(prasadamRef, {
+              userId: devoteeData.id,
+              name: devoteeData.name,
+              eventId: targetEventId,
+              eventTitle: targetEventTitle,
+              received: true,
+              timestamp: serverTimestamp()
+            });
+          });
+        } catch (txError) {
+          throw new Error(txError.message || 'Failed to record prasadam.');
+        }
+
+        if (alreadyReceived) {
           setVerifyResult({ success: false, message: 'Prasadam already received!' });
         } else {
-          await addDoc(collection(db, 'prasadam_logs'), {
-            userId: devoteeData.id,
-            name: devoteeData.name,
-            eventId: targetEventId,
-            eventTitle: targetEventTitle,
-            received: true,
-            timestamp: serverTimestamp()
-          });
-
           // Check for Accommodation
           let accInfo = null;
           try {
-            const accQ = query(collection(db, 'accommodation_requests'), 
+            const accQ = query(collection(db, 'accommodation_requests'),
               where('userId', '==', devoteeData.id),
-              where('status', '==', 'Approved')
+              where('status', '==', 'approved')
             );
             const accSnap = await getDocs(accQ);
             if (!accSnap.empty) accInfo = accSnap.docs[0].data();
@@ -204,22 +225,22 @@ const Attendance = ({ onOpenScanner }) => {
           <h1 className="text-2xl font-bold font-poppins text-saffron-dark">Live Attendance</h1>
           <p className="text-sm text-gray-500">Real-time devotee check-ins and session tracking</p>
         </div>
-        <div className="flex items-center gap-3">
-           <select 
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+           <select
              value={selectedEventId}
              onChange={(e) => setSelectedEventId(e.target.value)}
-             className="px-4 py-2 bg-white border border-gray-100 rounded-xl text-sm font-bold text-gray-600 shadow-sm outline-none focus:border-saffron min-w-[200px]"
+             className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-100 rounded-xl text-sm font-bold text-gray-600 shadow-sm outline-none focus:border-saffron sm:min-w-[200px]"
            >
              <option value="">Select Active Event...</option>
              {events?.map(e => (
                <option key={e.id} value={e.id}>{e.title}</option>
              ))}
            </select>
-           <button 
+           <button
              onClick={() => {
                onOpenScanner('attendance');
              }}
-             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-saffron to-gold text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all"
+             className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-saffron to-gold text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all"
            >
              <QrIcon size={16} />
              <span>Scan Pass</span>
@@ -261,7 +282,7 @@ const Attendance = ({ onOpenScanner }) => {
                       <tr key={i} className="hover:bg-saffron/5 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-cream flex items-center justify-center text-[10px] font-bold text-saffron-dark border border-saffron/10 group-hover:bg-white">
+                            <div className="w-8 h-8 shrink-0 rounded-lg bg-cream flex items-center justify-center text-[10px] font-bold text-saffron-dark border border-saffron/10 group-hover:bg-white">
                               {row.name?.charAt(0)}
                             </div>
                             <span className="font-bold text-gray-700">{row.name}</span>
@@ -302,9 +323,9 @@ const Attendance = ({ onOpenScanner }) => {
         {/* Admin/User Specific Views */}
         <div className="space-y-6">
           {user?.role !== 'devotee' ? (
-            <Card className="p-8 border-none shadow-premium bg-white">
+            <Card className="p-5 sm:p-8 border-none shadow-premium bg-white">
             <h3 className="font-extrabold text-gray-800 mb-6 flex items-center gap-3 italic uppercase tracking-tighter">
-                <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center text-saffron">
+                <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center text-saffron shrink-0">
                    <QrIcon size={20} />
                 </div>
                 Verify Attendee
@@ -390,37 +411,37 @@ const Attendance = ({ onOpenScanner }) => {
                         : 'bg-white border-red-500'
                     }`}
                   >
-                    <div className={`${verifyResult.success ? 'bg-green-500' : 'bg-red-500'} p-6 py-8 text-center text-white`}>
+                    <div className={`${verifyResult.success ? 'bg-green-500' : 'bg-red-500'} px-4 py-8 text-center text-white`}>
                         <div className="flex flex-col items-center gap-2">
                            {verifyResult.success ? (
                              <>
                                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-2">
                                   <CheckCircle2 size={40} className="text-white" />
                                </div>
-                               <h2 className="text-4xl font-black italic uppercase tracking-tighter">ALLOWED</h2>
+                               <h2 className="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter">ALLOWED</h2>
                              </>
                            ) : (
                              <>
                                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-2">
                                   <XCircle size={40} className="text-white" />
                                </div>
-                               <h2 className="text-4xl font-black italic uppercase tracking-tighter">DENIED</h2>
+                               <h2 className="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter">DENIED</h2>
                              </>
                            )}
-                           <p className="font-bold text-xs uppercase tracking-[0.3em] opacity-80">{verifyResult.message}</p>
+                           <p className="font-bold text-xs uppercase tracking-[0.3em] opacity-80 px-2">{verifyResult.message}</p>
                         </div>
                     </div>
 
-                    <div className="p-8 space-y-6">
+                    <div className="p-5 sm:p-8 space-y-6">
                       {verifyResult.success && verifyResult.devotee && (
-                        <div className="flex items-center gap-5">
-                          <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center text-3xl font-black text-gray-300 border border-gray-100 shadow-inner">
+                        <div className="flex items-center gap-4 sm:gap-5">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-3xl bg-gray-50 flex items-center justify-center text-2xl sm:text-3xl font-black text-gray-300 border border-gray-100 shadow-inner">
                               {verifyResult.devotee.name?.charAt(0)}
                           </div>
-                          <div className="flex flex-col">
+                          <div className="flex flex-col min-w-0">
                               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Devotee Identity</span>
-                              <h3 className="text-2xl font-black text-gray-900 tracking-tighter italic uppercase">{verifyResult.devotee.name}</h3>
-                              <span className="text-[10px] font-mono font-bold text-saffron uppercase tracking-widest">ID: {verifyResult.devotee.id?.slice(0,12)}...</span>
+                              <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tighter italic uppercase truncate">{verifyResult.devotee.name}</h3>
+                              <span className="text-[10px] font-mono font-bold text-saffron uppercase tracking-widest truncate">ID: {verifyResult.devotee.id?.slice(0,12)}...</span>
                           </div>
                         </div>
                       )}
@@ -438,9 +459,9 @@ const Attendance = ({ onOpenScanner }) => {
                               <Home size={14} className="text-amber-600" />
                               <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Reserved Stay</span>
                            </div>
-                           <div className="flex justify-between items-center">
-                              <span className="text-xs font-bold text-gray-800">{verifyResult.accommodation.type}</span>
-                              <div className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-lg border border-amber-100">
+                           <div className="flex justify-between items-center gap-3">
+                              <span className="text-xs font-bold text-gray-800 truncate min-w-0">{verifyResult.accommodation.type}</span>
+                              <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 bg-white rounded-lg border border-amber-100">
                                  <Users size={12} className="text-amber-600" />
                                  <span className="text-[10px] font-black text-amber-700">{verifyResult.accommodation.guestCount}</span>
                               </div>

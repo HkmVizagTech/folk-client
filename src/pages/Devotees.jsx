@@ -20,6 +20,7 @@ import {
   QrCode
 } from 'lucide-react';
 import QRView from '../components/qr/QRView';
+import { useAuth } from '../hooks/useAuth';
 import { db } from '../lib/firebase';
 import { 
   collection, 
@@ -34,6 +35,11 @@ import {
 import Card from '../components/ui/Card';
 
 const Devotees = () => {
+  const { user: currentUser } = useAuth();
+  // Only a real admin can grant/change roles - a folks_head can view and
+  // edit ordinary devotee details but firestore.rules now reject any role
+  // change coming from a non-admin, so the UI shouldn't offer it either.
+  const isAdmin = currentUser?.role === 'admin';
   const [devotees, setDevotees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -98,15 +104,22 @@ const Devotees = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Only an admin may set/change the role field - firestore.rules
+      // enforces this too, but we also keep it out of the payload here so a
+      // folks_head's save never even attempts a role change.
+      const { role, ...rest } = formData;
+      const payload = isAdmin ? formData : rest;
+
       if (editingDevotee) {
         await updateDoc(doc(db, 'users', editingDevotee.id), {
-          ...formData,
+          ...payload,
           updatedAt: serverTimestamp()
         });
       } else {
         const qrToken = `FOLK-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
         await addDoc(collection(db, 'users'), {
-          ...formData,
+          ...payload,
+          role: isAdmin ? formData.role : 'devotee',
           qrToken,
           createdAt: serverTimestamp(),
           photo: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`
@@ -158,21 +171,21 @@ const Devotees = () => {
     <div className="space-y-8 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-saffron-dark font-poppins">Devotee Management</h1>
-          <p className="text-gray-500 mt-1">Manage all registered devotees and their permissions</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-saffron-dark font-poppins">Devotee Management</h1>
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage all registered devotees and their permissions</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <button
             onClick={exportCSV}
             disabled={filteredDevotees.length === 0}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={18} />
             <span>Export</span>
           </button>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-saffron to-gold text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-saffron to-gold text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
           >
             <Plus size={20} />
             <span>Add Devotee</span>
@@ -180,21 +193,21 @@ const Devotees = () => {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-2xl border border-saffron/10 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-white p-4 rounded-2xl border border-saffron/10 shadow-sm">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="Search by name or phone..." 
+          <input
+            type="text"
+            placeholder="Search by name or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-cream/30 border border-transparent rounded-xl focus:bg-white focus:border-saffron focus:ring-4 focus:ring-saffron/5 outline-none transition-all"
           />
         </div>
-        <div className="relative">
+        <div className="relative w-full md:w-auto">
           <button
             onClick={() => setShowRoleFilter(!showRoleFilter)}
-            className="flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:border-saffron text-gray-600 hover:text-saffron transition-all"
+            className="flex items-center justify-center gap-2 px-4 py-3 w-full md:w-auto bg-white border border-gray-200 rounded-xl hover:border-saffron text-gray-600 hover:text-saffron transition-all"
           >
             <Filter size={18} />
             <span>{roleFilter === 'All' ? 'Filters' : `Role: ${roleFilter}`}</span>
@@ -239,29 +252,36 @@ const Devotees = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
               >
-                <Card className="group hover:shadow-premium-xl transition-all duration-300 border-none bg-white relative overflow-hidden h-full shadow-md">
-                  <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => setQrModalDevotee(devotee)}
-                        className="p-2 bg-saffron/5 text-saffron rounded-lg hover:bg-saffron/10 transition-colors"
-                        title="View Vaikuntha ID"
-                      >
-                        <QrCode size={16} />
-                      </button>
-                      <button 
-                        onClick={() => handleEdit(devotee)}
-                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
+                <Card className="group hover:shadow-premium-xl transition-all duration-300 border-none bg-white relative overflow-hidden h-full shadow-md p-5 sm:p-6 md:p-8">
+                  {/* Action buttons: always visible on mobile/touch (no hover state there);
+                      on md+ they overlay top-right and only reveal on card hover, as before. */}
+                  <div className="flex justify-end gap-2 mb-3 md:mb-0 md:absolute md:top-0 md:right-0 md:p-4 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+                    <button
+                      onClick={() => setQrModalDevotee(devotee)}
+                      className="p-2.5 bg-saffron/5 text-saffron rounded-lg hover:bg-saffron/10 transition-colors"
+                      title="View Vaikuntha ID"
+                      aria-label={`View Vaikuntha ID for ${devotee.name || 'devotee'}`}
+                    >
+                      <QrCode size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(devotee)}
+                      className="p-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                      title="Edit devotee"
+                      aria-label={`Edit ${devotee.name || 'devotee'}`}
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    {isAdmin && (
+                      <button
                         onClick={() => handleDelete(devotee.id)}
-                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                        className="p-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                        title="Delete devotee"
+                        aria-label={`Delete ${devotee.name || 'devotee'}`}
                       >
                         <Trash2 size={16} />
                       </button>
-                    </div>
+                    )}
                   </div>
 
                   <div className="flex items-start gap-4">
@@ -338,20 +358,22 @@ const Devotees = () => {
               onClick={handleCloseModal}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl shadow-premium p-8 overflow-hidden"
+              className="relative w-full max-w-lg max-h-[90vh] bg-white rounded-3xl shadow-premium overflow-hidden flex flex-col"
             >
-              <button 
+              <button
                 onClick={handleCloseModal}
-                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all z-10"
+                aria-label="Close"
               >
                 <X size={20} />
               </button>
 
-              <h2 className="text-2xl font-bold text-saffron-dark mb-6">
+              <div className="p-6 sm:p-8 overflow-y-auto">
+              <h2 className="text-2xl font-bold text-saffron-dark mb-6 pr-10">
                 {editingDevotee ? 'Edit Devotee' : 'Add New Devotee'}
               </h2>
 
@@ -400,18 +422,25 @@ const Devotees = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-gray-700 ml-1">Role</label>
-                    <select 
-                      value={formData.role}
-                      onChange={(e) => setFormData({...formData, role: e.target.value})}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-saffron outline-none transition-all appearance-none"
-                    >
-                      <option value="devotee">Devotee</option>
-                      <option value="admin">Admin</option>
-                      <option value="volunteer">Volunteer</option>
-                    </select>
+                    {isAdmin ? (
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({...formData, role: e.target.value})}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-saffron outline-none transition-all appearance-none"
+                      >
+                        <option value="devotee">Devotee</option>
+                        <option value="folks_head">Folks Head</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    ) : (
+                      <div className="w-full px-4 py-3 bg-gray-100 border border-gray-100 rounded-xl text-gray-500 font-medium capitalize">
+                        {(editingDevotee ? formData.role : 'devotee')?.replace('_', ' ') || 'Devotee'}
+                        <span className="block text-[10px] font-bold text-gray-400 normal-case mt-0.5">Only an admin can change roles</span>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-gray-700 ml-1">Auth Level</label>
@@ -441,6 +470,7 @@ const Devotees = () => {
                   </button>
                 </div>
               </form>
+              </div>
             </motion.div>
           </div>
         )}
@@ -456,42 +486,45 @@ const Devotees = () => {
               onClick={() => setQrModalDevotee(null)}
               className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-white rounded-[3.5rem] shadow-premium-xl p-10 overflow-hidden text-center border border-white"
+              className="relative w-full max-w-sm max-h-[90vh] bg-white rounded-[2rem] sm:rounded-[3.5rem] shadow-premium-xl overflow-hidden text-center border border-white flex flex-col"
             >
-              <button 
+              <button
                 onClick={() => setQrModalDevotee(null)}
-                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all z-10"
+                aria-label="Close"
               >
                 <X size={20} />
               </button>
 
-              <div className="mb-4">
-                <span className="text-[10px] font-black text-saffron uppercase tracking-[0.4rem] block mb-2">Vaikuntha ID Card</span>
-                <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-10">Permanent pass</h2>
-              </div>
-
-              {qrModalDevotee.qrToken ? (
-                <QRView value={qrModalDevotee.qrToken} name={qrModalDevotee.name} />
-              ) : (
-                <div className="py-10 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
-                   <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-4">No token yet</p>
-                   <button
-                     onClick={() => generateQrToken(qrModalDevotee)}
-                     className="px-6 py-3 bg-saffron text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-saffron-dark transition-all"
-                   >
-                     Generate QR Token
-                   </button>
+              <div className="p-6 sm:p-10 overflow-y-auto">
+                <div className="mb-4">
+                  <span className="text-[10px] font-black text-saffron uppercase tracking-[0.4rem] block mb-2">Vaikuntha ID Card</span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-6 sm:mb-10 pr-8">Permanent pass</h2>
                 </div>
-              )}
 
-              <p className="mt-8 text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
-                Scan for Attendance & Prasadam <br/>
-                <span className="text-saffron-dark/40 font-black">Folkvizag Devotee Management</span>
-              </p>
+                {qrModalDevotee.qrToken ? (
+                  <QRView value={qrModalDevotee.qrToken} name={qrModalDevotee.name} />
+                ) : (
+                  <div className="py-10 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
+                     <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-4">No token yet</p>
+                     <button
+                       onClick={() => generateQrToken(qrModalDevotee)}
+                       className="px-6 py-3 bg-saffron text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-saffron-dark transition-all"
+                     >
+                       Generate QR Token
+                     </button>
+                  </div>
+                )}
+
+                <p className="mt-8 text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
+                  Scan for Attendance & Prasadam <br/>
+                  <span className="text-saffron-dark/40 font-black">Folkvizag Devotee Management</span>
+                </p>
+              </div>
             </motion.div>
           </div>
         )}

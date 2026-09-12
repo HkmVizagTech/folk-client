@@ -77,13 +77,19 @@ export const AuthProvider = ({ children }) => {
     await window.confirmationResult.confirm(otp);
   };
 
-  const completeProfile = async (role, providedName) => {
+  const completeProfile = async (_requestedRole, providedName) => {
     if (!auth.currentUser) return;
-    
-    // Supreme Admin Escalation Check
+
+    // Every account is created as a plain "devotee" - the only exception is
+    // the single hardcoded root admin uid (a real Firebase Auth uid nobody
+    // else can spoof). Folks Head / Admin access is granted later by an
+    // existing admin, never chosen by the user at signup - this mirrors the
+    // firestore.rules `users` create rule, so this write is never rejected,
+    // and it means a compromised/modified client can no longer self-assign
+    // an elevated role by passing a different value here.
     const isRootAdmin = auth.currentUser.uid === 'wRbvUaFiBOYeXEEtF8OuXnzGWXs2';
-    const assignedRole = isRootAdmin ? 'admin' : role;
-    
+    const assignedRole = isRootAdmin ? 'admin' : 'devotee';
+
     const userRef = doc(db, 'users', auth.currentUser.uid);
     try {
       const finalName = providedName || auth.currentUser.displayName || 'Devotee';

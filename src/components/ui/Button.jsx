@@ -14,7 +14,7 @@ const Button = ({ children, className, variant = 'primary', ...props }) => {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       className={cn(
-        "font-semibold py-2 px-6 rounded-xl transition-all duration-300",
+        "inline-flex items-center justify-center gap-2 min-h-[44px] font-semibold py-2 px-6 rounded-xl transition-all duration-300",
         variants[variant],
         className
       )}

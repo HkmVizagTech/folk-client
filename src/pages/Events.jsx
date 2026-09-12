@@ -288,7 +288,7 @@ const Events = () => {
         )}
 
         {/* Grid Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
             {filteredEvents.slice(activeCategory === 'All' ? 1 : 0).map((event, idx) => (
               <motion.div key={event.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
                  <Card className="p-0 border-none shadow-premium-xl rounded-[3.5rem] overflow-hidden flex flex-col h-full bg-white group transition-all hover:translate-y-[-10px]">
@@ -305,7 +305,7 @@ const Events = () => {
                        </div>
                     </div>
                     
-                    <div className="p-10 flex-1 flex flex-col space-y-6">
+                    <div className="p-6 sm:p-8 lg:p-10 flex-1 flex flex-col space-y-6">
                        <div className="flex items-center gap-2 text-saffron text-[11px] font-black uppercase tracking-[0.2em]">
                           <Calendar size={14} /> {event.date}
                        </div>
@@ -327,10 +327,10 @@ const Events = () => {
                                </div>
                              );
                              return (
-                               <Button 
+                               <Button
                                  disabled={rsvpLoading[event.id]}
-                                 onClick={() => handleRSVP(event, true)} 
-                                 className="py-3 px-6 bg-saffron text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-saffron/20 group disabled:opacity-50"
+                                 onClick={() => handleRSVP(event, true)}
+                                 className="py-3.5 px-6 min-h-[44px] bg-saffron text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-saffron/20 group disabled:opacity-50"
                                >
                                   {rsvpLoading[event.id] ? <Loader2 className="animate-spin mx-auto" size={14} /> : (
                                     <div className="flex items-center">
@@ -366,9 +366,9 @@ const Events = () => {
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl" />
-            <motion.div initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 50 }} className="relative w-full max-w-2xl bg-white rounded-[4rem] shadow-premium-xl p-10 sm:p-14 overflow-y-auto max-h-[90vh] border border-saffron/10 scrollbar-hide">
-               <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-all"><X size={24}/></button>
-               
+            <motion.div initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 50 }} className="relative w-full max-w-2xl bg-white rounded-[2.5rem] sm:rounded-[4rem] shadow-premium-xl p-6 sm:p-10 xl:p-14 overflow-y-auto max-h-[90vh] border border-saffron/10 scrollbar-hide">
+               <button onClick={() => setIsModalOpen(false)} aria-label="Close" className="absolute top-6 right-6 sm:top-8 sm:right-8 w-11 h-11 sm:w-12 sm:h-12 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-all"><X size={24}/></button>
+
                <div className="text-center mb-12">
                   <div className="w-16 h-16 bg-gradient-to-br from-saffron to-gold rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
                      <Sparkles size={32} className="text-white" />
