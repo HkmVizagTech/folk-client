@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import MainLayout from './components/layout/MainLayout'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminSetup from './pages/AdminSetup'
+import AdminLogin from './pages/AdminLogin'
+import AdminAccessDenied from './pages/AdminAccessDenied'
 import Events from './pages/Events'
 import SadhanaTracker from './pages/SadhanaTracker'
 import Accommodation from './pages/Accommodation'
@@ -109,6 +111,11 @@ function App() {
   }
 
   if (!user) {
+    // The admin portal has its own dedicated sign-in screen. Administrators
+    // always enter through /admin — never through the member login below.
+    if (getPathname() === '/admin') {
+      return <AdminLogin />
+    }
     const tabFromUrl = pathToTab(getPathname());
     // Landing page only for the root path when there's no cached session.
     if (showLanding && tabFromUrl === 'dashboard') {
@@ -131,7 +138,8 @@ function App() {
   }
 
   if (user.requiresRole) {
-    return <Login />
+    // Keep the admin portal self-contained even mid-profile-setup.
+    return getPathname() === '/admin' ? <AdminLogin /> : <Login />
   }
 
   const renderContent = () => {
@@ -174,17 +182,16 @@ function App() {
       case 'donate':
         return <Donate />
       case 'admin':
-        // A real staff member gets the full Command Center. Anyone else who
-        // lands on /admin sees the Site Admin page, which explains access and
-        // lets an owner create the shared admin login - no more dead-end
-        // redirects back to the home tab.
+        // The dedicated admin portal: staff get the Command Center, a signed-in
+        // member gets a clear access notice (with the one-time first-admin
+        // bootstrap for a fresh site). No dead-end redirects.
         return isStaff ? (
           <AdminDashboard 
             setActiveTab={setActiveTab} 
             onOpenScanner={(mode) => setGlobalScanner({ isOpen: true, mode })}
           />
         ) : (
-          <AdminSetup setActiveTab={setActiveTab} />
+          <AdminAccessDenied />
         )
       default: 
         return (

@@ -2,6 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, Users, CheckCircle2, Lock, User, Phone, Key } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { auth, db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+
+// Administrators have a dedicated portal at /admin and must not use the
+// member sign-in. After Firebase accepts the credentials we check the
+// profile role; an admin is signed straight back out with a pointer to
+// the right door. Non-admin sign-ins are unaffected.
+const enforceNotAdmin = async () => {
+  const current = auth.currentUser;
+  if (!current) return;
+  try {
+    const snap = await getDoc(doc(db, 'users', current.uid));
+    if (snap.exists() && snap.data().role === 'admin') {
+      await signOut(auth);
+      throw new Error('admin-portal-only');
+    }
+  } catch (err) {
+    if (err.message === 'admin-portal-only') throw err;
+    // Profile lookup failed (rules/network): don't block the member login.
+  }
+};
 
 const Login = () => {
   const { loginGoogle, loginEmail, registerEmail, resetPassword, setupRecaptcha, sendOTP, verifyOTP, user, completeProfile, logout } = useAuth();
@@ -35,8 +57,14 @@ const Login = () => {
 
   const handleGoogleAuth = async () => {
     setLoading(true); setError(''); setMessage('');
-    try { await loginGoogle(); } 
-    catch (err) { setError(err.message || 'Failed to sign in with Google'); } 
+    try {
+      await loginGoogle();
+      await enforceNotAdmin();
+    } 
+    catch (err) { 
+      if (err.message === 'admin-portal-only') { setError('Administrator accounts must sign in via the Admin Portal at /admin.'); }
+      else { setError(err.message || 'Failed to sign in with Google'); }
+    } 
     finally { setLoading(false); }
   };
 
@@ -58,9 +86,11 @@ const Login = () => {
         await registerEmail(toEmail(email), password, name);
       } else {
         await loginEmail(toEmail(email), password);
+        await enforceNotAdmin();
       }
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') setError('Email already in use. Please sign in instead.');
+      if (err.message === 'admin-portal-only') setError('Administrator accounts must sign in via the Admin Portal at /admin.');
+      else if (err.code === 'auth/email-already-in-use') setError('Email already in use. Please sign in instead.');
       else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') setError('Invalid email or password.');
       else if (err.code === 'auth/weak-password') setError('Password should be at least 6 characters.');
       else setError(err.message || 'Authentication failed. Please try again.');
@@ -91,8 +121,10 @@ const Login = () => {
     setLoading(true); setError(''); setMessage('');
     try {
       await verifyOTP(otp);
+      await enforceNotAdmin();
     } catch (err) {
-      if (err.code === 'auth/invalid-verification-code') setError('Invalid OTP. Please check and try again.');
+      if (err.message === 'admin-portal-only') setError('Administrator accounts must sign in via the Admin Portal at /admin.');
+      else if (err.code === 'auth/invalid-verification-code') setError('Invalid OTP. Please check and try again.');
       else setError(err.message || 'Failed to verify OTP.');
     } finally {
       setLoading(false);
