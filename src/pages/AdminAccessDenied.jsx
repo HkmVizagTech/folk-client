@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, LogOut, ArrowRight, Loader2, KeyRound, ChevronDown } from 'lucide-react';
+import { ShieldAlert, LogOut, ArrowRight, Loader2, KeyRound, ChevronDown, Copy, Check } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { callApi } from '../lib/api';
 
@@ -16,6 +16,18 @@ const AdminAccessDenied = () => {
   const { user, logout } = useAuth();
   const [showBootstrap, setShowBootstrap] = useState(false);
   const [setupState, setSetupState] = useState({ status: 'idle', message: '' });
+  const [uidCopied, setUidCopied] = useState(false);
+
+  const copyUid = async () => {
+    try {
+      await navigator.clipboard.writeText(user?.uid || '');
+      setUidCopied(true);
+      setTimeout(() => setUidCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable (older browser/insecure context) — the raw UID
+      // is still selectable below.
+    }
+  };
 
   const createSiteAdmin = async () => {
     setSetupState({ status: 'working', message: 'Provisioning the shared admin login…' });
@@ -104,6 +116,28 @@ const AdminAccessDenied = () => {
                   <span className="font-bold text-gray-300">admin@folk123</span>). It only works while
                   no admin exists yet.
                 </p>
+
+                {/* Direct unblock: paste this UID as ROOT_ADMIN_UID on the
+                    server (Railway env var) to give YOUR account bootstrap
+                    rights, then click Create Admin Login below. */}
+                <div className="mb-4 p-3 rounded-xl bg-gray-800/60 border border-gray-700/50">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                    Your Firebase UID — set it as ROOT_ADMIN_UID on Railway to bootstrap with this account
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-[10px] text-gray-300 break-all font-mono select-all">
+                      {user?.uid || 'unavailable'}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={copyUid}
+                      aria-label="Copy UID"
+                      className="shrink-0 p-2 rounded-lg bg-gray-700/60 text-gray-300 hover:text-saffron hover:bg-gray-700 transition-all"
+                    >
+                      {uidCopied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
                 <button
                   onClick={createSiteAdmin}
                   disabled={setupState.status === 'working'}
