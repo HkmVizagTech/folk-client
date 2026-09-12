@@ -90,6 +90,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
   const [showDigitalId, setShowDigitalId] = useState(false);
   const [donation, setDonation] = useState(null);
   const [donationAmount, setDonationAmount] = useState(501);
+  const [adminSetupState, setAdminSetupState] = useState({ status: 'idle', message: '' });
 
   const generateGrowthAudit = () => {
     const headers = ['Name', 'Role', 'Level', 'Streak', 'Longest Streak', 'Score', 'Phone', 'QR Token'];
@@ -123,6 +124,20 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
     await handlePayment(user, donationAmount, donation.title, null);
     setDonation(null);
     setDonationAmount(501);
+  };
+
+  const createSiteAdmin = async () => {
+    setAdminSetupState({ status: 'working', message: 'Setting up the shared admin login…' });
+    try {
+      const result = await callApi('createAdmin');
+      setAdminSetupState({
+        status: 'done',
+        message: `Admin login ready → username: ${result.username}  ·  password: admin@folk123`,
+      });
+    } catch (error) {
+      console.error("createAdmin failed:", error);
+      setAdminSetupState({ status: 'error', message: error?.message || 'Failed to create admin login' });
+    }
   };
 
   useEffect(() => {
@@ -549,6 +564,32 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             <Button onClick={() => { setDonation({ sevaId: 'general', title: 'General Donation' }); setDonationAmount(501); }} className="w-full mt-6 bg-gradient-to-r from-gold to-saffron border-none font-bold py-4 rounded-xl shadow-lg">
                Donate with Razorpay
             </Button>
+          </Card>
+
+          <Card className="p-8 border-none shadow-premium bg-gradient-to-br from-white to-celestial/10 relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-4 opacity-10">
+                <ShieldCheck size={40} className="text-celestial" />
+             </div>
+             <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+              Site Admin Access
+            </h3>
+            <p className="text-xs text-gray-500 mb-6 leading-relaxed">Authorize a dedicated administrator login for managing the whole site. The shared login uses username <span className="font-bold text-gray-700">admin</span> and password <span className="font-bold text-gray-700">admin@folk123</span>.</p>
+            <div className="flex flex-wrap gap-2 mb-6">
+               <span className="px-3 py-1.5 rounded-full bg-celestial/10 text-celestial text-[10px] font-black uppercase tracking-widest">Username: admin</span>
+               <span className="px-3 py-1.5 rounded-full bg-saffron/10 text-saffron text-[10px] font-black uppercase tracking-widest">Password: admin@folk123</span>
+            </div>
+            <Button
+              onClick={createSiteAdmin}
+              disabled={adminSetupState.status === 'working'}
+              className="w-full bg-gradient-to-r from-celestial to-purple-500 border-none font-bold py-4 rounded-xl shadow-lg"
+            >
+              {adminSetupState.status === 'working' ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Create / Reset Admin Login'}
+            </Button>
+            {adminSetupState.status !== 'idle' && (
+              <p className={`mt-4 text-xs font-bold text-center ${adminSetupState.status === 'error' ? 'text-red-500' : 'text-green-600'}`}>
+                {adminSetupState.message}
+              </p>
+            )}
           </Card>
         </div>
       </div>

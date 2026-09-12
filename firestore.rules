@@ -29,10 +29,20 @@ service cloud.firestore {
 
     // ---------------- EVENTS ----------------
     // Publicly readable so logged-out users can see the events on the landing page.
+    // Staff may create/edit freely; any signed-in devotee may RSVP by tweaking
+    // ONLY the attending/declined counters (+/-1 per tap), never other fields.
     match /events/{eventId} {
       allow read: if true;
       allow create: if isStaff();
-      allow update, delete: if isSuperAdmin();
+      allow update: if isStaff() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendingCount', 'declinedCount']) &&
+        request.resource.data.attendingCount >= 0 &&
+        request.resource.data.declinedCount >= 0 &&
+        (!('attendingCount' in resource.data) || request.resource.data.attendingCount - resource.data.attendingCount in [-1, 0, 1]) &&
+        (!('declinedCount' in resource.data) || request.resource.data.declinedCount - resource.data.declinedCount in [-1, 0, 1])
+      );
+      allow delete: if isSuperAdmin();
     }
 
     // ---------------- NOTIFICATIONS ----------------
@@ -91,7 +101,7 @@ service cloud.firestore {
     // on re-RSVP) but can never repoint it at a different event or user -
     // that would corrupt the manual check-in lookup staff rely on.
     match /registrations/{regId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isSignedIn() && (
         isStaff() ||
@@ -105,8 +115,11 @@ service cloud.firestore {
     }
 
     // ---------------- SADHANA LOGS ----------------
+    // Content placeholders when the log does not exist yet are safe - there
+    // is nothing to leak, and both the Morning Vow transaction and the sadhana
+    // query read the doc by id before it has been created (resource == null).
     match /sadhana_logs/{logId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
       allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow delete: if isSuperAdmin();
     }
@@ -114,13 +127,13 @@ service cloud.firestore {
     // ---------------- ATTENDANCE / PRASADAM LOGS ----------------
     // Only staff create these (they are produced by admin scanners during check-in).
     match /attendance/{attId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
       allow create, update: if isStaff();
       allow delete: if isSuperAdmin();
     }
 
     match /prasadam_logs/{logId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
       allow create, update: if isStaff();
       allow delete: if isSuperAdmin();
     }
@@ -134,7 +147,7 @@ service cloud.firestore {
     // bypasses these rules, so the backend can still write here; no direct
     // client write (by anyone, staff included) is allowed.
     match /accommodation_requests/{reqId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if false;
       allow delete: if isSuperAdmin();
@@ -166,7 +179,7 @@ service cloud.firestore {
     // registration "completed" - otherwise a devotee could credit themselves
     // for seva they never performed.
     match /seva_registrations/{regId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isSignedIn() && (
         isStaff() ||
@@ -192,7 +205,7 @@ service cloud.firestore {
     // client update is allowed on someone else's identifying fields, and a
     // devotee can never mark their own booking approved.
     match /hostel_bookings/{bookingId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
       allow create: if isSignedIn() &&
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.status == 'pending';
@@ -220,7 +233,7 @@ service cloud.firestore {
     // This is what makes the webhook the single source of truth: nobody can
     // forge a "completed"/"verified" donation from the browser.
     match /payments/{paymentId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
       allow create, update, delete: if false;
     }
   }

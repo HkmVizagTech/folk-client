@@ -40,6 +40,8 @@ const Login = () => {
     finally { setLoading(false); }
   };
 
+  const toEmail = (value) => value.includes('@') ? value : `${value.trim().toLowerCase()}@folkvizag.app`;
+
   const handleEmailAuth = async (e) => {
     e.preventDefault();
     if (!email || (!isForgotPassword && !password) || (!isForgotPassword && isSignUp && !name)) {
@@ -49,13 +51,13 @@ const Login = () => {
     setLoading(true); setError(''); setMessage('');
     try {
       if (isForgotPassword) {
-        await resetPassword(email);
+        await resetPassword(toEmail(email));
         setMessage('Password reset link sent! Check your inbox.');
         setIsForgotPassword(false);
       } else if (isSignUp) {
-        await registerEmail(email, password, name);
+        await registerEmail(toEmail(email), password, name);
       } else {
-        await loginEmail(email, password);
+        await loginEmail(toEmail(email), password);
       }
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') setError('Email already in use. Please sign in instead.');
