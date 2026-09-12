@@ -119,17 +119,9 @@ function App() {
         </>
       )
     }
-    // Admin URLs are never dead-ends: show the Site Admin page (which asks the
-    // visitor to sign in) instead of a bare login form, so it is obvious the
-    // route exists and what it is for.
-    if (tabFromUrl === 'admin' || tabFromUrl === 'admin-setup') {
-      return (
-        <MainLayout activeTab={activeTab} setActiveTab={setActiveTab}>
-          <InstallPrompt />
-          <AdminSetup setActiveTab={setActiveTab} />
-        </MainLayout>
-      )
-    }
+    // Every other path (including /admin and /createadmin) shows the login
+    // form with username + password. Admin routes are protected, just like
+    // the firewall rules: you must sign in before you can manage anything.
     return (
       <>
         <InstallPrompt />
