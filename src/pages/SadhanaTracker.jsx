@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Flame, TrendingUp, Calendar, Zap, Loader2, Plus, CheckCircle2, Circle, Trophy, Star, Target, ShieldCheck, ChevronRight, ArrowRight, Info, Award, Save, Sun } from 'lucide-react'
+import { Flame, TrendingUp, Calendar, Zap, Loader2, Plus, CheckCircle2, Circle, Trophy, Star, Target, ShieldCheck, ChevronRight, ArrowRight, Info, Award, Save, Sun, X } from 'lucide-react'
 import Card from '../components/ui/Card'
 import CircularProgress from '../components/sadhana/CircularProgress'
 import Button from '../components/ui/Button'
@@ -22,6 +22,7 @@ const SadhanaTracker = () => {
   const [showSaved, setShowSaved] = useState(false);
   const [showMilestone, setShowMilestone] = useState(false);
   const [indexBuilding, setIndexBuilding] = useState(false);
+  const [skippedTargetToday, setSkippedTargetToday] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
   const fetchData = async () => {
@@ -337,8 +338,8 @@ const SadhanaTracker = () => {
       >
         {/* Daily Target Modal - Mandatory Check */}
         <AnimatePresence>
-          {!todayLog && (
-            <motion.div 
+          {!todayLog && !skippedTargetToday && (
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -353,6 +354,14 @@ const SadhanaTracker = () => {
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                    <Target size={180} />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setSkippedTargetToday(true)}
+                  aria-label="Skip setting a target for now"
+                  className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex items-center justify-center transition-all"
+                >
+                  <X size={18} />
+                </button>
                 <div className="relative z-10">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 bg-saffron/10 rounded-3xl flex items-center justify-center mx-auto mb-6 sm:mb-8">
                      <Sun size={32} className="text-saffron animate-pulse sm:w-10 sm:h-10" />
@@ -389,6 +398,13 @@ const SadhanaTracker = () => {
                        </div>
                      )}
                   </Button>
+                  <button
+                    type="button"
+                    onClick={() => setSkippedTargetToday(true)}
+                    className="mt-4 text-[10px] font-black text-gray-300 hover:text-gray-500 uppercase tracking-widest transition-colors"
+                  >
+                    Skip for now
+                  </button>
                 </div>
               </motion.div>
             </motion.div>
@@ -559,6 +575,20 @@ const SadhanaTracker = () => {
                               </motion.div>
                            )}
                         </div>
+                     </div>
+                   )}
+                   {!todayLog && skippedTargetToday && (
+                     <div className="text-center space-y-4 py-4">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
+                           Set today&apos;s rounds target to start logging your practice
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setSkippedTargetToday(false)}
+                          className="text-[10px] font-black text-saffron hover:text-saffron-dark uppercase tracking-[0.2em] underline underline-offset-4 transition-colors"
+                        >
+                          Set Target Now
+                        </button>
                      </div>
                    )}
                 </div>

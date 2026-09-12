@@ -4,6 +4,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import Events from './pages/Events'
 import SadhanaTracker from './pages/SadhanaTracker'
 import Accommodation from './pages/Accommodation'
+import Hostels from './pages/Hostels'
 import Attendance from './pages/Attendance'
 import Login from './pages/Login'
 import Landing from './pages/Landing'
@@ -75,8 +76,10 @@ function App() {
         return <Events />
       case 'dashboard': 
         return <SadhanaTracker />
-      case 'accommodation': 
+      case 'accommodation':
         return <Accommodation />
+      case 'hostels':
+        return <Hostels />
       case 'attendance': 
         return (
           <UserRoleGuard allowedRoles={['admin', 'folks_head']}>

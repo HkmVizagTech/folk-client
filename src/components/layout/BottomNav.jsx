@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, TrendingUp, Calendar, Home, CheckSquare, Heart, QrCode, User } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Calendar, Home, CheckSquare, Heart, QrCode, User, Building2 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth';
 
 const BottomNav = ({ activeTab, setActiveTab }) => {
@@ -14,6 +14,7 @@ const BottomNav = ({ activeTab, setActiveTab }) => {
     { id: 'seva', icon: <Heart size={20} />, label: 'Seva', roles: ['admin', 'folks_head', 'devotee'] },
     { id: 'profile', icon: <User size={20} />, label: 'Profile', roles: ['admin', 'folks_head', 'devotee'] },
     { id: 'accommodation', icon: <Home size={20} />, label: 'Stay', roles: ['admin', 'folks_head', 'devotee'] },
+    { id: 'hostels', icon: <Building2 size={20} />, label: 'Hostels', roles: ['admin', 'folks_head', 'devotee'] },
   ]
 
   const navItems = allItems.filter(item => item.roles.includes(user?.role));

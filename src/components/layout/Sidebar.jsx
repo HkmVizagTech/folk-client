@@ -44,16 +44,11 @@ const NavItem = ({ icon, label, active, isOpen, onClick }) => (
 const Sidebar = ({ isOpen, setIsOpen, activeTab, setActiveTab }) => {
   const { user } = useAuth();
   
-  // "Management" labels imply staff-only capability (create/edit/approve).
-  // Devotees only get to browse + RSVP/join on these same pages, so they get
-  // a plainer label to avoid implying admin powers they don't have.
-  const isStaffUser = user?.role === 'admin' || user?.role === 'folks_head';
-
   const allItems = [
     { id: 'admin', icon: <Shield />, label: "Command Center", roles: ['admin', 'folks_head'] },
     { id: 'devotees', icon: <User />, label: "Devotees", roles: ['admin', 'folks_head'] },
-    { id: 'events', icon: <Calendar />, label: isStaffUser ? "Event Management" : "Events", roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'seva', icon: <Heart />, label: isStaffUser ? "Seva Management" : "Seva", roles: ['admin', 'folks_head', 'devotee'] },
+    { id: 'events', icon: <Calendar />, label: "Event Management", roles: ['admin', 'folks_head', 'devotee'] },
+    { id: 'seva', icon: <Heart />, label: "Seva Management", roles: ['admin', 'folks_head', 'devotee'] },
     { id: 'dashboard', icon: <TrendingUp />, label: "Sadhana Tracker", roles: ['admin', 'folks_head', 'devotee'] },
     { id: 'profile', icon: <User />, label: "My Profile", roles: ['admin', 'folks_head', 'devotee'] },
     { id: 'accommodation', icon: <Home />, label: "Accommodation", roles: ['admin', 'folks_head', 'devotee'] },
@@ -63,46 +58,52 @@ const Sidebar = ({ isOpen, setIsOpen, activeTab, setActiveTab }) => {
   const menuItems = allItems.filter(item => item.roles.includes(user?.role));
 
   return (
-    <motion.aside 
+    <motion.aside
       initial={false}
       animate={{ width: isOpen ? 260 : 80 }}
-      className="fixed left-0 top-0 h-full bg-white border-r border-saffron/10 z-50 overflow-hidden shadow-premium"
+      className="fixed left-0 top-0 h-full bg-white border-r border-saffron/10 z-50 shadow-premium"
     >
-      <div className="p-6 flex items-center gap-4 overflow-hidden">
-        <div className="w-10 h-10 shrink-0">
-          <img 
-            src="/logo.png" 
-            alt="Logo" 
-            className="w-full h-full object-contain filter sepia saturate-[6] hue-rotate-[-30deg] drop-shadow-[0_0_5px_rgba(255,153,51,0.2)]" 
-          />
+      {/* Clips only the collapsing text/labels — the floating toggle button below
+          intentionally sits half outside this box, so it must NOT be inside an
+          overflow-hidden ancestor or it gets clipped and becomes unclickable. */}
+      <div className="h-full overflow-hidden">
+        <div className="p-6 flex items-center gap-4 overflow-hidden">
+          <div className="w-10 h-10 shrink-0">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-full h-full object-contain filter sepia saturate-[6] hue-rotate-[-30deg] drop-shadow-[0_0_5px_rgba(255,153,51,0.2)]"
+            />
+          </div>
+          {isOpen && (
+            <motion.span
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="font-black text-xl bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent whitespace-nowrap"
+            >
+              Folkvizag
+            </motion.span>
+          )}
         </div>
-        {isOpen && (
-          <motion.span 
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="font-black text-xl bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent whitespace-nowrap"
-          >
-            Folkvizag
-          </motion.span>
-        )}
+
+        <nav className="mt-8 px-4 space-y-2">
+          {menuItems.map((item) => (
+            <NavItem
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              active={activeTab === item.id}
+              isOpen={isOpen}
+              onClick={() => setActiveTab(item.id)}
+            />
+          ))}
+        </nav>
       </div>
 
-      <nav className="mt-8 px-4 space-y-2">
-        {menuItems.map((item) => (
-          <NavItem 
-            key={item.id}
-            icon={item.icon}
-            label={item.label}
-            active={activeTab === item.id}
-            isOpen={isOpen}
-            onClick={() => setActiveTab(item.id)}
-          />
-        ))}
-      </nav>
-
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute bottom-8 right-0 -mr-4 w-8 h-8 bg-saffron text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+        aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+        className="absolute top-8 right-0 translate-x-1/2 w-9 h-9 bg-saffron text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10"
       >
         {isOpen ? <X size={16} /> : <Menu size={16} />}
       </button>

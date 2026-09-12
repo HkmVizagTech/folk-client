@@ -32,22 +32,7 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if true;
       allow create: if isStaff();
-      // Any signed-in devotee may bump attendingCount/declinedCount by
-      // exactly +-1 when they RSVP (Events.jsx) - this was previously
-      // isSuperAdmin()-only, which meant every RSVP from a non-admin failed
-      // with "Missing or insufficient permissions". Every other field stays
-      // admin-only.
-      allow update: if isSuperAdmin() || (
-        isSignedIn() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendingCount', 'declinedCount']) &&
-        request.resource.data.attendingCount is int &&
-        request.resource.data.declinedCount is int &&
-        request.resource.data.attendingCount >= 0 &&
-        request.resource.data.declinedCount >= 0 &&
-        (request.resource.data.attendingCount - resource.data.get('attendingCount', 0)) in [-1, 0, 1] &&
-        (request.resource.data.declinedCount - resource.data.get('declinedCount', 0)) in [-1, 0, 1]
-      );
-      allow delete: if isSuperAdmin();
+      allow update, delete: if isSuperAdmin();
     }
 
     // ---------------- NOTIFICATIONS ----------------
@@ -188,6 +173,43 @@ service cloud.firestore {
         (request.auth.uid == resource.data.userId && request.resource.data.status != 'completed')
       );
       allow delete: if false;
+    }
+
+    // ---------------- HOSTEL LISTINGS ----------------
+    // Ongoing youth-hostel rooms/beds, managed by staff and publicly browsable
+    // (same "public read" pattern as events, so a logged-out visitor can see
+    // what's available before signing up).
+    match /hostel_listings/{listingId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    // ---------------- HOSTEL BOOKINGS ----------------
+    // Mirrors accommodation_requests: a devotee can create their own booking
+    // request and read it back; only staff can change its status
+    // (approve/reject/waitlist), and only the status/notes fields - they can
+    // never rewrite which listing or user a booking points to. No direct
+    // client update is allowed on someone else's identifying fields, and a
+    // devotee can never mark their own booking approved.
+    match /hostel_bookings/{bookingId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+      allow update: if isSignedIn() && (
+        (
+          isStaff() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'staffNotes', 'updatedAt'])
+        ) ||
+        (
+          // Owner may only cancel their own still-pending request.
+          request.auth.uid == resource.data.userId &&
+          resource.data.status == 'pending' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+          request.resource.data.status == 'cancelled'
+        )
+      );
+      allow delete: if isSuperAdmin();
     }
 
     // ---------------- PAYMENTS ----------------

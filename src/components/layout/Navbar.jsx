@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { LogOut, User, Bell, Award, Shield, Calendar, X } from 'lucide-react'
+import { LogOut, User, Bell, Award, Shield, Calendar, X, TrendingUp, Home, CheckSquare, Heart, Building2 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useFirestore } from '../../hooks/useFirestore'
 import { orderBy, limit } from 'firebase/firestore'
 import { motion, AnimatePresence } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
+import { cn } from '../ui/Card'
 
 const toDate = (value) => {
   if (value?.toDate) return value.toDate();
@@ -19,11 +20,49 @@ const timeAgo = (value) => {
   }
 };
 
-const Navbar = ({ setActiveTab }) => {
+// Same destinations as the old Sidebar, plus the new Hostels entry.
+// role-aware labels preserved: staff see "Event Management"/"Seva Management",
+// devotees see the shorter "Events"/"Seva".
+const NAV_ITEMS = [
+  { id: 'admin', icon: <Shield />, label: 'Command Center', roles: ['admin', 'folks_head'] },
+  { id: 'devotees', icon: <User />, label: 'Devotees', roles: ['admin', 'folks_head'] },
+  { id: 'events', icon: <Calendar />, label: 'Event Management', devoteeLabel: 'Events', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'seva', icon: <Heart />, label: 'Seva Management', devoteeLabel: 'Seva', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'dashboard', icon: <TrendingUp />, label: 'Sadhana Tracker', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'hostels', icon: <Building2 />, label: 'Hostels', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'accommodation', icon: <Home />, label: 'Accommodation', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'attendance', icon: <CheckSquare />, label: 'Attendance', roles: ['admin', 'folks_head'] },
+  { id: 'profile', icon: <User />, label: 'My Profile', roles: ['admin', 'folks_head', 'devotee'] },
+]
+
+const NavLink = ({ icon, label, active, onClick }) => (
+  <motion.button
+    type="button"
+    whileHover={{ y: -1 }}
+    onClick={onClick}
+    aria-current={active ? 'page' : undefined}
+    aria-label={label}
+    className={cn(
+      'flex items-center gap-2 shrink-0 px-3 py-2.5 min-h-[44px] rounded-xl cursor-pointer transition-all whitespace-nowrap font-medium text-sm',
+      active
+        ? 'bg-gradient-to-r from-saffron/10 to-gold/10 text-saffron-dark ring-1 ring-saffron/20'
+        : 'text-gray-500 hover:text-saffron hover:bg-saffron/5'
+    )}
+  >
+    <span className={cn(active ? 'text-saffron' : 'text-gray-400')}>
+      {React.cloneElement(icon, { size: 18 })}
+    </span>
+    <span className="hidden lg:inline">{label}</span>
+  </motion.button>
+)
+
+const Navbar = ({ activeTab, setActiveTab }) => {
   const { user, logout } = useAuth()
   const [showNotifs, setShowNotifs] = useState(false)
   const [showAllNotifs, setShowAllNotifs] = useState(false)
   const notifRef = useRef(null)
+
+  const menuItems = NAV_ITEMS.filter(item => item.roles.includes(user?.role));
 
   const notifQuery = React.useMemo(() => [
     orderBy('createdAt', 'desc'),
@@ -46,18 +85,38 @@ const Navbar = ({ setActiveTab }) => {
   }, [])
 
   return (
-    <header className="h-16 sm:h-20 bg-white/50 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 flex items-center justify-between border-b border-saffron/10 transition-all duration-500">
-      <div className="flex items-center gap-4">
+    <header className="h-16 sm:h-20 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 flex items-center justify-between gap-4 border-b border-saffron/10 shadow-sm transition-all duration-500">
+      <div className="flex items-center gap-4 shrink-0">
         <div className="flex items-center drop-shadow-sm hover:drop-shadow-md transition-all duration-300">
-          <img 
-            src="/logo.png" 
-            alt="Folkvizag Logo" 
-            className="h-8 sm:h-12 w-auto object-contain hover:scale-[1.02] transition-transform cursor-pointer drop-shadow-md brightness-0 opacity-90" 
+          <img
+            src="/logo.png"
+            alt="Folkvizag Logo"
+            className="h-8 sm:h-12 w-auto object-contain hover:scale-[1.02] transition-transform cursor-pointer drop-shadow-md brightness-0 opacity-90"
           />
         </div>
+        <span className="hidden md:inline font-black text-lg bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent whitespace-nowrap">
+          Folkvizag
+        </span>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-6">
+      {/* Desktop horizontal nav — replaces the old left Sidebar. Hidden on
+          mobile since BottomNav already covers navigation there. */}
+      <nav
+        aria-label="Primary"
+        className="hidden md:flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-hide"
+      >
+        {menuItems.map((item) => (
+          <NavLink
+            key={item.id}
+            icon={item.icon}
+            label={user?.role === 'devotee' && item.devoteeLabel ? item.devoteeLabel : item.label}
+            active={activeTab === item.id}
+            onClick={() => setActiveTab(item.id)}
+          />
+        ))}
+      </nav>
+
+      <div className="flex items-center gap-2 sm:gap-6 shrink-0">
         <div className="flex items-center gap-1 sm:gap-6">
           
           {/* Realtime Notification Bell */}
