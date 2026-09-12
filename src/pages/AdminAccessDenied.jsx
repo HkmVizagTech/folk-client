@@ -17,6 +17,7 @@ const AdminAccessDenied = () => {
   const [showBootstrap, setShowBootstrap] = useState(false);
   const [setupState, setSetupState] = useState({ status: 'idle', message: '' });
   const [uidCopied, setUidCopied] = useState(false);
+  const [setupCode, setSetupCode] = useState('');
 
   const copyUid = async () => {
     try {
@@ -32,10 +33,13 @@ const AdminAccessDenied = () => {
   const createSiteAdmin = async () => {
     setSetupState({ status: 'working', message: 'Provisioning the shared admin login…' });
     try {
-      const result = await callApi('createAdmin');
+      const result = await callApi('createAdmin', setupCode ? { setupCode } : {});
+      const promotedNote = result?.callerPromoted
+        ? ' Your account was also promoted to admin — the portal is ready.'
+        : '';
       setSetupState({
         status: 'done',
-        message: `Admin login ready → username: ${result.username} · password: admin@folk123. Sign out and sign in with those credentials.`,
+        message: `Admin login ready → username: ${result.username} · password: admin@folk123.${promotedNote} Sign out and sign in with those credentials.`,
       });
     } catch (error) {
       console.error('createAdmin failed:', error);
@@ -136,6 +140,19 @@ const AdminAccessDenied = () => {
                     >
                       {uidCopied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
                     </button>
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                      Or paste your ADMIN_SETUP_CODE (server env var) — works even if UID matching fails
+                    </p>
+                    <input
+                      type="password"
+                      value={setupCode}
+                      onChange={(e) => setSetupCode(e.target.value)}
+                      placeholder="Setup code"
+                      autoComplete="off"
+                      className="w-full px-3 py-2.5 bg-gray-900/70 border border-gray-700/60 rounded-xl outline-none focus:border-saffron/70 text-gray-200 text-xs font-mono placeholder:text-gray-600"
+                    />
                   </div>
                 </div>
                 <button
