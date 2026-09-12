@@ -67,24 +67,13 @@ const Sidebar = ({ isOpen, setIsOpen, activeTab, setActiveTab }) => {
           intentionally sits half outside this box, so it must NOT be inside an
           overflow-hidden ancestor or it gets clipped and becomes unclickable. */}
       <div className="h-full overflow-hidden">
-        <div className="p-6 flex items-center gap-4 overflow-hidden">
-          <div className="w-10 h-10 shrink-0">
-            <img
-              src="/logo.png"
-              alt="Logo"
-              className="w-full h-full object-contain filter sepia saturate-[6] hue-rotate-[-30deg] drop-shadow-[0_0_5px_rgba(255,153,51,0.2)]"
-            />
-          </div>
-          {isOpen && (
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="font-black text-xl bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent whitespace-nowrap"
-            >
-              Folkvizag
-            </motion.span>
-          )}
-        </div>
+<div className="p-6 flex items-center justify-center overflow-hidden">
+        <img 
+          src="/logo.png" 
+          alt="Logo" 
+          className="h-14 w-auto object-contain filter sepia saturate-[6] hue-rotate-[-30deg] drop-shadow-[0_0_5px_rgba(255,153,51,0.2)]" 
+        />
+      </div>
 
         <nav className="mt-8 px-4 space-y-2">
           {menuItems.map((item) => (

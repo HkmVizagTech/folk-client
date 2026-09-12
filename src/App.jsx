@@ -11,6 +11,12 @@ import Landing from './pages/Landing'
 import Devotees from './pages/Devotees'
 import SevaDashboard from './pages/SevaDashboard'
 import Profile from './pages/Profile'
+import About from './pages/About'
+import Trips from './pages/Trips'
+import Gallery from './pages/Gallery'
+import Calendar from './pages/Calendar'
+import Contact from './pages/Contact'
+import Donate from './pages/Donate'
 import { useAuth } from './hooks/useAuth'
 import UserRoleGuard from './components/auth/UserRoleGuard'
 import ScanningOverlay from './components/qr/ScanningOverlay'
@@ -92,6 +98,18 @@ function App() {
         return <SevaDashboard />
       case 'profile':
         return <Profile />
+      case 'about':
+        return <About />
+      case 'trips':
+        return <Trips />
+      case 'gallery':
+        return <Gallery />
+      case 'calendar':
+        return <Calendar />
+      case 'contact':
+        return <Contact />
+      case 'donate':
+        return <Donate />
       case 'admin':
         return (
           <UserRoleGuard allowedRoles={['admin', 'folks_head']}>

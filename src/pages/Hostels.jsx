@@ -397,7 +397,7 @@ const Hostels = () => {
         </h2>
         {(myBookings || []).length === 0 ? (
           <Card className="p-8 text-center border-none shadow-sm bg-white">
-            <p className="text-gray-400 italic text-sm">You haven't requested a hostel stay yet.</p>
+            <p className="text-gray-400 italic text-sm">You haven&apos;t requested a hostel stay yet.</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -414,7 +414,7 @@ const Hostels = () => {
                     <p className="text-xs text-gray-400 font-medium">{b.checkIn} &rarr; {b.checkOut}</p>
                     <p className="text-xs text-gray-400 font-medium mt-1">{b.guestCount} guest{b.guestCount > 1 ? 's' : ''}</p>
                     {b.staffNotes && (
-                      <p className="text-xs text-gray-500 mt-2 italic bg-cream/50 rounded-lg p-2">"{b.staffNotes}"</p>
+                      <p className="text-xs text-gray-500 mt-2 italic bg-cream/50 rounded-lg p-2">&quot;{b.staffNotes}&quot;</p>
                     )}
                     {(b.status || '').toLowerCase() === 'pending' && (
                       <button
@@ -468,7 +468,7 @@ const Hostels = () => {
                     <p className="text-xs text-gray-400 font-medium mt-1">
                       {b.userName || 'Devotee'} &middot; {b.checkIn} &rarr; {b.checkOut} &middot; {b.guestCount} guest{b.guestCount > 1 ? 's' : ''}
                     </p>
-                    {b.notes && <p className="text-xs text-gray-500 mt-1 italic">"{b.notes}"</p>}
+                    {b.notes && <p className="text-xs text-gray-500 mt-1 italic">&quot;{b.notes}&quot;</p>}
                   </div>
                   {(b.status || '').toLowerCase() === 'pending' && (
                     <div className="flex gap-2 shrink-0">

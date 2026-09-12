@@ -343,55 +343,55 @@ const SadhanaTracker = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[120] flex items-center justify-center bg-gray-900/60 backdrop-blur-xl p-4"
+              className="fixed inset-0 z-[200] flex items-center justify-center bg-gray-900/60 backdrop-blur-xl p-4"
             >
               <motion.div
                 initial={{ scale: 0.9, y: 50 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 50 }}
-                className="bg-white rounded-[2rem] sm:rounded-[3rem] md:rounded-[4rem] p-6 sm:p-10 md:p-12 text-center shadow-premium-xl max-w-lg w-full border border-saffron/20 relative overflow-hidden max-h-[90vh] overflow-y-auto"
+                className="bg-white rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 text-center shadow-premium-xl max-w-md w-full border border-saffron/20 relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-8 opacity-5">
-                   <Target size={180} />
+                   <Target size={140} />
                 </div>
                 <button
                   type="button"
                   onClick={() => setSkippedTargetToday(true)}
                   aria-label="Skip setting a target for now"
-                  className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex items-center justify-center transition-all"
+                  className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex items-center justify-center transition-all"
                 >
                   <X size={18} />
                 </button>
                 <div className="relative z-10">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-saffron/10 rounded-3xl flex items-center justify-center mx-auto mb-6 sm:mb-8">
-                     <Sun size={32} className="text-saffron animate-pulse sm:w-10 sm:h-10" />
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-saffron/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
+                     <Sun size={28} className="text-saffron animate-pulse" />
                   </div>
-                  <div className="space-y-2 mb-6 sm:mb-8">
-                     <span className="text-[10px] font-black text-saffron uppercase tracking-[0.2em] sm:tracking-[0.4em]">Step 1: Set your daily target</span>
-                     <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tighter uppercase italic leading-none">Morning Vow</h2>
+                  <div className="space-y-1.5 mb-5">
+                     <span className="text-[10px] font-black text-saffron uppercase tracking-[0.2em] sm:tracking-[0.3em]">Step 1: Set your daily target</span>
+                     <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-none">Morning Vow</h2>
                   </div>
-                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mb-6 sm:mb-10">Commit to your daily rounds</p>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mb-5">Commit to your daily rounds</p>
 
-                  <div className="bg-gray-50 p-5 sm:p-8 md:p-10 rounded-[2rem] sm:rounded-[3rem] border border-gray-100 shadow-inner mb-6 sm:mb-10">
-                     <div className="flex items-center justify-between mb-6 sm:mb-8 gap-2">
+                  <div className="bg-gray-50 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-gray-100 shadow-inner mb-5">
+                     <div className="flex items-center justify-between mb-4 gap-2">
                         <button
                           type="button"
                           onClick={() => setTargetInput(p => Math.max(8, p - 8))}
                           aria-label="Decrease target by 8 rounds"
-                          className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-2xl sm:text-3xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95"
+                          className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95"
                         >-</button>
-                        <div className="text-5xl sm:text-6xl md:text-7xl font-black text-gray-900 tracking-tighter tabular-nums">{targetInput}</div>
+                        <div className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tighter tabular-nums">{targetInput}</div>
                         <button
                           type="button"
                           onClick={() => setTargetInput(p => Math.min(64, p + 8))}
                           aria-label="Increase target by 8 rounds"
-                          className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-2xl sm:text-3xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95"
+                          className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95"
                         >+</button>
                      </div>
                      <p className="text-xs text-gray-400 font-medium">Sacred Goal for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</p>
                   </div>
 
-                  <Button onClick={handleSetTarget} disabled={submitting} className="w-full py-5 sm:py-6 bg-gray-900 text-white font-black rounded-[2.5rem] shadow-2xl hover:bg-black group relative overflow-hidden">
+                  <Button onClick={handleSetTarget} disabled={submitting} className="w-full py-4 bg-gray-900 text-white font-black rounded-[2rem] shadow-2xl hover:bg-black group relative overflow-hidden">
                      {submitting ? <Loader2 className="animate-spin mx-auto" /> : (
                        <div className="flex items-center justify-center gap-3 tracking-widest uppercase text-xs">
                            BEGIN TODAY&apos;S JOURNEY <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
@@ -401,7 +401,7 @@ const SadhanaTracker = () => {
                   <button
                     type="button"
                     onClick={() => setSkippedTargetToday(true)}
-                    className="mt-4 text-[10px] font-black text-gray-300 hover:text-gray-500 uppercase tracking-widest transition-colors"
+                    className="mt-3 text-[10px] font-black text-gray-300 hover:text-gray-500 uppercase tracking-widest transition-colors"
                   >
                     Skip for now
                   </button>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { LogOut, User, Bell, Award, Shield, Calendar, X, TrendingUp, Home, CheckSquare, Heart, Building2 } from 'lucide-react'
+import { LogOut, User, Bell, Award, Shield, Calendar, X, TrendingUp, Home, CheckSquare, Heart, Building2, Sparkles, Bus, Image, BookOpen, Phone, Gift } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useFirestore } from '../../hooks/useFirestore'
 import { orderBy, limit } from 'firebase/firestore'
@@ -33,6 +33,12 @@ const NAV_ITEMS = [
   { id: 'accommodation', icon: <Home />, label: 'Accommodation', roles: ['admin', 'folks_head', 'devotee'] },
   { id: 'attendance', icon: <CheckSquare />, label: 'Attendance', roles: ['admin', 'folks_head'] },
   { id: 'profile', icon: <User />, label: 'My Profile', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'about', icon: <Sparkles />, label: 'About Us', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'trips', icon: <Bus />, label: 'Trips', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'gallery', icon: <Image />, label: 'Gallery', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'calendar', icon: <BookOpen />, label: 'Calendar', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'donate', icon: <Gift />, label: 'Donate', roles: ['admin', 'folks_head', 'devotee'] },
+  { id: 'contact', icon: <Phone />, label: 'Contact', roles: ['admin', 'folks_head', 'devotee'] },
 ]
 
 const NavLink = ({ icon, label, active, onClick }) => (
@@ -105,7 +111,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
           : 'top-0 left-0 right-0 h-16 sm:h-20 px-4 sm:px-8 border-b border-saffron/10 shadow-sm'
       )}
     >
-      <div className="flex items-center gap-4 shrink-0">
+      <div className="flex items-center gap-4 shrink-0 md:flex-1 md:justify-start">
         <div className="flex items-center drop-shadow-sm hover:drop-shadow-md transition-all duration-300">
           <img
             src="/logo.png"
@@ -116,9 +122,6 @@ const Navbar = ({ activeTab, setActiveTab }) => {
             )}
           />
         </div>
-        <span className="hidden md:inline font-black text-lg bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent whitespace-nowrap">
-          Folkvizag
-        </span>
       </div>
 
       {/* Desktop horizontal nav — replaces the old left Sidebar. Hidden on
@@ -138,7 +141,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
         ))}
       </nav>
 
-      <div className="flex items-center gap-2 sm:gap-6 shrink-0">
+      <div className={cn('flex items-center gap-2 sm:gap-6 shrink-0', 'md:flex-1 md:justify-end')}>
         <div className="flex items-center gap-1 sm:gap-6">
           
           {/* Realtime Notification Bell */}
