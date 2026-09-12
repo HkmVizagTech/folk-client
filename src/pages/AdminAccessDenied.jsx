@@ -27,12 +27,11 @@ const AdminAccessDenied = () => {
       });
     } catch (error) {
       console.error('createAdmin failed:', error);
-      const msg = error?.message || 'Failed to create admin login';
+      // The server's message is already human-readable and may name the
+      // existing admin — show it verbatim instead of replacing it.
       setSetupState({
         status: 'error',
-        message: /admins only/i.test(msg)
-          ? 'An admin already exists on this site — ask them to sign in instead.'
-          : msg,
+        message: error?.message || 'Failed to create admin login',
       });
     }
   };
