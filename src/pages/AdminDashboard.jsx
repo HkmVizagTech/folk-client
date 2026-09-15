@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Flame, Calendar, ChevronRight, Loader2, ShieldCheck, Plus, Users, Home, CheckSquare, Trophy, Heart } from 'lucide-react'
+import { Flame, Calendar, ChevronRight, Loader2, ShieldCheck, Plus, Users, Home, CheckSquare, Trophy, Heart, Building2, BedDouble } from 'lucide-react'
 import Button from '../components/ui/Button'
 import StatCard from '../components/dashboard/StatCard'
 import Card from '../components/ui/Card'
@@ -25,6 +25,22 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
   const { data: allEvents, loading: eventsLoading } = useFirestore('events');
   const { data: allRequests, loading: requestsLoading } = useFirestore('accommodation_requests', requestsQuery);
   const { data: allSevas, loading: sevasLoading } = useFirestore('sevas');
+
+  // FOLK Residency / Hostels. Listings are what staff upload and manage;
+  // bookings are the stay requests devotees submit and staff approve.
+  // Statuses on hostel_bookings are lowercase ('pending' | 'approved' |
+  // 'rejected' | 'cancelled'), so compare case-insensitively.
+  // Deliberately not wired into the page-level loading gate below: these are
+  // new collections, so on a site that hasn't created any yet (or before the
+  // Firestore rules are deployed) the dashboard must still render rather than
+  // spin forever.
+  const { data: hostelListings } = useFirestore('hostel_listings');
+  const { data: hostelBookings } = useFirestore('hostel_bookings');
+
+  const pendingHostelBookings = (hostelBookings || []).filter(
+    (b) => (b.status || '').toLowerCase() === 'pending'
+  );
+  const activeHostelListings = (hostelListings || []).filter((l) => l.active !== false);
 
   const stats = [
     {
@@ -54,6 +70,13 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
       sub: `${allSevas.length} Active Sevas`,
       color: 'gold',
       onClick: () => setActiveTab('seva')
+    },
+    {
+      label: 'Residency Bookings',
+      value: pendingHostelBookings.length.toString(),
+      sub: `${activeHostelListings.length} Listing${activeHostelListings.length === 1 ? '' : 's'} Live`,
+      color: 'celestial',
+      onClick: () => setActiveTab('hostels')
     },
   ];
 
@@ -141,7 +164,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-10">
         {stats.map((stat, i) => (
           <StatCard key={i} {...stat} />
         ))}
@@ -156,6 +179,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             { label: 'New Event', icon: <Calendar size={20} />, tab: 'events', color: 'bg-gold text-white shadow-gold/20' },
             { label: 'Manage Seva', icon: <Heart size={20} />, tab: 'seva', color: 'bg-orange-500 text-white shadow-orange-200' },
             { label: 'Verify Stay', icon: <Home size={20} />, tab: 'accommodation', color: 'bg-celestial text-white shadow-celestial/20' },
+            { label: 'Manage Residency', icon: <Building2 size={20} />, tab: 'hostels', color: 'bg-emerald-600 text-white shadow-emerald-200' },
             { label: 'Scan Check-in', icon: <CheckSquare size={20} />, tab: 'attendance', color: 'bg-purple-600 text-white shadow-purple-200' },
           ].map((action, i) => (
             <motion.button
@@ -290,6 +314,92 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                                View All Requests
                              </Button>
                            </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </Card>
+
+          {/* FOLK Residency / Hostels — listings staff upload and the stay
+              requests devotees submit. Approving/rejecting happens on the
+              Hostels page itself (that's where the write rules are matched),
+              so this panel surfaces what needs attention and links across. */}
+          <Card className="p-8 border-none shadow-premium bg-white overflow-hidden">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <Building2 className="text-emerald-600" size={24} />
+                FOLK Residency
+              </h2>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-lg uppercase tracking-wider">
+                  {activeHostelListings.length} Live
+                </span>
+                <span className="px-3 py-1 bg-saffron/10 text-saffron text-[10px] font-black rounded-lg uppercase tracking-wider">
+                  {pendingHostelBookings.length} Pending
+                </span>
+                <Button
+                  onClick={() => setActiveTab('hostels')}
+                  className="py-2 px-4 text-[10px] bg-emerald-600 text-white font-bold rounded-lg border-none hover:bg-emerald-700 transition-all"
+                >
+                  <Plus size={14} /> Upload Listing
+                </Button>
+              </div>
+            </div>
+
+            <div className="-mx-4 sm:mx-0 overflow-x-auto pb-4 scrollbar-hide">
+              <div className="min-w-[600px] sm:min-w-full px-4 sm:px-0">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">
+                      <th className="pb-4 font-black">Devotee</th>
+                      <th className="pb-4 font-black">Room / Bed</th>
+                      <th className="pb-4 font-black">Stay Dates</th>
+                      <th className="pb-4 font-black">Guests</th>
+                      <th className="pb-4 font-black">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {pendingHostelBookings.length > 0 ? pendingHostelBookings.map((b) => (
+                      <tr key={b.id} className="group hover:bg-gray-50/50 transition-colors">
+                        <td className="py-4 font-bold text-gray-700">{b.userName || 'Unknown'}</td>
+                        <td className="py-4 text-sm text-gray-500">{b.listingName || '—'}</td>
+                        <td className="py-4 text-sm text-gray-400 font-medium">
+                          {b.checkIn} → {b.checkOut}
+                        </td>
+                        <td className="py-4 text-sm text-gray-500">{b.guestCount || 1}</td>
+                        <td className="py-4 text-right">
+                          <Button
+                            onClick={() => setActiveTab('hostels')}
+                            className="py-2 px-4 text-[10px] bg-emerald-50 text-emerald-700 font-bold rounded-lg border-none hover:bg-emerald-600 hover:text-white transition-all"
+                          >
+                            Review
+                          </Button>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan="5" className="py-20 text-center space-y-4">
+                          <div className="flex flex-col items-center justify-center text-gray-300">
+                            <BedDouble size={40} className="mb-4 opacity-20" />
+                            <p className="text-sm font-bold uppercase tracking-widest text-gray-400">
+                              {activeHostelListings.length === 0 ? 'No listings yet' : 'All caught up!'}
+                            </p>
+                            <p className="text-xs mt-1">
+                              {activeHostelListings.length === 0
+                                ? 'Upload your first hostel room or bed to start taking bookings.'
+                                : 'No pending residency bookings.'}
+                            </p>
+                            <Button
+                              variant="secondary"
+                              onClick={() => setActiveTab('hostels')}
+                              className="mt-6 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                            >
+                              {activeHostelListings.length === 0 ? 'Upload a Listing' : 'Manage Residency'}
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )}

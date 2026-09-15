@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ArrowRight, Users, CheckCircle2, Lock, User, Phone, Key } from 'lucide-react';
+import { Mail, ArrowRight, Users, CheckCircle2, Lock, User, Phone, Key, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -25,8 +25,13 @@ const enforceNotAdmin = async () => {
   }
 };
 
+// Phone OTP now goes through Flaxxa WAPI on the backend, keeping the
+// project on the Firebase free (Spark) tier — no billing required.
+// Set to false only if you want to hide the Phone tab entirely.
+const PHONE_AUTH_ENABLED = true;
+
 const Login = () => {
-  const { loginGoogle, loginEmail, registerEmail, resetPassword, setupRecaptcha, sendOTP, verifyOTP, user, completeProfile, logout } = useAuth();
+  const { loginGoogle, loginEmail, registerEmail, resetPassword, sendOTP, verifyOTP, user, completeProfile, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -46,14 +51,13 @@ const Login = () => {
   const [phone, setPhone] = useState('+91');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
+  // If phone auth is switched off, never leave the UI stranded on the phone
+  // form (e.g. a stale state) - fall back to email.
   useEffect(() => {
-    if (authMethod === 'phone' && !otpSent && !isForgotPassword) {
-      setTimeout(() => {
-        setupRecaptcha('recaptcha-container');
-      }, 500);
-    }
-  }, [authMethod, otpSent, setupRecaptcha, isForgotPassword]);
+    if (!PHONE_AUTH_ENABLED && authMethod === 'phone') setAuthMethod('email');
+  }, [authMethod]);
 
   const handleGoogleAuth = async () => {
     setLoading(true); setError(''); setMessage('');
@@ -105,12 +109,26 @@ const Login = () => {
     try {
       await sendOTP(phone);
       setOtpSent(true);
-      setMessage('OTP sent successfully!');
+      setMessage('OTP sent to your WhatsApp!');
     } catch (err) {
-      if(err.code === 'auth/invalid-phone-number') setError('Invalid phone number format. Include country code (e.g. +91).');
-      else setError(err.message || 'Failed to send OTP. Try again.');
+      console.error('OTP send error:', err);
+      setError(err.message || 'Failed to send OTP. Try again.');
     } finally {
       setLoading(false);
+      setTimeout(() => setMessage(''), 5000);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setResendLoading(true); setError(''); setMessage('');
+    try {
+      await sendOTP(phone);
+      setMessage('New OTP sent to your WhatsApp!');
+    } catch (err) {
+      console.error('OTP resend error:', err);
+      setError(err.message || 'Failed to resend OTP. Try again.');
+    } finally {
+      setResendLoading(false);
       setTimeout(() => setMessage(''), 5000);
     }
   };
@@ -123,6 +141,7 @@ const Login = () => {
       await verifyOTP(otp);
       await enforceNotAdmin();
     } catch (err) {
+      console.error('OTP verify error:', err);
       if (err.message === 'admin-portal-only') setError('Administrator accounts must sign in via the Admin Portal at /admin.');
       else if (err.code === 'auth/invalid-verification-code') setError('Invalid OTP. Please check and try again.');
       else setError(err.message || 'Failed to verify OTP.');
@@ -244,14 +263,16 @@ const Login = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
               {!otpSent && !isForgotPassword && (
                 <div className="flex flex-col gap-4">
-                  <div className="flex p-1 bg-gray-100/50 rounded-xl mb-2">
-                    <button onClick={() => setAuthMethod('email')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${authMethod === 'email' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                      <Mail size={14} /> Email
-                    </button>
-                    <button onClick={() => { setAuthMethod('phone'); setIsSignUp(false); }} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${authMethod === 'phone' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                      <Phone size={14} /> Phone
-                    </button>
-                  </div>
+                  {PHONE_AUTH_ENABLED && (
+                    <div className="flex p-1 bg-gray-100/50 rounded-xl mb-2">
+                      <button onClick={() => setAuthMethod('email')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${authMethod === 'email' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+                        <Mail size={14} /> Email
+                      </button>
+                      <button onClick={() => { setAuthMethod('phone'); setIsSignUp(false); }} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${authMethod === 'phone' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+                        <Phone size={14} /> Phone
+                      </button>
+                    </div>
+                  )}
                   
                   <div className="flex gap-4 border-b border-gray-100 pb-2 mt-4">
                     <button onClick={() => setIsSignUp(false)} className={`flex-1 text-sm font-bold transition-all ${!isSignUp ? 'text-saffron border-b-2 border-saffron pb-2' : 'text-gray-400 pb-2 hover:text-gray-600'}`}>Log In</button>
@@ -330,7 +351,6 @@ const Login = () => {
                           <Phone className={iconClass} size={20} />
                           <input type="tel" placeholder="+91 9876543210" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
                         </div>
-                        <div id="recaptcha-container" className="flex justify-center my-2"></div>
                         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={loading} onClick={handlePhoneAuth} className="w-full py-4 bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl font-bold text-white shadow-lg flex items-center justify-center gap-2 mt-4">
                           {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>{isSignUp ? 'Sign Up with OTP' : 'Send OTP'}</span>}
                         </motion.button>
@@ -345,7 +365,13 @@ const Login = () => {
                         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={loading || otp.length < 6} onClick={submitOTP} className="w-full py-4 bg-gradient-to-r from-saffron to-gold rounded-2xl font-bold text-white shadow-lg flex items-center justify-center gap-2">
                           {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Verify Route</span>}
                         </motion.button>
-                        <button type="button" onClick={() => setOtpSent(false)} className="w-full text-xs font-bold text-gray-400 hover:text-gray-600 mt-2">Change Phone Number</button>
+                        <div className="flex items-center justify-center gap-4 mt-2">
+                          <button type="button" disabled={resendLoading} onClick={handleResendOTP} className="text-xs font-bold text-saffron hover:underline disabled:opacity-50 flex items-center gap-1.5">
+                            <RefreshCw size={12} className={resendLoading ? 'animate-spin' : ''} /> Resend Code
+                          </button>
+                          <span className="text-gray-200">|</span>
+                          <button type="button" onClick={() => setOtpSent(false)} className="text-xs font-bold text-gray-400 hover:text-gray-600">Change Phone Number</button>
+                        </div>
                       </>
                     )}
                   </motion.form>

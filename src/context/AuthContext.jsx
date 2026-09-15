@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { auth, db } from '../lib/firebase';
 import { 
   onAuthStateChanged, 
@@ -7,13 +7,13 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
+  signInWithCustomToken,
   sendPasswordResetEmail,
   signOut
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getSafeProfileImage } from '../lib/imageUtils';
+import { callApi } from '../lib/api';
 
 
 export const AuthContext = createContext();
@@ -59,22 +59,23 @@ export const AuthProvider = ({ children }) => {
     await sendPasswordResetEmail(auth, email);
   };
 
-  const setupRecaptcha = (containerId) => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-        size: 'invisible'
-      });
-    }
-  };
+  // --- Phone OTP via Flaxxa WAPI (no Firebase Blaze plan needed) ---
+  // Keeps the pending phone so verify can send it to the server. Server
+  // generates the OTP, persists it in Firestore, sends it via WhatsApp,
+  // and verifies it — the client never sees the code.
+  const otpPhoneRef = useRef(null);
 
   const sendOTP = async (phoneNumber) => {
-    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier);
-    window.confirmationResult = confirmationResult;
-    return confirmationResult;
+    otpPhoneRef.current = phoneNumber;
+    return await callApi('sendOtp', { phone: phoneNumber });
   };
 
   const verifyOTP = async (otp) => {
-    await window.confirmationResult.confirm(otp);
+    const result = await callApi('verifyOtp', { phone: otpPhoneRef.current, otp });
+    otpPhoneRef.current = null;
+    // signInWithCustomToken mints a real Firebase Auth session from the
+    // server-issued token, so onAuthStateChanged fires as normal.
+    await signInWithCustomToken(auth, result.customToken);
   };
 
   const completeProfile = async (_requestedRole, providedName) => {
@@ -98,6 +99,7 @@ export const AuthProvider = ({ children }) => {
       const profileData = {
         uid: auth.currentUser.uid,
         email: auth.currentUser.email || '',
+        phone: auth.currentUser.phoneNumber || '',
         name: finalName,
         photo: getSafeProfileImage(auth.currentUser.photoURL, auth.currentUser.displayName),
         role: assignedRole, 
@@ -186,7 +188,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading: loading || (!user && !profileLoaded), loginGoogle, loginEmail, registerEmail, resetPassword, setupRecaptcha, sendOTP, verifyOTP, logout, completeProfile }}>
+    <AuthContext.Provider value={{ user, loading: loading || (!user && !profileLoaded), loginGoogle, loginEmail, registerEmail, resetPassword, sendOTP, verifyOTP, logout, completeProfile }}>
       {(loading || (!user && !profileLoaded)) ? (
         <div className="min-h-screen bg-cream flex items-center justify-center">
           <div className="w-16 h-16 border-4 border-saffron border-t-transparent rounded-full animate-spin" />

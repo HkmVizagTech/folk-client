@@ -225,6 +225,14 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
+    // ---------------- OTP CODES (Flaxxa WhatsApp login) ----------------
+    // One-time codes for phone sign-in, written/read only by the backend via
+    // the Admin SDK (which bypasses these rules). A browser-readable OTP
+    // would defeat the whole purpose, so every client access is denied.
+    match /otp_codes/{phone} {
+      allow read, write: if false;
+    }
+
     // ---------------- PAYMENTS ----------------
     // Every payments doc is created and updated exclusively by the server
     // (createOrder + the Razorpay webhook), using the Admin SDK, which
