@@ -107,7 +107,10 @@ const Login = () => {
     e.preventDefault();
     setLoading(true); setError(''); setMessage('');
     try {
-      await sendOTP(phone);
+      const result = await sendOTP(phone);
+      if (result && result.sent === false) {
+        throw new Error('Could not send the OTP right now. Please try again in a moment.');
+      }
       setOtpSent(true);
       setMessage('OTP sent to your WhatsApp!');
     } catch (err) {
@@ -122,7 +125,10 @@ const Login = () => {
   const handleResendOTP = async () => {
     setResendLoading(true); setError(''); setMessage('');
     try {
-      await sendOTP(phone);
+      const result = await sendOTP(phone);
+      if (result && result.sent === false) {
+        throw new Error('Could not resend the OTP right now. Please try again in a moment.');
+      }
       setMessage('New OTP sent to your WhatsApp!');
     } catch (err) {
       console.error('OTP resend error:', err);
