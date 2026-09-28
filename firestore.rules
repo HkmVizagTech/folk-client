@@ -233,6 +233,62 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ---------------- TRIPS (yatras / pilgrimages) ----------------
+    // Publicly readable so the /trips list and each /trip/<slug> landing page
+    // work for logged-out visitors (same pattern as events). Only staff
+    // create and edit them.
+    match /trips/{tripId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    // ---------------- TRIP REGISTRATIONS ----------------
+    // A devotee registers themselves for a trip; staff confirm/cancel and can
+    // see every registration.
+    //
+    // NOTE ON PAYMENT STATE: the client may only ever write `paymentOrderId`,
+    // a POINTER to the Razorpay order. It can never write a "paid" flag,
+    // because that would be forgeable from the browser. Whether money actually
+    // arrived is resolved by reading payments/{paymentOrderId}, which only the
+    // server's webhook can mark completed/verified. Never trust a paid-looking
+    // field stored on the registration itself.
+    match /trip_registrations/{regId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
+
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.seats is int &&
+        request.resource.data.seats > 0 &&
+        request.resource.data.seats <= 20;
+
+      allow update: if isSignedIn() && (
+        (
+          // Staff move a registration through its lifecycle, and nothing else -
+          // they can never repoint it at a different trip or devotee.
+          isStaff() &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'staffNotes', 'updatedAt'])
+        ) ||
+        (
+          // Owner attaches the Razorpay order id once checkout starts.
+          request.auth.uid == resource.data.userId &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['paymentOrderId', 'updatedAt'])
+        ) ||
+        (
+          // Owner cancels their own still-pending seat.
+          request.auth.uid == resource.data.userId &&
+          resource.data.status == 'pending' &&
+          request.resource.data.status == 'cancelled' &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'updatedAt'])
+        )
+      );
+
+      allow delete: if isSuperAdmin();
+    }
+
     // ---------------- PAYMENTS ----------------
     // Every payments doc is created and updated exclusively by the server
     // (createOrder + the Razorpay webhook), using the Admin SDK, which

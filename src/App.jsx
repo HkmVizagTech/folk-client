@@ -16,6 +16,8 @@ import SevaDashboard from './pages/SevaDashboard'
 import Profile from './pages/Profile'
 import About from './pages/About'
 import Trips from './pages/Trips'
+import TripDetail from './pages/TripDetail'
+import TripsAdmin from './pages/TripsAdmin'
 import Gallery from './pages/Gallery'
 import Calendar from './pages/Calendar'
 import Contact from './pages/Contact'
@@ -41,6 +43,7 @@ const TAB_TO_PATH = {
   profile: '/profile',
   about: '/about',
   trips: '/trips',
+  'trips-admin': '/trips/manage',
   gallery: '/gallery',
   calendar: '/calendar',
   contact: '/contact',
@@ -56,7 +59,22 @@ const PATH_TO_TAB = Object.fromEntries(
 
 const getPathname = () => window.location.pathname || '/';
 
-const pathToTab = (path) => PATH_TO_TAB[path] || PATH_TO_TAB[path + '/'] || 'dashboard';
+// Every other route is an exact match, but each trip gets its own landing page
+// at /trip/<slug> (e.g. /trip/vrindavan2026), so that one prefix is matched
+// dynamically and the slug travels alongside the tab.
+const TRIP_DETAIL_PREFIX = '/trip/';
+
+const tripSlugFromPath = (path) => {
+  if (!path.startsWith(TRIP_DETAIL_PREFIX)) return null;
+  const slug = path.slice(TRIP_DETAIL_PREFIX.length).replace(/\/+$/, '');
+  return slug ? decodeURIComponent(slug) : null;
+};
+
+const pathToTab = (path) =>
+  (tripSlugFromPath(path) ? 'trip-detail' : null) ||
+  PATH_TO_TAB[path] ||
+  PATH_TO_TAB[path + '/'] ||
+  'dashboard';
 
 const tabToPath = (tab) => TAB_TO_PATH[tab] || '/';
 
@@ -71,11 +89,25 @@ function App() {
     }
   });
   const [globalScanner, setGlobalScanner] = useState({ isOpen: false, mode: 'attendance' });
+  // Which trip's landing page is open, when activeTab === 'trip-detail'.
+  const [tripSlug, setTripSlug] = useState(() => tripSlugFromPath(getPathname()));
 
   // Navigation: set tab + keep the URL in sync (pushState so Back works).
   const setActiveTab = useCallback((tab) => {
     setActiveTabState(tab);
+    if (tab !== 'trip-detail') setTripSlug(null);
     const path = tabToPath(tab);
+    if (getPathname() !== path) {
+      window.history.pushState(null, '', path);
+    }
+  }, []);
+
+  // Open one trip's landing page at /trip/<slug>.
+  const openTrip = useCallback((slug) => {
+    if (!slug) return;
+    setTripSlug(slug);
+    setActiveTabState('trip-detail');
+    const path = `${TRIP_DETAIL_PREFIX}${encodeURIComponent(slug)}`;
     if (getPathname() !== path) {
       window.history.pushState(null, '', path);
     }
@@ -83,7 +115,11 @@ function App() {
 
   // Handle browser Back/Forward and manual URL edits.
   useEffect(() => {
-    const onPopState = () => setActiveTabState(pathToTab(getPathname()));
+    const onPopState = () => {
+      const path = getPathname();
+      setTripSlug(tripSlugFromPath(path));
+      setActiveTabState(pathToTab(path));
+    };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
@@ -123,6 +159,20 @@ function App() {
         <>
           <InstallPrompt />
           <Landing onLoginClick={() => setShowLanding(false)} />
+        </>
+      )
+    }
+    // Trip pages are public on purpose: a /trip/<slug> link is meant to be
+    // shared on WhatsApp, so it must open for someone with no account. The
+    // Firestore rules allow reading `trips` publicly; registering still
+    // requires signing in, which the pages prompt for.
+    if (tabFromUrl === 'trips' || tabFromUrl === 'trip-detail') {
+      return (
+        <>
+          <InstallPrompt />
+          {tabFromUrl === 'trip-detail'
+            ? <TripDetail slug={tripSlug} openTrip={openTrip} setActiveTab={setActiveTab} onLoginClick={() => setShowLanding(false)} isPublicView />
+            : <Trips openTrip={openTrip} setActiveTab={setActiveTab} onLoginClick={() => setShowLanding(false)} isPublicView />}
         </>
       )
     }
@@ -172,7 +222,15 @@ function App() {
       case 'about':
         return <About />
       case 'trips':
-        return <Trips />
+        return <Trips openTrip={openTrip} setActiveTab={setActiveTab} />
+      case 'trip-detail':
+        return <TripDetail slug={tripSlug} setActiveTab={setActiveTab} openTrip={openTrip} />
+      case 'trips-admin':
+        return (
+          <UserRoleGuard allowedRoles={['admin', 'folks_head']}>
+            <TripsAdmin setActiveTab={setActiveTab} openTrip={openTrip} />
+          </UserRoleGuard>
+        )
       case 'gallery':
         return <Gallery />
       case 'calendar':

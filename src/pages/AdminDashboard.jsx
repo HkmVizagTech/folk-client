@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Flame, Calendar, ChevronRight, Loader2, ShieldCheck, Plus, Users, Home, CheckSquare, Trophy, Heart, Building2, BedDouble } from 'lucide-react'
+import { Flame, Calendar, ChevronRight, Loader2, ShieldCheck, Plus, Users, Home, CheckSquare, Trophy, Heart, Building2, BedDouble, Bus, MapPin } from 'lucide-react'
 import Button from '../components/ui/Button'
 import StatCard from '../components/dashboard/StatCard'
 import Card from '../components/ui/Card'
@@ -36,6 +36,21 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
   // spin forever.
   const { data: hostelListings } = useFirestore('hostel_listings');
   const { data: hostelBookings } = useFirestore('hostel_bookings');
+
+  // Trips / yatras. Same reasoning as above: kept out of the loading gate so a
+  // site with no trips yet still renders.
+  const { data: allTrips } = useFirestore('trips');
+  const { data: tripRegistrations } = useFirestore('trip_registrations');
+
+  const today = new Date().toISOString().slice(0, 10);
+  const upcomingTrips = (allTrips || []).filter((t) => {
+    const status = (t.status || '').toLowerCase();
+    if (status === 'draft' || status === 'cancelled' || status === 'completed') return false;
+    return !t.endDate || t.endDate >= today;
+  });
+  const pendingTripRegs = (tripRegistrations || []).filter(
+    (r) => (r.status || '').toLowerCase() === 'pending'
+  );
 
   const pendingHostelBookings = (hostelBookings || []).filter(
     (b) => (b.status || '').toLowerCase() === 'pending'
@@ -77,6 +92,13 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
       sub: `${activeHostelListings.length} Listing${activeHostelListings.length === 1 ? '' : 's'} Live`,
       color: 'celestial',
       onClick: () => setActiveTab('hostels')
+    },
+    {
+      label: 'Trip Registrations',
+      value: pendingTripRegs.length.toString(),
+      sub: `${upcomingTrips.length} Upcoming Yatra${upcomingTrips.length === 1 ? '' : 's'}`,
+      color: 'saffron',
+      onClick: () => setActiveTab('trips-admin')
     },
   ];
 
@@ -180,6 +202,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             { label: 'Manage Seva', icon: <Heart size={20} />, tab: 'seva', color: 'bg-orange-500 text-white shadow-orange-200' },
             { label: 'Verify Stay', icon: <Home size={20} />, tab: 'accommodation', color: 'bg-celestial text-white shadow-celestial/20' },
             { label: 'Manage Residency', icon: <Building2 size={20} />, tab: 'hostels', color: 'bg-emerald-600 text-white shadow-emerald-200' },
+            { label: 'Manage Trips', icon: <Bus size={20} />, tab: 'trips-admin', color: 'bg-blue-600 text-white shadow-blue-200' },
             { label: 'Scan Check-in', icon: <CheckSquare size={20} />, tab: 'attendance', color: 'bg-purple-600 text-white shadow-purple-200' },
           ].map((action, i) => (
             <motion.button
@@ -398,6 +421,105 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                               className="mt-6 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                             >
                               {activeHostelListings.length === 0 ? 'Upload a Listing' : 'Manage Residency'}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </Card>
+
+          {/* Trips / yatras — upcoming departures and the seats waiting to be
+              confirmed. Full management (create, edit, registrations, CSV
+              manifest) lives on the Trips admin page. */}
+          <Card className="p-8 border-none shadow-premium bg-white overflow-hidden">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <Bus className="text-blue-600" size={24} />
+                Trips & Yatras
+              </h2>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-black rounded-lg uppercase tracking-wider">
+                  {upcomingTrips.length} Upcoming
+                </span>
+                <span className="px-3 py-1 bg-saffron/10 text-saffron text-[10px] font-black rounded-lg uppercase tracking-wider">
+                  {pendingTripRegs.length} To Confirm
+                </span>
+                <Button
+                  onClick={() => setActiveTab('trips-admin')}
+                  className="py-2 px-4 text-[10px] bg-blue-600 text-white font-bold rounded-lg border-none hover:bg-blue-700 transition-all"
+                >
+                  <Plus size={14} /> New Trip
+                </Button>
+              </div>
+            </div>
+
+            <div className="-mx-4 sm:mx-0 overflow-x-auto pb-4 scrollbar-hide">
+              <div className="min-w-[600px] sm:min-w-full px-4 sm:px-0">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">
+                      <th className="pb-4 font-black">Trip</th>
+                      <th className="pb-4 font-black">Dates</th>
+                      <th className="pb-4 font-black">Registered</th>
+                      <th className="pb-4 font-black">To Confirm</th>
+                      <th className="pb-4 font-black">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {upcomingTrips.length > 0 ? upcomingTrips.slice(0, 5).map((trip) => {
+                      const regs = (tripRegistrations || []).filter((r) => r.tripId === trip.id);
+                      const pending = regs.filter((r) => (r.status || '').toLowerCase() === 'pending').length;
+                      return (
+                        <tr key={trip.id} className="group hover:bg-gray-50/50 transition-colors">
+                          <td className="py-4">
+                            <div className="font-bold text-gray-700">{trip.title}</div>
+                            <div className="text-[11px] text-gray-400 font-medium flex items-center gap-1">
+                              <MapPin size={11} /> {trip.location || '—'}
+                            </div>
+                          </td>
+                          <td className="py-4 text-sm text-gray-400 font-medium">
+                            {trip.startDate || '—'} → {trip.endDate || '—'}
+                          </td>
+                          <td className="py-4 text-sm text-gray-500 font-bold">
+                            {regs.filter((r) => (r.status || '').toLowerCase() !== 'cancelled').length}
+                            {trip.capacity > 0 ? <span className="text-gray-300"> / {trip.capacity}</span> : null}
+                          </td>
+                          <td className="py-4">
+                            {pending > 0 ? (
+                              <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-[10px] font-bold rounded-lg uppercase tracking-wider">
+                                {pending}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-300 font-bold">—</span>
+                            )}
+                          </td>
+                          <td className="py-4 text-right">
+                            <Button
+                              onClick={() => setActiveTab('trips-admin')}
+                              className="py-2 px-4 text-[10px] bg-blue-50 text-blue-700 font-bold rounded-lg border-none hover:bg-blue-600 hover:text-white transition-all"
+                            >
+                              Manage
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    }) : (
+                      <tr>
+                        <td colSpan="5" className="py-20 text-center space-y-4">
+                          <div className="flex flex-col items-center justify-center text-gray-300">
+                            <Bus size={40} className="mb-4 opacity-20" />
+                            <p className="text-sm font-bold uppercase tracking-widest text-gray-400">No upcoming trips</p>
+                            <p className="text-xs mt-1">Create a yatra to start taking registrations.</p>
+                            <Button
+                              variant="secondary"
+                              onClick={() => setActiveTab('trips-admin')}
+                              className="mt-6 border-blue-200 text-blue-700 hover:bg-blue-50"
+                            >
+                              Create a Trip
                             </Button>
                           </div>
                         </td>
