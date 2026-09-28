@@ -206,9 +206,9 @@ const Login = () => {
                 className="absolute inset-0 bg-saffron/20 rounded-full blur-2xl -z-10"
               />
               <img 
-                src="/logo.png" 
+                src="/folk_logo_blue.png" 
                 alt="Folkvizag Logo" 
-                className="w-full h-full object-contain filter brightness-0 opacity-90 transition-transform group-hover:scale-110 duration-500" 
+                className="w-full h-full object-contain opacity-90 transition-transform group-hover:scale-110 duration-500" 
               />
             </motion.div>
             <h1 className="text-4xl font-black bg-gradient-to-r from-saffron via-gold to-saffron-dark bg-clip-text text-transparent font-cinzel mb-2 tracking-tighter drop-shadow-sm">Folkvizag</h1>

@@ -339,17 +339,15 @@ const Landing = ({ onLoginClick }) => {
 
           <div className="h-16 sm:h-[74px] flex items-center justify-between gap-4">
 
-            {/* BRAND — the mark sits on a white chip so it reads at full
-                contrast over the dark hero and over the solid white bar.
-                No brightness filter is applied in either state. */}
+            {/* BRAND — white mark over the dark hero, blue mark once the bar
+                turns solid white on scroll. No chip needed: each variant is
+                built for its background. */}
             <a href="#" className="shrink-0 flex items-center gap-3 group" aria-label="FOLK Vizag — home">
-              <span className="w-11 h-11 rounded-2xl bg-white flex items-center justify-center shadow-[0_8px_22px_-10px_rgba(0,0,0,0.45)] ring-1 ring-black/5 overflow-hidden">
-                <img
-                  src="/logo.png"
-                  alt="Folk Vizag logo"
-                  className="h-8 w-8 object-contain"
-                />
-              </span>
+              <img
+                src={solidNav ? '/folk_logo_blue.png' : '/folk_logo_white.png'}
+                alt="Folk Vizag logo"
+                className="h-10 w-auto object-contain transition-all duration-300"
+              />
 
               <span className="hidden sm:block leading-tight">
                 <span className={`block text-[15px] font-black tracking-tight transition-colors ${solidNav ? 'text-gray-900' : 'text-white'}`}>
@@ -1028,9 +1026,7 @@ const Landing = ({ onLoginClick }) => {
                       <div className="absolute top-[-50px] right-[-40px] w-32 h-32 rounded-full bg-[#FF9933]/20 blur-2xl" aria-hidden="true" />
 
                       <div className="flex justify-between items-start relative z-10">
-                        <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden">
-                          <img src="/logo.png" alt="" className="h-6 w-6 object-contain" />
-                        </span>
+                        <img src="/folk_logo_white.png" alt="" className="h-8 w-auto object-contain" />
                         <Sparkles size={18} className="text-[#FFD166]" />
                       </div>
 
@@ -1528,9 +1524,7 @@ const Landing = ({ onLoginClick }) => {
             {/* BRAND */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-3">
-                <span className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-[0_10px_28px_-12px_rgba(0,0,0,0.8)] overflow-hidden">
-                  <img src="/logo.png" alt="Folk Vizag logo" className="h-9 w-9 object-contain" />
-                </span>
+                <img src="/folk_logo_white.png" alt="Folk Vizag logo" className="h-12 w-auto object-contain" />
                 <span className="leading-tight">
                   <span className="block text-[15px] font-black text-white tracking-tight">FOLK Vizag</span>
                   <span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-white/45">

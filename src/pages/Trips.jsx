@@ -96,9 +96,7 @@ const PublicTopBar = ({ onLoginClick }) => (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="h-16 sm:h-[70px] flex items-center justify-between gap-3">
         <a href="/" className="min-w-0 flex items-center gap-2.5 sm:gap-3" aria-label="FOLK Vizag — home">
-          <span className="w-11 h-11 shrink-0 rounded-2xl bg-white flex items-center justify-center shadow-premium ring-1 ring-black/5 overflow-hidden">
-            <img src="/logo.png" alt="Folk Vizag logo" className="h-8 w-8 max-w-full object-contain" />
-          </span>
+          <img src="/folk_logo_blue.png" alt="Folk Vizag logo" className="h-11 w-auto max-w-full object-contain shrink-0" />
           <span className="leading-tight min-w-0">
             <span className="block text-[14px] sm:text-[15px] font-black tracking-tight text-gray-900 truncate">FOLK Vizag</span>
             <span className="block text-[9px] font-bold uppercase tracking-[0.14em] sm:tracking-[0.18em] text-gray-400 truncate">Hare Krishna Movement</span>

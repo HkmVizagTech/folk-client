@@ -114,10 +114,10 @@ const Navbar = ({ activeTab, setActiveTab }) => {
       <div className="flex items-center gap-4 shrink-0 md:flex-1 md:justify-start">
         <div className="flex items-center drop-shadow-sm hover:drop-shadow-md transition-all duration-300">
           <img
-            src="/logo.png"
+            src="/folk_logo_blue.png"
             alt="Folkvizag Logo"
             className={cn(
-              'w-auto object-contain hover:scale-[1.02] transition-all duration-300 cursor-pointer drop-shadow-md brightness-0 opacity-90',
+              'w-auto object-contain hover:scale-[1.02] transition-all duration-300 cursor-pointer drop-shadow-md',
               scrolled ? 'h-7 sm:h-9' : 'h-8 sm:h-12'
             )}
           />

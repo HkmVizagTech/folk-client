@@ -55,7 +55,7 @@ const QRView = ({ value, name = 'Devotee', size = 200 }) => {
           level="H"
           includeMargin={false}
           imageSettings={{
-            src: "/logo.png",
+            src: "/folk_logo_blue.png",
             x: undefined,
             y: undefined,
             height: size * 0.2,

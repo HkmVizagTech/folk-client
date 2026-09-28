@@ -69,9 +69,9 @@ const Sidebar = ({ isOpen, setIsOpen, activeTab, setActiveTab }) => {
       <div className="h-full overflow-hidden">
 <div className="p-6 flex items-center justify-center overflow-hidden">
         <img 
-          src="/logo.png" 
+          src="/folk_logo_blue.png" 
           alt="Logo" 
-          className="h-14 w-auto object-contain filter sepia saturate-[6] hue-rotate-[-30deg] drop-shadow-[0_0_5px_rgba(255,153,51,0.2)]" 
+          className="h-14 w-auto object-contain drop-shadow-[0_0_5px_rgba(255,153,51,0.2)]" 
         />
       </div>
 
