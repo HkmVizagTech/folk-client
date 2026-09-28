@@ -25,7 +25,6 @@ import Donate from './pages/Donate'
 import { useAuth } from './hooks/useAuth'
 import UserRoleGuard from './components/auth/UserRoleGuard'
 import ScanningOverlay from './components/qr/ScanningOverlay'
-import InstallPrompt from './components/layout/InstallPrompt'
 
 // Map every app "tab" to a real URL path. This is what makes links like
 // /admin, /events, /hostels actually open their pages instead of reloading
@@ -157,7 +156,6 @@ function App() {
     if (showLanding && tabFromUrl === 'dashboard') {
       return (
         <>
-          <InstallPrompt />
           <Landing onLoginClick={() => setShowLanding(false)} />
         </>
       )
@@ -169,7 +167,6 @@ function App() {
     if (tabFromUrl === 'trips' || tabFromUrl === 'trip-detail') {
       return (
         <>
-          <InstallPrompt />
           {tabFromUrl === 'trip-detail'
             ? <TripDetail slug={tripSlug} openTrip={openTrip} setActiveTab={setActiveTab} onLoginClick={() => setShowLanding(false)} isPublicView />
             : <Trips openTrip={openTrip} setActiveTab={setActiveTab} onLoginClick={() => setShowLanding(false)} isPublicView />}
@@ -179,12 +176,7 @@ function App() {
     // Every other path (including /admin and /createadmin) shows the login
     // form with username + password. Admin routes are protected, just like
     // the firewall rules: you must sign in before you can manage anything.
-    return (
-      <>
-        <InstallPrompt />
-        <Login />
-      </>
-    )
+    return <Login />
   }
 
   if (user.requiresRole) {
@@ -265,7 +257,6 @@ function App() {
 
   return (
     <MainLayout activeTab={activeTab} setActiveTab={setActiveTab}>
-      <InstallPrompt />
       {renderContent()}
       <ScanningOverlay 
         isOpen={globalScanner.isOpen}

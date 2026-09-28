@@ -37,6 +37,7 @@ const NAV_LINKS = [
   { href: '#events', label: 'Events' },
   { href: '#seva', label: 'Seva' },
   { href: '#accommodation', label: 'Accommodation' },
+  { href: '/trips', label: 'Trips & Yatras' },
   { href: '#gallery', label: 'Gallery' },
   { href: '#contact', label: 'Contact' },
 ];
