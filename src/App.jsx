@@ -90,6 +90,10 @@ function App() {
   const [globalScanner, setGlobalScanner] = useState({ isOpen: false, mode: 'attendance' });
   // Which trip's landing page is open, when activeTab === 'trip-detail'.
   const [tripSlug, setTripSlug] = useState(() => tripSlugFromPath(getPathname()));
+  // Set when a public page (trips list / trip detail) asks for sign-in. While
+  // true, the Login view replaces the public page; after a successful login
+  // the user lands straight back on the same trip, now able to register.
+  const [forceLogin, setForceLogin] = useState(false);
 
   // Navigation: set tab + keep the URL in sync (pushState so Back works).
   const setActiveTab = useCallback((tab) => {
@@ -116,6 +120,7 @@ function App() {
   useEffect(() => {
     const onPopState = () => {
       const path = getPathname();
+      setForceLogin(false);
       setTripSlug(tripSlugFromPath(path));
       setActiveTabState(pathToTab(path));
     };
@@ -153,7 +158,7 @@ function App() {
     }
     const tabFromUrl = pathToTab(getPathname());
     // Landing page only for the root path when there's no cached session.
-    if (showLanding && tabFromUrl === 'dashboard') {
+    if (!forceLogin && showLanding && tabFromUrl === 'dashboard') {
       return (
         <>
           <Landing onLoginClick={() => setShowLanding(false)} />
@@ -163,13 +168,16 @@ function App() {
     // Trip pages are public on purpose: a /trip/<slug> link is meant to be
     // shared on WhatsApp, so it must open for someone with no account. The
     // Firestore rules allow reading `trips` publicly; registering still
-    // requires signing in, which the pages prompt for.
-    if (tabFromUrl === 'trips' || tabFromUrl === 'trip-detail') {
+    // requires signing in, so every "Sign in" button on these pages swaps to
+    // the Login view (forceLogin). The URL is left untouched on purpose: once
+    // authenticated, the same /trip/<slug> re-renders inside the app shell
+    // with the registration form unlocked — no redirect needed.
+    if (!forceLogin && (tabFromUrl === 'trips' || tabFromUrl === 'trip-detail')) {
       return (
         <>
           {tabFromUrl === 'trip-detail'
-            ? <TripDetail slug={tripSlug} openTrip={openTrip} setActiveTab={setActiveTab} onLoginClick={() => setShowLanding(false)} isPublicView />
-            : <Trips openTrip={openTrip} setActiveTab={setActiveTab} onLoginClick={() => setShowLanding(false)} isPublicView />}
+            ? <TripDetail slug={tripSlug} openTrip={openTrip} setActiveTab={setActiveTab} onLoginClick={() => setForceLogin(true)} isPublicView />
+            : <Trips openTrip={openTrip} setActiveTab={setActiveTab} onLoginClick={() => setForceLogin(true)} isPublicView />}
         </>
       )
     }
