@@ -342,21 +342,12 @@ const Landing = ({ onLoginClick }) => {
             {/* BRAND — white mark over the dark hero, blue mark once the bar
                 turns solid white on scroll. No chip needed: each variant is
                 built for its background. */}
-            <a href="#" className="shrink-0 flex items-center gap-3 group" aria-label="FOLK Vizag — home">
+            <a href="#" className="shrink-0 flex items-center group" aria-label="FOLK Vizag — home">
               <img
                 src={solidNav ? '/folk_logo_blue.png' : '/folk_logo_white.png'}
                 alt="Folk Vizag logo"
-                className="h-10 w-auto object-contain transition-all duration-300"
+                className="h-12 sm:h-14 w-auto object-contain transition-all duration-300"
               />
-
-              <span className="hidden sm:block leading-tight">
-                <span className={`block text-[15px] font-black tracking-tight transition-colors ${solidNav ? 'text-gray-900' : 'text-white'}`}>
-                  FOLK Vizag
-                </span>
-                <span className={`block text-[9px] font-bold uppercase tracking-[0.18em] transition-colors ${solidNav ? 'text-gray-400' : 'text-white/60'}`}>
-                  Hare Krishna Movement
-                </span>
-              </span>
             </a>
 
             <div className="hidden lg:flex items-center gap-6 xl:gap-8">

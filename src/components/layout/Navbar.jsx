@@ -118,7 +118,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
             alt="Folkvizag Logo"
             className={cn(
               'w-auto object-contain hover:scale-[1.02] transition-all duration-300 cursor-pointer drop-shadow-md',
-              scrolled ? 'h-7 sm:h-9' : 'h-8 sm:h-12'
+              scrolled ? 'h-8 sm:h-11' : 'h-9 sm:h-14'
             )}
           />
         </div>
