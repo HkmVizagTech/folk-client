@@ -5,7 +5,7 @@ import {
   Image as ImageIcon, Calendar, MapPin, IndianRupee, Users, CheckCircle2, XCircle,
   Clock, Ban, AlertTriangle, ChevronUp, ChevronDown, ChevronLeft, ListOrdered,
   Sparkles, ShieldCheck, ToggleLeft, ToggleRight, Wallet, FileText, MessageSquare,
-  Hourglass, Layers, Phone, Mail
+  Hourglass, Layers, Phone, Mail, Banknote, CreditCard, Undo2, HandCoins
 } from 'lucide-react'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -53,6 +53,10 @@ const EMPTY_FORM = {
   capacity: '',
   status: 'draft',
   registrationOpen: false,
+  // Payment rails the devotee is offered. Online defaults ON so an existing
+  // trip that predates these fields keeps behaving exactly as before.
+  onlinePaymentEnabled: true,
+  cashPaymentEnabled: false,
   highlights: [],
   itinerary: [],
   inclusions: [],
@@ -194,14 +198,47 @@ const regStatusIcon = (status) => {
   }
 }
 
-const payStateClass = (state) => {
-  switch (state) {
-    case 'paid': return 'text-green-600 bg-green-100 border-green-200'
-    case 'pending': return 'text-amber-600 bg-amber-50 border-amber-200'
-    case 'checking': return 'text-gray-400 bg-gray-50 border-gray-200'
-    default: return 'text-red-500 bg-red-50 border-red-200'
-  }
+/* ---------------- payment state vocabulary ----------------
+ * Five resolved states plus a transient "checking". Online and cash are
+ * deliberately different hues AND different icons so a staff member
+ * reconciling a cash box can tell them apart without reading the label.
+ * `settled` means money is genuinely in hand — it is what the Collected
+ * total sums, and it is only ever set from a verified payments doc (online)
+ * or the staff-written cashCollected attestation (cash). */
+const PAY_STATES = {
+  online_paid: {
+    label: 'Online paid', short: 'Online', rail: 'online', settled: true,
+    chip: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    dot: 'bg-emerald-500', icon: CreditCard,
+  },
+  online_pending: {
+    label: 'Online pending', short: 'Online', rail: 'online', settled: false,
+    chip: 'text-amber-700 bg-amber-50 border-amber-200',
+    dot: 'bg-amber-400', icon: Clock,
+  },
+  cash_collected: {
+    label: 'Cash collected', short: 'Cash', rail: 'cash', settled: true,
+    chip: 'text-teal-700 bg-teal-50 border-teal-200',
+    dot: 'bg-teal-500', icon: Banknote,
+  },
+  cash_pending: {
+    label: 'Cash pending', short: 'Cash', rail: 'cash', settled: false,
+    chip: 'text-orange-700 bg-orange-50 border-orange-200',
+    dot: 'bg-orange-400', icon: HandCoins,
+  },
+  unpaid: {
+    label: 'Unpaid', short: '—', rail: 'none', settled: false,
+    chip: 'text-rose-600 bg-rose-50 border-rose-200',
+    dot: 'bg-rose-400', icon: XCircle,
+  },
+  checking: {
+    label: 'Checking…', short: '—', rail: 'none', settled: false,
+    chip: 'text-gray-400 bg-gray-50 border-gray-200',
+    dot: 'bg-gray-300', icon: Loader2,
+  },
 }
+
+const payMeta = (state) => PAY_STATES[state] || PAY_STATES.unpaid
 
 const inputClass =
   'w-full px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-sm min-h-[44px]'
@@ -212,15 +249,15 @@ const labelClass = 'text-[10px] font-black text-gray-400 uppercase tracking-wide
  * ------------------------------------------------------------------ */
 
 const Field = ({ label, error, hint, children, className = '' }) => (
-  <div className={`space-y-2 ${className}`}>
-    <div className="flex items-baseline justify-between gap-2">
-      <label className={labelClass}>{label}</label>
-      {hint && <span className="text-[10px] text-gray-400 font-medium">{hint}</span>}
+  <div className={`space-y-2 user-text-box ${className}`}>
+    <div className="flex items-baseline justify-between gap-2 user-text-box">
+      <label className={`${labelClass} shrink-0`}>{label}</label>
+      {hint && <span className="text-[10px] text-gray-400 font-medium text-right user-text min-w-0">{hint}</span>}
     </div>
     {children}
     {error && (
-      <p className="text-[11px] font-bold text-red-500 ml-1 flex items-center gap-1">
-        <AlertTriangle size={12} /> {error}
+      <p className="text-[11px] font-bold text-red-500 ml-1 flex items-start gap-1.5 user-text-box">
+        <AlertTriangle size={12} className="shrink-0 mt-0.5" /> <span className="user-text">{error}</span>
       </p>
     )}
   </div>
@@ -306,16 +343,67 @@ const SummaryTile = ({ label, value, sub, icon: Icon, tone = 'saffron' }) => {
     slate: 'from-gray-50 to-gray-100 text-gray-600',
   }
   return (
-    <div className={`rounded-2xl p-4 bg-gradient-to-br ${tones[tone]} border border-white/60 shadow-premium`}>
-      <div className="flex items-center gap-2 mb-1">
-        {Icon && <Icon size={14} />}
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">{label}</p>
+    <div className={`rounded-2xl p-3.5 sm:p-4 bg-gradient-to-br ${tones[tone]} border border-white/60 shadow-premium user-text-box`}>
+      <div className="flex items-center gap-2 mb-1 user-text-box">
+        {Icon && <Icon size={14} className="shrink-0" />}
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80 truncate">{label}</p>
       </div>
-      <p className="text-xl font-black leading-tight">{value}</p>
-      {sub && <p className="text-[10px] font-bold opacity-60 mt-0.5">{sub}</p>}
+      <p className="text-lg sm:text-xl font-black leading-tight user-text">{value}</p>
+      {sub && <p className="text-[10px] font-bold opacity-60 mt-0.5 user-text">{sub}</p>}
     </div>
   )
 }
+
+/* A resolved payment state, rendered identically in the table and the mobile
+ * card list so the two views can never drift apart. */
+const PayChip = ({ pay, size = 'sm' }) => {
+  const meta = payMeta(pay.state)
+  const Icon = meta.icon
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 font-black rounded-lg uppercase tracking-widest border whitespace-nowrap ${meta.chip} ${
+        size === 'md' ? 'text-[10px] px-2.5 py-1.5' : 'text-[9px] px-2 py-1'
+      }`}
+    >
+      <Icon size={size === 'md' ? 12 : 11} className={`shrink-0 ${pay.state === 'checking' ? 'animate-spin' : ''}`} />
+      {meta.label}
+    </span>
+  )
+}
+
+/* Payment-rail toggle used in the modal. Big tap target, explicit on/off
+ * wording, and a sentence saying what it means for the devotee. */
+const RailToggle = ({ on, onToggle, icon: Icon, title, onCopy, offCopy }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={on}
+    aria-label={`${title}: ${on ? 'enabled' : 'disabled'}`}
+    onClick={onToggle}
+    className={`w-full text-left p-4 rounded-2xl border-2 transition-all user-text-box ${
+      on ? 'bg-emerald-50/70 border-emerald-200' : 'bg-gray-50 border-gray-200'
+    }`}
+  >
+    <div className="flex items-start gap-3">
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+        on ? 'bg-emerald-500 text-white' : 'bg-white text-gray-300 border border-gray-200'
+      }`}>
+        <Icon size={17} />
+      </div>
+      <div className="flex-1 min-w-0 user-text-box">
+        <div className="flex items-center justify-between gap-2">
+          <p className={`text-xs font-black uppercase tracking-widest ${on ? 'text-emerald-700' : 'text-gray-400'}`}>
+            {title}
+          </p>
+          {on ? <ToggleRight size={24} className="text-emerald-500 shrink-0" /> : <ToggleLeft size={24} className="text-gray-300 shrink-0" />}
+        </div>
+        <p className="text-[11px] text-gray-500 font-medium leading-relaxed mt-1 user-text">
+          {on ? onCopy : offCopy}
+        </p>
+      </div>
+    </div>
+  </button>
+)
 
 /* ------------------------------------------------------------------ *
  *  TripsAdmin
@@ -350,22 +438,51 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     return map
   }, [payments])
 
+  /* Resolve one registration into a single payment state.
+   *
+   * Trust model — the whole point of this function:
+   *   ONLINE money is true only when payments/{orderId} says
+   *   status === 'completed' AND verified === true. That document is written
+   *   exclusively by the Razorpay webhook on the server. `paymentOrderId` on
+   *   the registration is a devotee-writable POINTER and proves nothing.
+   *   CASH money is true only when `cashCollected === true`, which
+   *   firestore.rules lets staff write and the devotee never can.
+   *   `paymentMode` is the devotee's declared intent at signup. It is used to
+   *   decide which ACTION to offer and how to label a not-yet-paid row — never
+   *   to call anything paid.
+   * Nothing a devotee can write is allowed to produce a settled state. */
   const resolvePayment = useCallback((reg) => {
     const orderId = reg?.paymentOrderId || null
-    if (!orderId) return { state: 'unpaid', label: 'Unpaid', orderId: null, amount: 0 }
-    const p = paymentsById.get(String(orderId))
-    if (!p) {
-      return paymentsLoading
-        ? { state: 'checking', label: 'Checking…', orderId, amount: 0 }
-        : { state: 'pending', label: 'Pending', orderId, amount: 0 }
+    const due = toNumber(reg?.amountDue)
+    const declared = String(reg?.paymentMode || '').toLowerCase() === 'cash' ? 'cash' : (orderId ? 'online' : '')
+    const cashDone = reg?.cashCollected === true
+    const cashAmount = Number.isFinite(Number(reg?.cashAmount)) ? Number(reg.cashAmount) : 0
+
+    const base = {
+      orderId, declared, cashDone,
+      cashAmount: cashDone ? (cashAmount > 0 ? cashAmount : due) : 0,
+      cashAt: reg?.cashCollectedAt || null,
+      cashBy: reg?.cashCollectedBy || '',
+      onlineAmount: 0,
     }
-    const paid = p.status === 'completed' && p.verified === true
-    return {
-      state: paid ? 'paid' : 'pending',
-      label: paid ? 'Paid' : 'Pending',
-      orderId,
-      amount: Number.isFinite(Number(p.amount)) ? Number(p.amount) : 0,
+
+    // 1. Verified online payment outranks everything — real money, webhook-proven.
+    if (orderId) {
+      const p = paymentsById.get(String(orderId))
+      if (p && p.status === 'completed' && p.verified === true) {
+        const amt = Number.isFinite(Number(p.amount)) ? Number(p.amount) : 0
+        return { ...base, state: 'online_paid', onlineAmount: amt > 0 ? amt : due, amount: amt > 0 ? amt : due }
+      }
+      // 2. Staff may still have taken cash for a half-finished online attempt.
+      if (cashDone) return { ...base, state: 'cash_collected', amount: base.cashAmount }
+      // 3. An order exists but is not verified — still out there.
+      if (!p && paymentsLoading) return { ...base, state: 'checking', amount: 0 }
+      return { ...base, state: 'online_pending', amount: 0 }
     }
+
+    if (cashDone) return { ...base, state: 'cash_collected', amount: base.cashAmount }
+    if (declared === 'cash') return { ...base, state: 'cash_pending', amount: 0 }
+    return { ...base, state: 'unpaid', amount: 0 }
   }, [paymentsById, paymentsLoading])
 
   /* ---------------- derived trip data ---------------- */
@@ -435,6 +552,10 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     capacity: trip.capacity ?? '',
     status: TRIP_STATUSES.includes(trip.status) ? trip.status : 'draft',
     registrationOpen: !!trip.registrationOpen,
+    // A trip saved before these fields existed has no `onlinePaymentEnabled`.
+    // Treat that absence as TRUE so Razorpay keeps working on every live trip.
+    onlinePaymentEnabled: trip.onlinePaymentEnabled !== false,
+    cashPaymentEnabled: trip.cashPaymentEnabled === true,
     highlights: Array.isArray(trip.highlights) ? trip.highlights : [],
     itinerary: Array.isArray(trip.itinerary)
       ? trip.itinerary.map((d, i) => ({
@@ -595,6 +716,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     capacity: toInt(f.capacity),
     status: TRIP_STATUSES.includes(f.status) ? f.status : 'draft',
     registrationOpen: !!f.registrationOpen,
+    onlinePaymentEnabled: !!f.onlinePaymentEnabled,
+    cashPaymentEnabled: !!f.cashPaymentEnabled,
     highlights: (f.highlights || []).map((s) => String(s).trim()).filter(Boolean),
     itinerary: (f.itinerary || [])
       .map((d, i) => ({ day: toInt(d.day) || i + 1, title: String(d.title || '').trim(), details: String(d.details || '').trim() }))
@@ -754,6 +877,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
   /* ---------------- registrations view ---------------- */
   const [filterTrip, setFilterTrip] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterMethod, setFilterMethod] = useState('all')
   const [search, setSearch] = useState('')
   const [regBusy, setRegBusy] = useState(null)
   const [regError, setRegError] = useState('')
@@ -765,6 +889,10 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     return (registrations || [])
       .filter((r) => (filterTrip === 'all' ? true : r.tripId === filterTrip))
       .filter((r) => (filterStatus === 'all' ? true : (r.status || 'pending').toLowerCase() === filterStatus))
+      .filter((r) => {
+        if (filterMethod === 'all') return true
+        return payMeta(resolvePayment(r).state).rail === filterMethod
+      })
       .filter((r) => {
         if (!term) return true
         return (
@@ -779,13 +907,18 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         const bd = tsToDate(b.createdAt)?.getTime() || 0
         return bd - ad
       })
-  }, [registrations, filterTrip, filterStatus, search])
+  }, [registrations, filterTrip, filterStatus, filterMethod, search, resolvePayment])
 
+  // "Collected" is money genuinely in hand: webhook-verified online payments
+  // plus cash a staff member has attested to. Both halves are reported so the
+  // cash box can be counted against the online statement.
   const regSummary = useMemo(() => {
     let confirmed = 0
     let seats = 0
-    let collected = 0
+    let online = 0
+    let cash = 0
     let pending = 0
+    let cashToCollect = 0
     filteredRegs.forEach((r) => {
       const status = (r.status || 'pending').toLowerCase()
       const due = toNumber(r.amountDue)
@@ -794,13 +927,19 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         confirmed += 1
         seats += toInt(r.seats) || 1
       }
-      if (pay.state === 'paid') {
-        collected += pay.amount > 0 ? pay.amount : due
+      if (pay.state === 'online_paid') {
+        online += pay.amount > 0 ? pay.amount : due
+      } else if (pay.state === 'cash_collected') {
+        cash += pay.amount > 0 ? pay.amount : due
       } else if (status !== 'cancelled' && pay.state !== 'checking') {
         pending += due
+        if (pay.state === 'cash_pending') cashToCollect += 1
       }
     })
-    return { total: filteredRegs.length, confirmed, seats, collected, pending }
+    return {
+      total: filteredRegs.length, confirmed, seats,
+      collected: online + cash, online, cash, pending, cashToCollect,
+    }
   }, [filteredRegs, resolvePayment])
 
   // Staff writes touch ONLY status / staffNotes / updatedAt — firestore.rules
@@ -842,15 +981,83 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     }
   }
 
+  /* ---------------- cash collection (staff attestation) ---------------- *
+   * firestore.rules allow a staff update on trip_registrations to touch ONLY
+   *   status, staffNotes, updatedAt, cashCollected, cashAmount,
+   *   cashCollectedAt, cashCollectedBy
+   * Any extra key rejects the whole write, so both writes below stay inside
+   * that list exactly. */
+  const [cashTarget, setCashTarget] = useState(null)   // reg pending "Record cash"
+  const [cashDraft, setCashDraft] = useState('')
+  const [cashSaving, setCashSaving] = useState(false)
+  const [cashError, setCashError] = useState('')
+  const [undoTarget, setUndoTarget] = useState(null)   // reg pending undo confirm
+
+  const askRecordCash = (reg) => {
+    setCashTarget(reg)
+    setCashDraft(String(toNumber(reg.amountDue) || ''))
+    setCashError('')
+  }
+
+  const confirmRecordCash = async () => {
+    if (!cashTarget) return
+    const amount = toNumber(cashDraft)
+    if (!(amount > 0)) {
+      setCashError('Enter the amount actually received')
+      return
+    }
+    setCashSaving(true)
+    setCashError('')
+    try {
+      await updateDoc(doc(db, 'trip_registrations', cashTarget.id), {
+        cashCollected: true,
+        cashAmount: amount,
+        cashCollectedAt: serverTimestamp(),
+        cashCollectedBy: user?.uid || user?.name || auth.currentUser?.uid || 'staff',
+        updatedAt: serverTimestamp(),
+      })
+      setCashTarget(null)
+      setCashDraft('')
+    } catch (err) {
+      console.error('Error recording cash:', err)
+      setCashError(err?.message || 'Failed to record this cash payment')
+    } finally {
+      setCashSaving(false)
+    }
+  }
+
+  const confirmUndoCash = async () => {
+    if (!undoTarget) return
+    setCashSaving(true)
+    setCashError('')
+    try {
+      await updateDoc(doc(db, 'trip_registrations', undoTarget.id), {
+        cashCollected: false,
+        updatedAt: serverTimestamp(),
+      })
+      setUndoTarget(null)
+    } catch (err) {
+      console.error('Error undoing cash record:', err)
+      setCashError(err?.message || 'Failed to undo this cash record')
+    } finally {
+      setCashSaving(false)
+    }
+  }
+
   // The travel manifest staff actually carry — mirrors generateGrowthAudit.
+  // Payment-method and cash columns are here because this export is what the
+  // office reconciles the cash box against at the end of a yatra.
   const exportRegistrations = () => {
     const headers = [
       'Name', 'Phone', 'Email', 'Trip', 'Trip Slug', 'Seats',
-      'Amount Due (INR)', 'Payment', 'Order ID', 'Status', 'Registered On',
-      'Traveller Notes', 'Emergency Contact', 'Staff Notes',
+      'Amount Due (INR)', 'Payment Method', 'Payment State',
+      'Online Verified (INR)', 'Order ID',
+      'Cash Collected', 'Cash Amount (INR)', 'Cash Collected On', 'Cash Collected By',
+      'Status', 'Registered On', 'Traveller Notes', 'Emergency Contact', 'Staff Notes',
     ]
     const rows = filteredRegs.map((r) => {
       const pay = resolvePayment(r)
+      const meta = payMeta(pay.state)
       return [
         r.userName || '',
         r.userPhone || '',
@@ -859,8 +1066,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         r.tripSlug || '',
         toInt(r.seats) || 1,
         toNumber(r.amountDue),
-        pay.label,
+        meta.rail === 'none' ? '' : meta.rail,
+        meta.label,
+        pay.state === 'online_paid' ? pay.onlineAmount : '',
         pay.orderId || '',
+        pay.cashDone ? 'yes' : 'no',
+        pay.cashDone ? pay.cashAmount : '',
+        pay.cashDone ? formatStamp(pay.cashAt) : '',
+        pay.cashDone ? (pay.cashBy || '') : '',
         r.status || 'pending',
         formatStamp(r.createdAt),
         r.travellerNotes || '',
@@ -870,6 +1083,129 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     })
     downloadCsv(headers, rows, `trip_registrations_${new Date().toISOString().slice(0, 10)}.csv`)
   }
+
+  /* Shared row bits. Plain functions, not components, so React never remounts
+   * the note textarea (and loses the caret) while someone is typing. */
+  const toggleNote = (reg, expanded) => {
+    setNoteDrafts((prev) => ({ ...prev, [reg.id]: prev[reg.id] ?? (reg.staffNotes || '') }))
+    setNoteOpen(expanded ? null : reg.id)
+  }
+
+  const regActions = (reg, pay, busy, status, expanded) => (
+    <>
+      {/* Cash actions only appear for a declared-cash seat, or to undo one
+          a staff member has already recorded. */}
+      {pay.declared === 'cash' && !pay.cashDone && pay.state !== 'online_paid' && (
+        <button
+          disabled={busy}
+          onClick={() => askRecordCash(reg)}
+          aria-label={`Record cash received from ${reg.userName || 'this devotee'}`}
+          className="min-h-[44px] px-3 bg-teal-600 text-white text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+        >
+          <Banknote size={13} /> Record cash
+        </button>
+      )}
+      {pay.cashDone && (
+        <button
+          disabled={busy}
+          onClick={() => { setUndoTarget(reg); setCashError('') }}
+          aria-label={`Undo the cash record for ${reg.userName || 'this devotee'}`}
+          className="min-h-[44px] px-3 bg-teal-50 text-teal-700 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-teal-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+        >
+          <Undo2 size={13} /> Undo cash
+        </button>
+      )}
+      <button
+        disabled={busy || status === 'confirmed'}
+        onClick={() => updateRegistration(reg, 'confirmed')}
+        aria-label={`Confirm ${reg.userName || 'registration'}`}
+        className="min-h-[44px] px-3 bg-green-500 text-white text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-green-600 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+      >
+        {busy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} Confirm
+      </button>
+      <button
+        disabled={busy || status === 'waitlisted'}
+        onClick={() => updateRegistration(reg, 'waitlisted')}
+        aria-label={`Waitlist ${reg.userName || 'registration'}`}
+        className="min-h-[44px] px-3 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+      >
+        {busy ? <Loader2 size={12} className="animate-spin" /> : <Hourglass size={12} />} Wait
+      </button>
+      <button
+        disabled={busy || status === 'cancelled'}
+        onClick={() => updateRegistration(reg, 'cancelled')}
+        aria-label={`Cancel ${reg.userName || 'registration'}`}
+        className="min-h-[44px] px-3 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-red-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+      >
+        {busy ? <Loader2 size={12} className="animate-spin" /> : <Ban size={12} />} Cancel
+      </button>
+      <button
+        onClick={() => toggleNote(reg, expanded)}
+        aria-label={`Staff note for ${reg.userName || 'registration'}`}
+        className={`w-11 h-11 shrink-0 rounded-lg flex items-center justify-center transition-colors ${
+          reg.staffNotes ? 'bg-saffron/10 text-saffron' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+        }`}
+      >
+        <MessageSquare size={15} />
+      </button>
+    </>
+  )
+
+  const regDetailPanel = (reg, pay, busy, expanded) => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 user-text-box">
+      <div className="text-[11px] text-gray-500 space-y-2 user-text-box">
+        {pay.cashDone && (
+          <p className="user-text">
+            <span className="font-black uppercase tracking-widest text-[9px] text-teal-600">Cash recorded</span><br />
+            {formatINR(pay.cashAmount)} · {formatStamp(pay.cashAt)}
+            {pay.cashBy ? <> · by <span className="font-mono">{pay.cashBy}</span></> : null}
+          </p>
+        )}
+        {pay.orderId && (
+          <p className="user-text">
+            <span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Razorpay order</span><br />
+            <span className="font-mono">{pay.orderId}</span>
+          </p>
+        )}
+        {reg.travellerNotes && (
+          <p className="user-text"><span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Traveller note</span><br />{reg.travellerNotes}</p>
+        )}
+        {reg.emergencyContact && (
+          <p className="user-text"><span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Emergency contact</span><br />{reg.emergencyContact}</p>
+        )}
+        {!expanded && reg.staffNotes && (
+          <p className="user-text"><span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Staff note</span><br />{reg.staffNotes}</p>
+        )}
+      </div>
+      {expanded && (
+        <div className="space-y-2 user-text-box">
+          <label className={labelClass}>Staff note</label>
+          <textarea
+            rows={2}
+            value={noteDrafts[reg.id] ?? (reg.staffNotes || '')}
+            onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [reg.id]: e.target.value }))}
+            placeholder="Seat allotted in bus 2, balance due on departure…"
+            className="w-full bg-white border border-saffron/10 rounded-xl px-4 py-3 outline-none focus:border-saffron/40 transition-all text-sm font-medium resize-none user-text"
+          />
+          <div className="flex flex-wrap gap-2">
+            <button
+              disabled={busy}
+              onClick={() => saveNoteOnly(reg)}
+              className="min-h-[44px] px-4 bg-saffron text-white text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-saffron-dark transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {busy ? <Loader2 size={13} className="animate-spin" /> : null} Save note
+            </button>
+            <button
+              onClick={() => setNoteOpen(null)}
+              className="min-h-[44px] px-4 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 
   /* ---------------- loading ---------------- */
   if (tripsLoading && (trips || []).length === 0) {
@@ -951,7 +1287,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       {/* ================= TRIPS VIEW ================= */}
       {view === 'trips' && (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <SummaryTile label="Total Trips" value={totalTrips} icon={Bus} />
             <SummaryTile label="Upcoming" value={upcomingTrips} icon={Calendar} tone="green" />
             <SummaryTile label="Open for Registration" value={openTrips} icon={ToggleRight} tone="amber" />
@@ -959,8 +1295,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
           </div>
 
           {tripError && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold flex items-center gap-2">
-              <AlertTriangle size={14} /> {tripError}
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold flex items-start gap-2 user-text-box">
+              <AlertTriangle size={14} className="shrink-0" /> <span className="user-text">{tripError}</span>
             </div>
           )}
 
@@ -993,24 +1329,40 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                           </div>
 
                           {/* meta */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">{trip.title || 'Untitled trip'}</h3>
-                              <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${tripStatusClass(trip.status)}`}>
+                          <div className="flex-1 min-w-0 user-text-box">
+                            <h3 className="font-bold text-gray-800 text-sm sm:text-base user-text">{trip.title || 'Untitled trip'}</h3>
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                              <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border whitespace-nowrap ${tripStatusClass(trip.status)}`}>
                                 {trip.status || 'draft'}
                               </span>
-                              <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${
+                              <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border whitespace-nowrap ${
                                 trip.registrationOpen ? 'text-green-600 bg-green-50 border-green-200' : 'text-gray-400 bg-gray-50 border-gray-200'
                               }`}>
                                 {trip.registrationOpen ? 'Registrations open' : 'Registrations closed'}
                               </span>
+                              {/* payment rails at a glance — absent field means online is on */}
+                              {trip.onlinePaymentEnabled !== false && (
+                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border text-emerald-700 bg-emerald-50 border-emerald-200 inline-flex items-center gap-1 whitespace-nowrap">
+                                  <CreditCard size={10} /> Online
+                                </span>
+                              )}
+                              {trip.cashPaymentEnabled === true && (
+                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border text-teal-700 bg-teal-50 border-teal-200 inline-flex items-center gap-1 whitespace-nowrap">
+                                  <Banknote size={10} /> Cash
+                                </span>
+                              )}
+                              {trip.onlinePaymentEnabled === false && trip.cashPaymentEnabled !== true && (
+                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border text-amber-700 bg-amber-50 border-amber-200 inline-flex items-center gap-1 whitespace-nowrap">
+                                  <AlertTriangle size={10} /> No payment
+                                </span>
+                              )}
                             </div>
-                            <p className="text-[11px] text-gray-400 font-mono mt-1 truncate">/trip/{trip.slug || '—'}</p>
-                            <div className="flex items-center gap-x-4 gap-y-1 flex-wrap mt-2 text-[11px] text-gray-500 font-semibold">
-                              <span className="flex items-center gap-1.5"><Calendar size={12} className="text-gold" /> {formatDate(trip.startDate)} → {formatDate(trip.endDate)}</span>
-                              {trip.location && <span className="flex items-center gap-1.5 truncate max-w-[180px]"><MapPin size={12} className="text-saffron" /> {trip.location}</span>}
-                              <span className="flex items-center gap-1.5"><IndianRupee size={12} className="text-emerald-500" /> {formatINR(trip.price)}</span>
-                              <span className="flex items-center gap-1.5"><Users size={12} className="text-celestial-dark" /> {stats.count} registration{stats.count === 1 ? '' : 's'}{trip.capacity ? ` · ${stats.seats}/${trip.capacity} seats` : ''}</span>
+                            <p className="text-[11px] text-gray-400 font-mono mt-1.5 user-text">/trip/{trip.slug || '—'}</p>
+                            <div className="flex items-center gap-x-4 gap-y-1 flex-wrap mt-2 text-[11px] text-gray-500 font-semibold user-text-box">
+                              <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={12} className="text-gold shrink-0" /> {formatDate(trip.startDate)} → {formatDate(trip.endDate)}</span>
+                              {trip.location && <span className="flex items-center gap-1.5 min-w-0 max-w-full user-text-box"><MapPin size={12} className="text-saffron shrink-0" /> <span className="user-text">{trip.location}</span></span>}
+                              <span className="flex items-center gap-1.5 whitespace-nowrap"><IndianRupee size={12} className="text-emerald-500 shrink-0" /> {formatINR(trip.price)}</span>
+                              <span className="flex items-center gap-1.5"><Users size={12} className="text-celestial-dark shrink-0" /> {stats.count} registration{stats.count === 1 ? '' : 's'}{trip.capacity ? ` · ${stats.seats}/${trip.capacity} seats` : ''}</span>
                             </div>
                           </div>
 
@@ -1042,7 +1394,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                               </button>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
                               <button
                                 onClick={() => openEdit(trip)}
                                 aria-label={`Edit ${trip.title}`}
@@ -1099,20 +1451,34 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       {view === 'registrations' && (
         <div className="space-y-5">
 
-          {/* summary strip */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          {/* summary strip — Collected sums verified online AND recorded cash */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <SummaryTile label="Registrations" value={regSummary.total} icon={Users} />
             <SummaryTile label="Confirmed" value={regSummary.confirmed} icon={CheckCircle2} tone="green" />
             <SummaryTile label="Seats Booked" value={regSummary.seats} sub="confirmed only" icon={Bus} tone="slate" />
-            <SummaryTile label="Collected" value={formatINR(regSummary.collected)} sub="verified payments" icon={Wallet} tone="green" />
-            <SummaryTile label="Pending" value={formatINR(regSummary.pending)} sub="not yet paid" icon={Hourglass} tone="amber" />
+            <SummaryTile
+              label="Collected"
+              value={formatINR(regSummary.collected)}
+              sub={`${formatINR(regSummary.online)} online · ${formatINR(regSummary.cash)} cash`}
+              icon={Wallet}
+              tone="green"
+            />
+            <SummaryTile
+              label="Pending"
+              value={formatINR(regSummary.pending)}
+              sub={regSummary.cashToCollect > 0
+                ? `${regSummary.cashToCollect} awaiting cash`
+                : 'not yet paid'}
+              icon={Hourglass}
+              tone="amber"
+            />
           </div>
 
           {/* filters */}
           <Card hover={false} className="p-4 sm:p-5 border-none shadow-premium bg-white rounded-[1.5rem] sm:rounded-[2rem]">
-            <div className="flex flex-col lg:flex-row gap-3">
-              <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={16} />
                 <input
                   type="text"
                   value={search}
@@ -1122,56 +1488,191 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   className="w-full min-h-[44px] pl-11 pr-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all text-sm font-medium"
                 />
               </div>
-              <select
-                value={filterTrip}
-                onChange={(e) => setFilterTrip(e.target.value)}
-                aria-label="Filter by trip"
-                className="min-h-[44px] px-4 bg-cream/30 border border-saffron/10 rounded-xl text-xs font-bold text-gray-600 outline-none focus:border-saffron/40 lg:w-56"
-              >
-                <option value="all">All trips</option>
-                {sortedTrips.map((t) => (
-                  <option key={t.id} value={t.id}>{t.title || t.slug}</option>
-                ))}
-              </select>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                aria-label="Filter by status"
-                className="min-h-[44px] px-4 bg-cream/30 border border-saffron/10 rounded-xl text-xs font-bold text-gray-600 outline-none focus:border-saffron/40 lg:w-44"
-              >
-                <option value="all">All statuses</option>
-                {REG_STATUSES.map((s) => (
-                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                ))}
-              </select>
-              <Button
-                variant="secondary"
-                onClick={exportRegistrations}
-                disabled={filteredRegs.length === 0}
-                className="min-h-[44px] px-5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-40"
-              >
-                <Download size={15} /> Export CSV
-              </Button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <select
+                  value={filterTrip}
+                  onChange={(e) => setFilterTrip(e.target.value)}
+                  aria-label="Filter by trip"
+                  className="w-full min-w-0 min-h-[44px] px-4 bg-cream/30 border border-saffron/10 rounded-xl text-xs font-bold text-gray-600 outline-none focus:border-saffron/40"
+                >
+                  <option value="all">All trips</option>
+                  {sortedTrips.map((t) => (
+                    <option key={t.id} value={t.id}>{t.title || t.slug}</option>
+                  ))}
+                </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  aria-label="Filter by status"
+                  className="w-full min-w-0 min-h-[44px] px-4 bg-cream/30 border border-saffron/10 rounded-xl text-xs font-bold text-gray-600 outline-none focus:border-saffron/40"
+                >
+                  <option value="all">All statuses</option>
+                  {REG_STATUSES.map((s) => (
+                    <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                {/* payment-method filter */}
+                <div
+                  role="group"
+                  aria-label="Filter by payment method"
+                  className="flex-1 min-w-0 flex items-center gap-1 p-1 bg-cream/40 rounded-xl border border-saffron/10"
+                >
+                  {[
+                    { key: 'all', label: 'All', icon: Layers },
+                    { key: 'online', label: 'Online', icon: CreditCard },
+                    { key: 'cash', label: 'Cash', icon: Banknote },
+                  ].map((m) => {
+                    const Icon = m.icon
+                    const active = filterMethod === m.key
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setFilterMethod(m.key)}
+                        className={`flex-1 min-w-0 min-h-[44px] px-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all ${
+                          active ? 'bg-white text-saffron-dark shadow-sm' : 'text-gray-400 hover:text-saffron'
+                        }`}
+                      >
+                        <Icon size={13} className="shrink-0" />
+                        <span className="truncate">{m.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <Button
+                  variant="secondary"
+                  onClick={exportRegistrations}
+                  disabled={filteredRegs.length === 0}
+                  className="w-full sm:w-auto shrink-0 min-h-[44px] px-5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <Download size={15} /> Export CSV
+                </Button>
+              </div>
+
+              {(filterTrip !== 'all' || filterStatus !== 'all' || filterMethod !== 'all' || search) && (
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <p className="text-[11px] font-bold text-gray-400 user-text">
+                    Showing {filteredRegs.length} of {(registrations || []).length}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setFilterTrip('all'); setFilterStatus('all'); setFilterMethod('all'); setSearch('') }}
+                    className="min-h-[44px] px-3 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-saffron hover:bg-cream/50 transition-colors shrink-0"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
             </div>
           </Card>
 
           {regError && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold flex items-center gap-2">
-              <AlertTriangle size={14} /> {regError}
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold flex items-start gap-2 user-text-box">
+              <AlertTriangle size={14} className="shrink-0" /> <span className="user-text">{regError}</span>
             </div>
           )}
 
           {regsLoading && (registrations || []).length === 0 ? (
             <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-saffron" size={28} /></div>
           ) : filteredRegs.length === 0 ? (
-            <Card className="p-10 text-center border-none shadow-sm bg-white">
-              <Users className="mx-auto text-saffron/30 mb-4" size={40} />
-              <p className="text-gray-400 italic text-sm">No registrations match these filters.</p>
+            <Card className="p-8 sm:p-12 text-center border-none shadow-sm bg-white rounded-[1.5rem] sm:rounded-[2rem]">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-saffron/10 to-gold/10 flex items-center justify-center mx-auto mb-4">
+                <Users className="text-saffron/50" size={26} />
+              </div>
+              <p className="font-bold text-gray-600 text-sm">
+                {(registrations || []).length === 0 ? 'No registrations yet' : 'Nothing matches these filters'}
+              </p>
+              <p className="text-gray-400 text-xs mt-1.5 max-w-sm mx-auto leading-relaxed">
+                {(registrations || []).length === 0
+                  ? 'Once a trip is published with registrations open, every devotee who books a seat appears here.'
+                  : 'Try a different trip, status or payment method — or clear the filters to see everything.'}
+              </p>
+              {(registrations || []).length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterTrip('all'); setFilterStatus('all'); setFilterMethod('all'); setSearch('') }}
+                  className="mt-5 min-h-[44px] px-6 rounded-2xl bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-widest hover:bg-saffron hover:text-white transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
             </Card>
           ) : (
-            <Card hover={false} className="p-0 border-none shadow-premium bg-white rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden">
-              <div className="overflow-x-auto scrollbar-hide">
-                <table className="w-full min-w-[980px]">
+            <>
+            {/* ---- below md: stacked cards. A 900px table on a 360px phone is
+                 unusable, so the same data is re-laid-out rather than scrolled. ---- */}
+            <div className="md:hidden space-y-3">
+              {filteredRegs.map((reg) => {
+                const pay = resolvePayment(reg)
+                const meta = payMeta(pay.state)
+                const busy = regBusy === reg.id
+                const status = (reg.status || 'pending').toLowerCase()
+                const expanded = noteOpen === reg.id
+                const hasDetail = expanded || reg.travellerNotes || reg.emergencyContact || reg.staffNotes || pay.cashDone
+                return (
+                  <Card
+                    key={reg.id}
+                    hover={false}
+                    className="p-4 border-none shadow-premium bg-white rounded-[1.25rem] overflow-hidden user-text-box"
+                  >
+                    <div className="flex items-start gap-3 user-text-box">
+                      <span className={`w-1.5 self-stretch rounded-full shrink-0 ${meta.dot}`} aria-hidden="true" />
+                      <div className="flex-1 min-w-0 user-text-box">
+                        <p className="font-bold text-gray-800 text-sm user-text">{reg.userName || 'Devotee'}</p>
+                        <p className="text-[11px] text-gray-400 font-bold mt-0.5 user-text">{reg.tripTitle || '—'}</p>
+
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                          <PayChip pay={pay} />
+                          <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border whitespace-nowrap ${regStatusClass(status)}`}>
+                            {regStatusIcon(status)} {status}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-3 text-[11px] font-semibold text-gray-500 user-text-box">
+                          <span className="user-text">{toInt(reg.seats) || 1} seat{(toInt(reg.seats) || 1) === 1 ? '' : 's'}</span>
+                          <span className="user-text text-right font-bold text-gray-700">{formatINR(reg.amountDue)} due</span>
+                          {reg.userPhone && (
+                            <a
+                              href={`tel:${reg.userPhone}`}
+                              className="col-span-2 flex items-center gap-1.5 text-gray-400 hover:text-saffron min-h-[44px] -my-1 user-text-box"
+                            >
+                              <Phone size={11} className="shrink-0" /> <span className="user-text">{reg.userPhone}</span>
+                            </a>
+                          )}
+                          {reg.userEmail && (
+                            <span className="col-span-2 flex items-center gap-1.5 text-gray-400 user-text-box">
+                              <Mail size={11} className="shrink-0" /> <span className="user-text">{reg.userEmail}</span>
+                            </span>
+                          )}
+                          <span className="col-span-2 text-gray-300 user-text">Registered {formatStamp(reg.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 mt-3.5 pt-3.5 border-t border-gray-50">
+                      {regActions(reg, pay, busy, status, expanded)}
+                    </div>
+
+                    {hasDetail && (
+                      <div className="mt-3 pt-3 border-t border-gray-50">
+                        {regDetailPanel(reg, pay, busy, expanded)}
+                      </div>
+                    )}
+                  </Card>
+                )
+              })}
+            </div>
+
+            {/* ---- md and up: the reconciliation table ---- */}
+            <Card hover={false} className="hidden md:block p-0 border-none shadow-premium bg-white rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[960px]">
                   <thead>
                     <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 bg-cream/20">
                       <th className="py-4 px-5 font-black">Devotee</th>
@@ -1187,119 +1688,70 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   <tbody className="divide-y divide-gray-50">
                     {filteredRegs.map((reg) => {
                       const pay = resolvePayment(reg)
+                      const meta = payMeta(pay.state)
                       const busy = regBusy === reg.id
                       const status = (reg.status || 'pending').toLowerCase()
                       const expanded = noteOpen === reg.id
+                      const hasDetail = expanded || reg.travellerNotes || reg.emergencyContact || reg.staffNotes || pay.cashDone || pay.orderId
                       return (
                         <React.Fragment key={reg.id}>
                           <tr className="hover:bg-cream/20 transition-colors align-top">
                             <td className="py-4 px-5">
-                              <p className="font-bold text-gray-800 text-sm">{reg.userName || 'Devotee'}</p>
-                              <div className="text-[11px] text-gray-400 font-medium mt-1 space-y-0.5">
-                                {reg.userPhone && <p className="flex items-center gap-1.5"><Phone size={10} /> {reg.userPhone}</p>}
-                                {reg.userEmail && <p className="flex items-center gap-1.5 truncate max-w-[190px]"><Mail size={10} /> {reg.userEmail}</p>}
+                              <div className="flex items-start gap-2.5 w-[210px] user-text-box">
+                                <span className={`w-1 self-stretch rounded-full shrink-0 mt-0.5 ${meta.dot}`} aria-hidden="true" />
+                                <div className="min-w-0 user-text-box">
+                                  <p className="font-bold text-gray-800 text-sm user-text">{reg.userName || 'Devotee'}</p>
+                                  <div className="text-[11px] text-gray-400 font-medium mt-1 space-y-0.5 user-text-box">
+                                    {reg.userPhone && <p className="flex items-center gap-1.5 user-text-box"><Phone size={10} className="shrink-0" /> <span className="user-text">{reg.userPhone}</span></p>}
+                                    {reg.userEmail && <p className="flex items-center gap-1.5 user-text-box"><Mail size={10} className="shrink-0" /> <span className="user-text">{reg.userEmail}</span></p>}
+                                  </div>
+                                </div>
                               </div>
                             </td>
                             <td className="py-4 px-3">
-                              <p className="text-xs font-bold text-gray-600 truncate max-w-[160px]">{reg.tripTitle || '—'}</p>
-                              <p className="text-[10px] text-gray-400 font-mono truncate max-w-[160px]">{reg.tripSlug || ''}</p>
+                              <div className="w-[170px] user-text-box">
+                                <p className="text-xs font-bold text-gray-600 user-text">{reg.tripTitle || '—'}</p>
+                                <p className="text-[10px] text-gray-400 font-mono user-text">{reg.tripSlug || ''}</p>
+                              </div>
                             </td>
                             <td className="py-4 px-3 text-sm font-bold text-gray-700">{toInt(reg.seats) || 1}</td>
                             <td className="py-4 px-3 text-sm font-bold text-gray-700 whitespace-nowrap">{formatINR(reg.amountDue)}</td>
                             <td className="py-4 px-3">
-                              <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border whitespace-nowrap ${payStateClass(pay.state)}`}>
-                                {pay.state === 'paid' ? <CheckCircle2 size={11} /> : pay.state === 'pending' ? <Clock size={11} /> : <XCircle size={11} />}
-                                {pay.label}
-                              </span>
-                              {pay.orderId && (
-                                <p className="text-[9px] text-gray-400 font-mono mt-1 truncate max-w-[130px]" title={pay.orderId}>{pay.orderId}</p>
+                              <div className="w-[180px] user-text-box">
+                              <PayChip pay={pay} />
+                              {pay.state === 'cash_collected' && (
+                                <p className="text-[10px] text-teal-600 font-bold mt-1 user-text">
+                                  {formatINR(pay.cashAmount)} · {formatStamp(pay.cashAt)}
+                                </p>
                               )}
+                              {pay.state === 'online_paid' && pay.onlineAmount > 0 && (
+                                <p className="text-[10px] text-emerald-600 font-bold mt-1 user-text">{formatINR(pay.onlineAmount)} verified</p>
+                              )}
+                              {pay.state === 'cash_pending' && (
+                                <p className="text-[10px] text-orange-500 font-bold mt-1 user-text">to collect at office</p>
+                              )}
+                              {pay.state === 'online_pending' && pay.orderId && (
+                                <p className="text-[9px] text-gray-400 font-mono mt-1 user-text" title={pay.orderId}>{pay.orderId}</p>
+                              )}
+                              </div>
                             </td>
                             <td className="py-4 px-3">
-                              <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border whitespace-nowrap ${regStatusClass(status)}`}>
+                              <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border whitespace-nowrap ${regStatusClass(status)}`}>
                                 {regStatusIcon(status)} {status}
                               </span>
                             </td>
                             <td className="py-4 px-3 text-[11px] text-gray-400 font-semibold whitespace-nowrap">{formatStamp(reg.createdAt)}</td>
                             <td className="py-4 px-5">
                               <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                <button
-                                  disabled={busy || status === 'confirmed'}
-                                  onClick={() => updateRegistration(reg, 'confirmed')}
-                                  aria-label={`Confirm ${reg.userName || 'registration'}`}
-                                  className="min-h-[36px] px-3 bg-green-500 text-white text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-green-600 transition-colors disabled:opacity-40 flex items-center gap-1.5"
-                                >
-                                  {busy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} Confirm
-                                </button>
-                                <button
-                                  disabled={busy || status === 'waitlisted'}
-                                  onClick={() => updateRegistration(reg, 'waitlisted')}
-                                  aria-label={`Waitlist ${reg.userName || 'registration'}`}
-                                  className="min-h-[36px] px-3 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
-                                >
-                                  {busy ? <Loader2 size={12} className="animate-spin" /> : <Hourglass size={12} />} Wait
-                                </button>
-                                <button
-                                  disabled={busy || status === 'cancelled'}
-                                  onClick={() => updateRegistration(reg, 'cancelled')}
-                                  aria-label={`Cancel ${reg.userName || 'registration'}`}
-                                  className="min-h-[36px] px-3 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-red-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
-                                >
-                                  {busy ? <Loader2 size={12} className="animate-spin" /> : <Ban size={12} />} Cancel
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setNoteDrafts((prev) => ({ ...prev, [reg.id]: prev[reg.id] ?? (reg.staffNotes || '') }))
-                                    setNoteOpen(expanded ? null : reg.id)
-                                  }}
-                                  aria-label={`Staff note for ${reg.userName || 'registration'}`}
-                                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                                    reg.staffNotes ? 'bg-saffron/10 text-saffron' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                                  }`}
-                                >
-                                  <MessageSquare size={14} />
-                                </button>
+                                {regActions(reg, pay, busy, status, expanded)}
                               </div>
                             </td>
                           </tr>
 
-                          {(expanded || reg.travellerNotes || reg.emergencyContact) && (
+                          {hasDetail && (
                             <tr className="bg-cream/20">
                               <td colSpan={8} className="px-5 pb-4">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                                  <div className="text-[11px] text-gray-500 space-y-1">
-                                    {reg.travellerNotes && <p><span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Traveller note</span><br />{reg.travellerNotes}</p>}
-                                    {reg.emergencyContact && <p><span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Emergency contact</span><br />{reg.emergencyContact}</p>}
-                                    {!expanded && reg.staffNotes && <p><span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Staff note</span><br />{reg.staffNotes}</p>}
-                                  </div>
-                                  {expanded && (
-                                    <div className="space-y-2">
-                                      <label className={labelClass}>Staff note</label>
-                                      <textarea
-                                        rows={2}
-                                        value={noteDrafts[reg.id] ?? (reg.staffNotes || '')}
-                                        onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [reg.id]: e.target.value }))}
-                                        placeholder="Seat allotted in bus 2, paid cash balance…"
-                                        className="w-full bg-white border border-saffron/10 rounded-xl px-4 py-3 outline-none focus:border-saffron/40 transition-all text-sm font-medium resize-none"
-                                      />
-                                      <div className="flex gap-2">
-                                        <button
-                                          disabled={busy}
-                                          onClick={() => saveNoteOnly(reg)}
-                                          className="min-h-[40px] px-4 bg-saffron text-white text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-saffron-dark transition-colors disabled:opacity-50 flex items-center gap-2"
-                                        >
-                                          {busy ? <Loader2 size={13} className="animate-spin" /> : null} Save note
-                                        </button>
-                                        <button
-                                          onClick={() => setNoteOpen(null)}
-                                          className="min-h-[40px] px-4 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-gray-200 transition-colors"
-                                        >
-                                          Close
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
+                                {regDetailPanel(reg, pay, busy, expanded)}
                               </td>
                             </tr>
                           )}
@@ -1310,6 +1762,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 </table>
               </div>
             </Card>
+            </>
           )}
         </div>
       )}
@@ -1566,6 +2019,63 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                       </Field>
                     </div>
 
+                    {/* ---- payment rails ---- */}
+                    <div className="space-y-3 pt-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <label className={labelClass}>How devotees pay</label>
+                        <span className="text-[10px] text-gray-400 font-medium">at least one, normally</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <RailToggle
+                          on={form.onlinePaymentEnabled}
+                          onToggle={() => setField('onlinePaymentEnabled', !form.onlinePaymentEnabled)}
+                          icon={CreditCard}
+                          title="Online payment"
+                          onCopy="Devotees pay by UPI, card or netbanking through Razorpay. The seat is marked paid automatically once the payment is verified."
+                          offCopy="The Razorpay checkout is hidden. Devotees cannot pay online for this trip."
+                        />
+                        <RailToggle
+                          on={form.cashPaymentEnabled}
+                          onToggle={() => setField('cashPaymentEnabled', !form.cashPaymentEnabled)}
+                          icon={Banknote}
+                          title="Cash at the office"
+                          onCopy="Devotees may choose to pay cash at the temple office. A staff member records the money in Registrations once it is handed over."
+                          offCopy="Cash is not offered. Devotees will not see a pay-at-office option."
+                        />
+                      </div>
+
+                      {!form.onlinePaymentEnabled && !form.cashPaymentEnabled && (
+                        <div className={`p-4 rounded-2xl border-2 flex items-start gap-3 ${
+                          form.registrationOpen
+                            ? 'bg-amber-50 border-amber-300 text-amber-800'
+                            : 'bg-gray-50 border-gray-200 text-gray-500'
+                        }`}>
+                          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0 text-[11px] font-medium leading-relaxed user-text-box">
+                            {form.registrationOpen ? (
+                              <>
+                                <p className="font-black uppercase tracking-widest text-[10px] mb-1">
+                                  Both payment methods are off while registrations are open
+                                </p>
+                                <p>
+                                  Devotees can still book a seat, but the app cannot collect any money for it — every
+                                  registration will arrive as <span className="font-bold">Unpaid</span> and has to be settled
+                                  offline. That is a fine choice for a free or invitation-only yatra; if it was not deliberate,
+                                  switch one of the two back on.
+                                </p>
+                              </>
+                            ) : (
+                              <p>
+                                Both payment methods are off. Registrations are closed too, so nothing is broken — turn one on
+                                before you open registrations if you intend to collect money through the app.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="p-4 rounded-2xl bg-cream/40 border border-saffron/10 text-[11px] text-gray-500 font-medium leading-relaxed">
                       A trip only appears to devotees once its status is <span className="font-black text-saffron-dark">upcoming</span> (or later);
                       <span className="font-black text-saffron-dark"> draft</span> keeps it staff-only. Registrations can be closed independently
@@ -1604,8 +2114,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     </div>
 
                     {imageError && (
-                      <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold flex items-center gap-2">
-                        <AlertTriangle size={13} /> {imageError}
+                      <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold flex items-start gap-2 user-text-box">
+                        <AlertTriangle size={13} className="shrink-0" /> <span className="user-text">{imageError}</span>
                       </div>
                     )}
 
@@ -1632,7 +2142,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             <button
                               type="button"
                               onClick={() => setField('coverImage', '')}
-                              className="min-h-[40px] px-4 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-100 transition-colors"
+                              className="min-h-[44px] px-4 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-100 transition-colors"
                             >
                               Remove cover
                             </button>
@@ -1644,20 +2154,20 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     <Field label="Gallery" hint={`${(form.gallery || []).length}/3 · resized to 800px`}>
                       <div className="grid grid-cols-3 gap-3">
                         {(form.gallery || []).map((src, i) => (
-                          <div key={i} className="relative h-24 rounded-2xl overflow-hidden bg-cream/40">
+                          <div key={i} className="relative h-28 rounded-2xl overflow-hidden bg-cream/40">
                             <img src={src} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" />
                             <button
                               type="button"
                               aria-label={`Remove gallery image ${i + 1}`}
                               onClick={() => setField('gallery', form.gallery.filter((_, idx) => idx !== i))}
-                              className="absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-gray-900/70 text-white flex items-center justify-center hover:bg-red-500 transition-colors"
+                              className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-gray-900/70 text-white flex items-center justify-center hover:bg-red-500 transition-colors"
                             >
                               <X size={14} />
                             </button>
                           </div>
                         ))}
                         {(form.gallery || []).length < 3 && (
-                          <label className="h-24 cursor-pointer bg-cream/30 border-2 border-dashed border-saffron/20 rounded-2xl hover:bg-cream/50 transition-all flex flex-col items-center justify-center gap-1">
+                          <label className="h-28 cursor-pointer bg-cream/30 border-2 border-dashed border-saffron/20 rounded-2xl hover:bg-cream/50 transition-all flex flex-col items-center justify-center gap-1">
                             {uploading === 'gallery'
                               ? <Loader2 className="animate-spin text-saffron" size={18} />
                               : <Plus className="text-saffron/50" size={20} />}
@@ -1768,12 +2278,12 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   {showErrors && hasErrors && (
                     <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold flex items-start gap-2">
                       <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                      <span>{Object.values(errors)[0]}</span>
+                      <span className="user-text">{Object.values(errors)[0]}</span>
                     </div>
                   )}
                   {saveError && (
-                    <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold flex items-center gap-2">
-                      <AlertTriangle size={14} /> {saveError}
+                    <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold flex items-start gap-2 user-text-box">
+                      <AlertTriangle size={14} className="shrink-0" /> <span className="user-text">{saveError}</span>
                     </div>
                   )}
                   <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -1829,14 +2339,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <Trash2 className="text-red-500" size={22} />
               </div>
               <h3 className="text-xl font-bold text-gray-900 pr-10">Delete this trip?</h3>
-              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed user-text">
                 <span className="font-bold text-gray-700">{deleteTarget.title}</span> will be removed permanently and
                 <span className="font-bold"> /trip/{deleteTarget.slug}</span> will stop working. Its
                 {' '}{(regStatsByTrip.get(deleteTarget.id)?.count) || 0} registration(s) are kept but will no longer point at a live trip.
               </p>
 
-              <div className="mt-5 space-y-2">
-                <label className={labelClass}>Type <span className="font-mono text-saffron-dark">{deleteTarget.slug}</span> to confirm</label>
+              <div className="mt-5 space-y-2 user-text-box">
+                <label className={`${labelClass} block user-text`}>Type <span className="font-mono text-saffron-dark">{deleteTarget.slug}</span> to confirm</label>
                 <input
                   type="text"
                   value={deleteText}
@@ -1847,8 +2357,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               </div>
 
               {deleteError && (
-                <p className="mt-3 text-[11px] font-bold text-red-500 flex items-center gap-1">
-                  <AlertTriangle size={12} /> {deleteError}
+                <p className="mt-3 text-[11px] font-bold text-red-500 flex items-start gap-1.5 user-text-box">
+                  <AlertTriangle size={12} className="shrink-0 mt-0.5" /> <span className="user-text">{deleteError}</span>
                 </p>
               )}
 
@@ -1867,6 +2377,151 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 >
                   {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                   Delete Trip
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ================= RECORD CASH (in-page, staff attestation) ================= */}
+      <AnimatePresence>
+        {cashTarget && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => !cashSaving && setCashTarget(null)}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-premium-xl p-5 sm:p-8 overflow-y-auto max-h-[90vh] border border-teal-100 user-text-box"
+            >
+              <button
+                onClick={() => !cashSaving && setCashTarget(null)}
+                aria-label="Close"
+                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center mb-4">
+                <Banknote className="text-teal-600" size={22} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 pr-10">Record cash received</h3>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed user-text">
+                Confirming that <span className="font-bold text-gray-700">{cashTarget.userName || 'this devotee'}</span> handed
+                over cash for <span className="font-bold text-gray-700">{cashTarget.tripTitle || 'this trip'}</span>. This is
+                your attestation as staff — it is what the Collected total and the CSV will report.
+              </p>
+
+              <div className="mt-5 space-y-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <label className={labelClass} htmlFor="cash-amount">Amount received (₹)</label>
+                  <span className="text-[10px] text-gray-400 font-medium">due {formatINR(cashTarget.amountDue)}</span>
+                </div>
+                <input
+                  id="cash-amount"
+                  type="number"
+                  min={0}
+                  step="1"
+                  inputMode="numeric"
+                  value={cashDraft}
+                  onChange={(e) => setCashDraft(e.target.value)}
+                  className={inputClass}
+                />
+                {toNumber(cashDraft) > 0 && toNumber(cashDraft) !== toNumber(cashTarget.amountDue) && (
+                  <p className="text-[11px] font-bold text-amber-600 ml-1 flex items-start gap-1.5">
+                    <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                    <span className="user-text">
+                      That is {toNumber(cashDraft) < toNumber(cashTarget.amountDue) ? 'less' : 'more'} than
+                      the {formatINR(cashTarget.amountDue)} due — a part payment is fine, just make sure it is what you counted.
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              {cashError && (
+                <p className="mt-3 text-[11px] font-bold text-red-500 flex items-start gap-1.5">
+                  <AlertTriangle size={12} className="shrink-0 mt-0.5" /> <span className="user-text">{cashError}</span>
+                </p>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <button
+                  onClick={() => setCashTarget(null)}
+                  disabled={cashSaving}
+                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRecordCash}
+                  disabled={cashSaving || !(toNumber(cashDraft) > 0)}
+                  className="flex-1 min-h-[44px] rounded-2xl bg-teal-600 text-white text-xs font-black uppercase tracking-widest hover:bg-teal-700 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  {cashSaving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                  Record {formatINR(toNumber(cashDraft))}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ================= UNDO CASH (mis-tap recovery) ================= */}
+      <AnimatePresence>
+        {undoTarget && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => !cashSaving && setUndoTarget(null)}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-premium-xl p-5 sm:p-8 overflow-y-auto max-h-[90vh] border border-amber-100 user-text-box"
+            >
+              <button
+                onClick={() => !cashSaving && setUndoTarget(null)}
+                aria-label="Close"
+                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-4">
+                <Undo2 className="text-amber-600" size={22} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 pr-10">Undo this cash record?</h3>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed user-text">
+                <span className="font-bold text-gray-700">{undoTarget.userName || 'This devotee'}</span> goes back to
+                <span className="font-bold"> cash pending collection</span>, and
+                the {formatINR(undoTarget.cashAmount ?? undoTarget.amountDue)} comes straight back out of the Collected total.
+                Only do this if the money was never actually received.
+              </p>
+
+              {cashError && (
+                <p className="mt-3 text-[11px] font-bold text-red-500 flex items-start gap-1.5">
+                  <AlertTriangle size={12} className="shrink-0 mt-0.5" /> <span className="user-text">{cashError}</span>
+                </p>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <button
+                  onClick={() => setUndoTarget(null)}
+                  disabled={cashSaving}
+                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Keep it
+                </button>
+                <button
+                  onClick={confirmUndoCash}
+                  disabled={cashSaving}
+                  className="flex-1 min-h-[44px] rounded-2xl bg-amber-500 text-white text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {cashSaving ? <Loader2 size={15} className="animate-spin" /> : <Undo2 size={15} />}
+                  Undo record
                 </button>
               </div>
             </motion.div>

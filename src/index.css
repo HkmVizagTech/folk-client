@@ -101,6 +101,26 @@
     scrollbar-width: none;
   }
 
+  /* Anything a human typed - trip descriptions, itinerary details, names,
+     emails, staff notes. Tailwind's default `overflow-wrap: normal` refuses
+     to break a long unbroken token, so one pasted URL or a 40-character word
+     pushes straight out of its card. `anywhere` also makes the element's
+     min-content width collapse, which is what actually stops a flex/grid
+     child from being forced wider than its track. Put this on every element
+     that renders user-supplied text. */
+  .user-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Same guard for a container whose children hold user text: flex and grid
+     items default to min-width:auto, which is what lets them refuse to
+     shrink and blow out the row. */
+  .user-text-box {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   @keyframes floating {
     from { background-position: 0 0; }
     to { background-position: 1000px 1000px; }

@@ -249,9 +249,17 @@ service cloud.firestore {
     // NOTE ON PAYMENT STATE: the client may only ever write `paymentOrderId`,
     // a POINTER to the Razorpay order. It can never write a "paid" flag,
     // because that would be forgeable from the browser. Whether money actually
-    // arrived is resolved by reading payments/{paymentOrderId}, which only the
-    // server's webhook can mark completed/verified. Never trust a paid-looking
-    // field stored on the registration itself.
+    // arrived ONLINE is resolved by reading payments/{paymentOrderId}, which
+    // only the server's webhook can mark completed/verified. Never trust a
+    // paid-looking field stored on the registration itself.
+    //
+    // CASH is the one exception, and deliberately so: there is no webhook for
+    // a handful of notes across a desk, so `cashCollected` is a STAFF
+    // ATTESTATION - "I received this money". That is why it sits only in the
+    // staff branch below and can never be written by the devotee, who could
+    // otherwise mark their own seat paid. `paymentMode` is the devotee's
+    // declared intent at registration time and carries no payment meaning on
+    // its own.
     match /trip_registrations/{regId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
 
@@ -264,11 +272,15 @@ service cloud.firestore {
 
       allow update: if isSignedIn() && (
         (
-          // Staff move a registration through its lifecycle, and nothing else -
-          // they can never repoint it at a different trip or devotee.
+          // Staff move a registration through its lifecycle and record cash
+          // handed over in person, and nothing else - they can never repoint
+          // it at a different trip or devotee, or touch paymentOrderId.
           isStaff() &&
           request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['status', 'staffNotes', 'updatedAt'])
+            .hasOnly([
+              'status', 'staffNotes', 'updatedAt',
+              'cashCollected', 'cashAmount', 'cashCollectedAt', 'cashCollectedBy'
+            ])
         ) ||
         (
           // Owner attaches the Razorpay order id once checkout starts.

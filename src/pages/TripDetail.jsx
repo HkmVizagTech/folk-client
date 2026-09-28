@@ -4,7 +4,7 @@ import {
   MapPin, Calendar, Clock, Users, ArrowLeft, ArrowRight, Check, X, Plus, Minus,
   Loader2, Compass, Ticket, Phone, MessageCircle, ShieldCheck, CreditCard,
   CheckCircle2, XCircle, AlertTriangle, Ban, Clock3, Sparkles, Info, Camera,
-  Map as MapIcon, Bus
+  Map as MapIcon, Bus, Banknote, Building2
 } from 'lucide-react'
 import { collection, addDoc, updateDoc, doc, serverTimestamp, where } from 'firebase/firestore'
 import { db, auth } from '../lib/firebase'
@@ -99,13 +99,13 @@ const PublicTopBar = ({ onLoginClick }) => (
   <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-saffron/10">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="h-16 sm:h-[70px] flex items-center justify-between gap-3">
-        <a href="/" className="shrink-0 flex items-center gap-3" aria-label="FOLK Vizag — home">
-          <span className="w-11 h-11 rounded-2xl bg-white flex items-center justify-center shadow-premium ring-1 ring-black/5 overflow-hidden">
-            <img src="/logo.png" alt="Folk Vizag logo" className="h-8 w-8 object-contain" />
+        <a href="/" className="min-w-0 flex items-center gap-2.5 sm:gap-3" aria-label="FOLK Vizag — home">
+          <span className="w-11 h-11 shrink-0 rounded-2xl bg-white flex items-center justify-center shadow-premium ring-1 ring-black/5 overflow-hidden">
+            <img src="/logo.png" alt="Folk Vizag logo" className="h-8 w-8 max-w-full object-contain" />
           </span>
-          <span className="leading-tight">
-            <span className="block text-[14px] sm:text-[15px] font-black tracking-tight text-gray-900">FOLK Vizag</span>
-            <span className="block text-[9px] font-bold uppercase tracking-[0.18em] text-gray-400">Hare Krishna Movement</span>
+          <span className="leading-tight min-w-0">
+            <span className="block text-[14px] sm:text-[15px] font-black tracking-tight text-gray-900 truncate">FOLK Vizag</span>
+            <span className="block text-[9px] font-bold uppercase tracking-[0.14em] sm:tracking-[0.18em] text-gray-400 truncate">Hare Krishna Movement</span>
           </span>
         </a>
         <button
@@ -121,11 +121,55 @@ const PublicTopBar = ({ onLoginClick }) => (
 )
 
 const SectionHeading = ({ icon, eyebrow, title }) => (
-  <div className="mb-6">
-    <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-saffron-dark">
-      {icon} {eyebrow}
+  <div className="mb-5 sm:mb-6 user-text-box">
+    <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.18em] text-saffron-dark">
+      <span className="shrink-0">{icon}</span> {eyebrow}
     </span>
-    <h2 className="mt-2 text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{title}</h2>
+    <h2 className="mt-2 text-lg sm:text-2xl font-black text-gray-900 tracking-tight leading-tight">{title}</h2>
+  </div>
+)
+
+/* ------------------------------------------------------------------ *
+ * Payment availability. Both flags are staff-managed on the trip doc.
+ * `onlinePaymentEnabled` defaults to TRUE when absent so every trip that
+ * existed before the field was introduced keeps its Razorpay checkout.
+ * `cashPaymentEnabled` defaults to FALSE — cash is opt-in per trip.
+ * ------------------------------------------------------------------ */
+const isOnlineEnabled = (trip) => trip?.onlinePaymentEnabled !== false
+const isCashEnabled = (trip) => trip?.cashPaymentEnabled === true
+
+/** Skeleton for the detail page — closer to the finished layout than a spinner. */
+const DetailSkeleton = () => (
+  <div className="animate-pulse" aria-hidden="true">
+    <div className="h-[46svh] sm:h-[56svh] bg-gradient-to-br from-[#1a1614] to-[#0B0A09]" />
+    <div className="bg-cream">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
+          <div className="order-1 lg:order-2 lg:col-span-1">
+            <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/10 p-6 space-y-4">
+              <div className="h-8 w-32 rounded-full bg-cream-dark/70" />
+              <div className="h-3 w-24 rounded-full bg-cream-dark/50" />
+              <div className="space-y-3 pt-2">
+                <div className="h-9 w-full rounded-xl bg-cream-dark/40" />
+                <div className="h-9 w-full rounded-xl bg-cream-dark/40" />
+              </div>
+              <div className="h-[52px] w-full rounded-2xl bg-cream-dark/70" />
+            </div>
+          </div>
+          <div className="order-2 lg:order-1 lg:col-span-2 space-y-6">
+            {[0, 1].map((i) => (
+              <div key={i} className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-6 sm:p-9 space-y-3">
+                <div className="h-3 w-28 rounded-full bg-cream-dark/50" />
+                <div className="h-6 w-2/5 rounded-full bg-cream-dark/70" />
+                <div className="h-3 w-full rounded-full bg-cream-dark/40 mt-4" />
+                <div className="h-3 w-11/12 rounded-full bg-cream-dark/40" />
+                <div className="h-3 w-4/5 rounded-full bg-cream-dark/40" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 )
 
@@ -197,15 +241,50 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
     && String(myPayment.status || '').toLowerCase() === 'completed'
     && myPayment.verified === true
 
+  /**
+   * Cash truth is `cashCollected` on the registration, which the rules let
+   * ONLY staff write. The devotee's own `paymentMode` choice says how they
+   * intend to pay; it never means the money arrived.
+   */
+  const isCashRegistration = String(myRegistration?.paymentMode || '').toLowerCase() === 'cash'
+  const isCashCollected = myRegistration?.cashCollected === true
+  /** One flag for "this booking is settled", whichever route was used. */
+  const isSettled = isCashRegistration ? isCashCollected : isPaid
+
   /* ---------------- Registration modal ---------------- */
   const emptyForm = { seats: 1, travellerNotes: '', emergencyContact: '', phone: '', email: '' }
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
-  const [submitting, setSubmitting] = useState(null) // 'pay' | 'later' | null
+  const [submitting, setSubmitting] = useState(null) // 'pay' | 'cash' | 'later' | null
   const [formError, setFormError] = useState('')
   const [notice, setNotice] = useState(null) // { tone, text }
   const [cancelling, setCancelling] = useState(false)
   const [lightbox, setLightbox] = useState(null)
+  const [payMethod, setPayMethod] = useState('online') // 'online' | 'cash'
+
+  const price = Number(trip?.price) || 0
+  const advance = Number(trip?.advanceAmount) || 0
+  const seats = Math.min(20, Math.max(1, parseInt(form.seats, 10) || 1))
+  const total = price * seats
+  const payNow = advance > 0 ? Math.min(advance * seats, total || advance * seats) : total
+  const balance = Math.max(0, total - payNow)
+
+  /* ---------------- Payment methods offered for this trip ---------------- */
+  // Online additionally needs a real Razorpay key and something to charge:
+  // a ₹0 "by seva" yatra has no checkout to open.
+  const onlineAvailable = isOnlineEnabled(trip) && razorpayConfigured() && total > 0
+  // A ₹0 "by seva" yatra has nothing to collect either way, so cash is not
+  // offered there — the trip falls through to a plain pending request.
+  const cashAvailable = isCashEnabled(trip) && total > 0
+  const bothAvailable = onlineAvailable && cashAvailable
+  const noPaymentAvailable = !onlineAvailable && !cashAvailable
+  /** The method the submit button will actually use. */
+  const effectiveMethod = bothAvailable ? payMethod : (cashAvailable ? 'cash' : 'online')
+  /**
+   * With no payment method on offer the primary action still creates the
+   * pending registration — it just never touches Razorpay.
+   */
+  const submitMode = noPaymentAvailable ? 'later' : (effectiveMethod === 'cash' ? 'cash' : 'pay')
 
   useEffect(() => {
     if (!modalOpen) return
@@ -217,14 +296,9 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
       email: user?.email || auth.currentUser?.email || '',
     })
     setFormError('')
-  }, [modalOpen, user?.phone, user?.mobile, user?.email])
-
-  const price = Number(trip?.price) || 0
-  const advance = Number(trip?.advanceAmount) || 0
-  const seats = Math.min(20, Math.max(1, parseInt(form.seats, 10) || 1))
-  const total = price * seats
-  const payNow = advance > 0 ? Math.min(advance * seats, total || advance * seats) : total
-  const balance = Math.max(0, total - payNow)
+    // Default to online when it is on offer; otherwise cash carries the flow.
+    setPayMethod(onlineAvailable ? 'online' : (cashAvailable ? 'cash' : 'online'))
+  }, [modalOpen, user?.phone, user?.mobile, user?.email, onlineAvailable, cashAvailable])
 
   const tripStatus = (trip?.status || 'upcoming').toLowerCase()
 
@@ -249,9 +323,13 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
     })
   }
 
-  const createRegistration = async () => {
+  const createRegistration = async (paymentMode) => {
     // Shape matched to the deployed rules: userId === uid, status 'pending',
     // seats an int between 1 and 20.
+    //
+    // NOTE: no `cashCollected` / paid flag is written here, deliberately. The
+    // rules let staff write those fields, so a client that set them at create
+    // time would be forging a payment. Cash is confirmed by staff only.
     return addDoc(collection(db, 'trip_registrations'), {
       tripId: trip.id,
       tripSlug: trip.slug || slug || '',
@@ -264,6 +342,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
       travellerNotes: (form.travellerNotes || '').trim(),
       emergencyContact: (form.emergencyContact || '').trim(),
       amountDue: total,
+      paymentMode: paymentMode === 'cash' ? 'cash' : 'online',
       paymentOrderId: null,
       status: 'pending',
       staffNotes: '',
@@ -272,6 +351,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
     })
   }
 
+  /** mode: 'pay' (Razorpay now) | 'cash' (pay at the office) | 'later' */
   const handleRegister = async (mode) => {
     if (!user || !trip || submitting) return
     if (seats < 1 || seats > 20) {
@@ -287,13 +367,26 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
     let regRef = null
     try {
-      regRef = await createRegistration()
+      regRef = await createRegistration(mode === 'cash' ? 'cash' : 'online')
+
+      if (mode === 'cash') {
+        // No Razorpay call at all. The seat sits pending until staff mark the
+        // cash as collected — this page can never assert that itself.
+        setModalOpen(false)
+        setNotice({
+          tone: 'success',
+          text: `Seat reserved for ${seats} traveller${seats === 1 ? '' : 's'}. Please pay ${inr(payNow)} in cash at the FOLK office — your seat is confirmed by the yatra team once the cash is received.${trip.contactPhone ? ` Questions? Call or WhatsApp ${trip.contactPhone}.` : ''}`,
+        })
+        return
+      }
 
       if (mode === 'later') {
         setModalOpen(false)
         setNotice({
           tone: 'success',
-          text: 'Seat reserved. The yatra team will confirm and collect the payment — you can pay online any time from this page.',
+          text: onlineAvailable
+            ? 'Seat reserved. The yatra team will confirm and collect the payment — you can pay online any time from this page.'
+            : `Seat reserved. Your registration is pending — the yatra team will confirm it and arrange payment with you.${trip.contactPhone ? ` Call or WhatsApp ${trip.contactPhone}.` : ''}`,
         })
         return
       }
@@ -389,22 +482,22 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
   if (tripLoading && !trip) {
     return shell(
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-saffron" size={40} />
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-400">Loading yatra…</p>
+      <div className={isPublicView ? '' : '-mx-4 -mt-4 sm:-mx-6 sm:-mt-6 md:-mx-10 md:-mt-10'}>
+        <span className="sr-only" role="status">Loading yatra…</span>
+        <DetailSkeleton />
       </div>
     )
   }
 
   if (!trip) {
     return shell(
-      <div className="min-h-[60vh] flex items-center justify-center px-4 py-16">
-        <div className="max-w-md w-full text-center bg-white rounded-[2rem] shadow-premium border border-saffron/10 p-8 sm:p-12">
+      <div className="min-h-[60vh] flex items-center justify-center px-4 py-12 sm:py-16">
+        <div className="max-w-md w-full text-center bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/10 p-6 sm:p-12">
           <div className="w-16 h-16 mx-auto rounded-3xl bg-saffron/10 text-saffron flex items-center justify-center mb-6">
             <Compass size={28} />
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">This yatra isn&apos;t here</h1>
-          <p className="mt-3 text-sm text-gray-500 font-medium leading-relaxed">
+          <h1 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">This yatra isn&apos;t here</h1>
+          <p className="mt-3 text-[13px] sm:text-sm text-gray-500 font-medium leading-relaxed">
             The trip you&apos;re looking for doesn&apos;t exist, or it may have been removed.
             Have a look at what&apos;s coming up instead.
           </p>
@@ -450,53 +543,81 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
   /* ---------------- Booking panel (shared by desktop rail + mobile) --- */
   const bookingPanel = (
-    <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium-xl border border-saffron/10 overflow-hidden">
-      <div className="p-6 sm:p-7 space-y-5">
-        <div className="flex items-end justify-between gap-4">
-          <div>
+    <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium-xl border border-saffron/10 overflow-hidden user-text-box">
+      {/* Price header — the single loudest piece of information on the page */}
+      <div className="relative bg-gradient-to-br from-cream to-white border-b border-saffron/10 px-5 sm:px-7 py-5 sm:py-6">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
             {price > 0 ? (
               <>
-                <p className="text-3xl font-black text-gray-900 tracking-tight leading-none">{inr(price)}</p>
+                <p className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">{inr(price)}</p>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.14em] mt-1.5">Per person</p>
               </>
             ) : (
               <>
-                <p className="text-2xl font-black text-emerald-600 tracking-tight leading-none">By seva</p>
+                <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight leading-none">By seva</p>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.14em] mt-1.5">No fixed fee</p>
               </>
             )}
           </div>
           {advance > 0 && (
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <p className="text-sm font-black text-saffron-dark tracking-tight">{inr(advance)}</p>
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em] mt-1">Advance / person</p>
             </div>
           )}
         </div>
 
-        <div className="space-y-2.5 pt-1">
-          <div className="flex items-start gap-3">
+        {/* How you can pay — set by the yatra team on the trip */}
+        {(onlineAvailable || cashAvailable) && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {onlineAvailable && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-saffron/15 text-[9px] font-black uppercase tracking-[0.12em] text-gray-600">
+                <CreditCard size={11} className="text-saffron shrink-0" /> Pay online
+              </span>
+            )}
+            {cashAvailable && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-700">
+                <Banknote size={11} className="shrink-0" /> Cash at office
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="p-5 sm:p-7 space-y-5">
+        <div className="space-y-2.5">
+          <div className="flex items-start gap-3 user-text-box">
             <span className="w-9 h-9 shrink-0 rounded-xl bg-cream/70 text-saffron flex items-center justify-center"><Calendar size={16} /></span>
             <div className="min-w-0">
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Dates</p>
-              <p className="text-sm font-bold text-gray-800 truncate">{formatDateRange(trip.startDate, trip.endDate)}</p>
+              <p className="text-[13px] sm:text-sm font-bold text-gray-800 user-text">{formatDateRange(trip.startDate, trip.endDate)}</p>
             </div>
           </div>
           {trip.durationLabel && (
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 user-text-box">
               <span className="w-9 h-9 shrink-0 rounded-xl bg-cream/70 text-saffron flex items-center justify-center"><Clock size={16} /></span>
               <div className="min-w-0">
                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Duration</p>
-                <p className="text-sm font-bold text-gray-800 truncate">{trip.durationLabel}</p>
+                <p className="text-[13px] sm:text-sm font-bold text-gray-800 user-text">{trip.durationLabel}</p>
+              </div>
+            </div>
+          )}
+          {trip.location && (
+            <div className="flex items-start gap-3 user-text-box">
+              <span className="w-9 h-9 shrink-0 rounded-xl bg-cream/70 text-saffron flex items-center justify-center"><MapPin size={16} /></span>
+              <div className="min-w-0">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Destination</p>
+                <p className="text-[13px] sm:text-sm font-bold text-gray-800 user-text">{trip.location}</p>
               </div>
             </div>
           )}
           {seatsLeft !== null && (
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 user-text-box">
               <span className="w-9 h-9 shrink-0 rounded-xl bg-cream/70 text-saffron flex items-center justify-center"><Users size={16} /></span>
               <div className="min-w-0">
                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Seats</p>
-                <p className={`text-sm font-bold truncate ${seatsLeft === 0 ? 'text-red-500' : 'text-gray-800'}`}>
+                <p className={`text-[13px] sm:text-sm font-bold user-text ${seatsLeft === 0 ? 'text-red-500' : 'text-gray-800'}`}>
                   {seatsLeft === 0 ? 'Fully booked' : `${seatsLeft} of ${capacity} left`}
                 </p>
               </div>
@@ -506,13 +627,25 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
         {/* Capacity bar */}
         {capacity > 0 && (
-          <div className="pt-1">
-            <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+          <div className="pt-1 space-y-1.5">
+            <div
+              className="h-2 w-full rounded-full bg-gray-100 overflow-hidden"
+              role="progressbar"
+              aria-valuenow={Math.min(100, Math.round((seatsTaken / capacity) * 100))}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Seats booked"
+            >
               <div
-                className="h-full rounded-full bg-gradient-to-r from-saffron to-gold-dark transition-all duration-500"
+                className={`h-full rounded-full transition-all duration-500 ${
+                  seatsLeft === 0 ? 'bg-red-400' : 'bg-gradient-to-r from-saffron to-gold-dark'
+                }`}
                 style={{ width: `${Math.min(100, Math.round((seatsTaken / capacity) * 100))}%` }}
               />
             </div>
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400">
+              {seatsTaken} of {capacity} booked
+            </p>
           </div>
         )}
 
@@ -533,48 +666,76 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             </>
           ) : myRegistration && (myRegistration.status || '').toLowerCase() !== 'cancelled' ? (
             <div className="space-y-3">
-              <div className={`rounded-2xl border p-4 ${regMeta.cls}`}>
-                <div className="flex items-center justify-between gap-2">
+              <div className={`rounded-2xl border p-4 user-text-box ${regMeta.cls}`}>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em]">
-                    {regMeta.icon} {regMeta.label}
+                    <span className="shrink-0">{regMeta.icon}</span> {regMeta.label}
                   </span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-80">
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-80 shrink-0">
                     {myRegistration.seats || 1} seat{(myRegistration.seats || 1) === 1 ? '' : 's'}
                   </span>
                 </div>
-                <p className="mt-2 text-xs font-bold opacity-80">
+                <p className="mt-2 text-xs font-bold opacity-80 user-text">
                   {inr(myRegistration.amountDue)} due · registered under {myRegistration.userName || 'you'}
                 </p>
               </div>
 
-              {/* Payment truth, resolved from the payments collection */}
-              <div className={`rounded-2xl border p-4 flex items-center gap-3 ${isPaid ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
-                <span className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${isPaid ? 'bg-green-500 text-white' : 'bg-amber-400 text-white'}`}>
-                  {isPaid ? <ShieldCheck size={17} /> : <Clock3 size={17} />}
+              {/* Payment truth. Online = a verified, completed `payments` doc.
+                  Cash  = `cashCollected` on the registration, written by staff
+                  only. Neither can be asserted from this page. */}
+              <div className={`rounded-2xl border p-4 flex items-start gap-3 user-text-box ${
+                isSettled
+                  ? 'bg-green-50 border-green-200'
+                  : isCashRegistration
+                    ? 'bg-emerald-50/70 border-emerald-200'
+                    : 'bg-amber-50 border-amber-200'
+              }`}>
+                <span className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-white ${
+                  isSettled ? 'bg-green-500' : isCashRegistration ? 'bg-emerald-500' : 'bg-amber-400'
+                }`}>
+                  {isSettled ? <ShieldCheck size={17} /> : isCashRegistration ? <Banknote size={17} /> : <Clock3 size={17} />}
                 </span>
                 <div className="min-w-0">
-                  <p className={`text-[11px] font-black uppercase tracking-[0.12em] ${isPaid ? 'text-green-700' : 'text-amber-700'}`}>
-                    {isPaid ? 'Payment received' : 'Payment pending'}
+                  <p className={`text-[11px] font-black uppercase tracking-[0.12em] user-text ${
+                    isSettled ? 'text-green-700' : isCashRegistration ? 'text-emerald-800' : 'text-amber-700'
+                  }`}>
+                    {isCashRegistration
+                      ? (isCashCollected ? 'Cash received' : 'Cash — pending collection')
+                      : (isPaid ? 'Payment received' : 'Payment pending')}
                   </p>
-                  <p className="text-[11px] font-medium text-gray-500 mt-0.5 leading-snug">
-                    {isPaid
-                      ? `${inr(myPayment.amount)} confirmed by our server.`
-                      : myRegistration.paymentOrderId
-                        ? 'We have not seen a confirmed payment for this booking yet.'
-                        : 'No online payment started — staff will collect it, or you can pay online.'}
+                  <p className="text-[11px] font-medium text-gray-500 mt-0.5 leading-snug user-text">
+                    {isCashRegistration
+                      ? (isCashCollected
+                        ? 'The yatra team has recorded your cash payment.'
+                        : `Pay ${inr(myRegistration.amountDue)} at the FOLK office — staff confirm your seat once the cash is received.`)
+                      : (isPaid
+                        ? `${inr(myPayment.amount)} confirmed by our server.`
+                        : myRegistration.paymentOrderId
+                          ? 'We have not seen a confirmed payment for this booking yet.'
+                          : onlineAvailable
+                            ? 'No online payment started — staff will collect it, or you can pay online.'
+                            : 'The yatra team will confirm your seat and arrange payment with you.')}
                   </p>
+                  {isCashRegistration && !isCashCollected && trip.contactPhone && (
+                    <a
+                      href={`tel:${String(trip.contactPhone).replace(/\s/g, '')}`}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-black text-emerald-800 hover:underline user-text"
+                    >
+                      <Phone size={12} className="shrink-0" /> {trip.contactPhone}
+                    </a>
+                  )}
                 </div>
               </div>
 
               {(myRegistration.status || '').toLowerCase() === 'pending' && (
                 <>
-                  {!isPaid && price > 0 && !blockedReason && (
+                  {!isSettled && price > 0 && !blockedReason && (
                     <button
                       type="button"
                       onClick={() => setModalOpen(true)}
                       className="w-full min-h-[48px] rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.14em] text-[11px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
                     >
-                      <CreditCard size={16} /> Book more seats
+                      <CreditCard size={16} className="shrink-0" /> Book more seats
                     </button>
                   )}
                   <button
@@ -583,22 +744,22 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     disabled={cancelling}
                     className="w-full min-h-[44px] rounded-2xl bg-red-50 text-red-500 font-black uppercase tracking-[0.14em] text-[10px] hover:bg-red-100 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
                   >
-                    {cancelling ? <Loader2 size={15} className="animate-spin" /> : <X size={15} />}
+                    {cancelling ? <Loader2 size={15} className="animate-spin shrink-0" /> : <X size={15} className="shrink-0" />}
                     {cancelling ? 'Cancelling…' : 'Cancel registration'}
                   </button>
                 </>
               )}
 
               {myRegistration.staffNotes && (
-                <p className="text-xs text-gray-500 italic bg-cream/60 rounded-xl p-3 leading-relaxed">
+                <p className="text-xs text-gray-500 italic bg-cream/60 rounded-xl p-3 leading-relaxed user-text">
                   &ldquo;{myRegistration.staffNotes}&rdquo;
                 </p>
               )}
             </div>
           ) : blockedReason ? (
-            <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 flex items-start gap-3">
+            <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 flex items-start gap-3 user-text-box">
               <AlertTriangle size={17} className="text-gray-400 shrink-0 mt-0.5" />
-              <p className="text-xs font-semibold text-gray-500 leading-relaxed">{blockedReason}</p>
+              <p className="text-xs font-semibold text-gray-500 leading-relaxed user-text">{blockedReason}</p>
             </div>
           ) : (
             <>
@@ -607,12 +768,19 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 onClick={() => setModalOpen(true)}
                 className="w-full min-h-[52px] rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg shadow-saffron/25 hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
               >
-                <Ticket size={16} /> Reserve my seat
+                <Ticket size={16} className="shrink-0" />
+                {noPaymentAvailable ? 'Request a seat' : cashAvailable && !onlineAvailable ? 'Register & pay cash' : 'Reserve my seat'}
               </button>
               <p className="text-[11px] text-gray-400 font-medium text-center leading-relaxed">
-                {advance > 0
-                  ? `Pay ${inr(advance)} per person now, the rest before departure.`
-                  : 'Pay online, or reserve now and settle with the team.'}
+                {noPaymentAvailable
+                  ? 'Your request goes to the yatra team, who confirm your seat and arrange payment with you.'
+                  : advance > 0
+                    ? `Pay ${inr(advance)} per person now, the rest before departure.`
+                    : bothAvailable
+                      ? 'Pay online now, or in cash at the FOLK office.'
+                      : cashAvailable
+                        ? 'Reserve now and pay in cash at the FOLK office.'
+                        : 'Pay online, or reserve now and settle with the team.'}
               </p>
             </>
           )}
@@ -644,7 +812,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             src={trip.coverImage}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover opacity-70"
+            className="absolute inset-0 w-full max-w-full h-full object-cover opacity-70"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-saffron via-saffron-dark to-[#0B0A09]" aria-hidden="true" />
@@ -668,14 +836,14 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               initial={{ opacity: 0, y: 22 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="mt-6 max-w-3xl"
+              className="mt-5 sm:mt-6 max-w-3xl min-w-0"
             >
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 user-text-box">
                 <span className={`px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.16em] ${STATUS_PILL[tripStatus] || STATUS_PILL.upcoming}`}>
                   {statusLabel(tripStatus)}
                 </span>
                 {trip.durationLabel && (
-                  <span className="px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/85 text-[9px] font-black uppercase tracking-[0.16em]">
+                  <span className="max-w-full px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/85 text-[9px] font-black uppercase tracking-[0.16em] user-text">
                     {trip.durationLabel}
                   </span>
                 )}
@@ -687,45 +855,45 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               </div>
 
               <h1
-                className="mt-5 font-black tracking-[-0.03em] leading-[0.96] text-white"
-                style={{ fontSize: 'clamp(2.1rem, 6.6vw, 4.25rem)' }}
+                className="mt-4 sm:mt-5 font-black tracking-[-0.03em] leading-[1.02] sm:leading-[0.96] text-white user-text"
+                style={{ fontSize: 'clamp(1.75rem, 6.6vw, 4.25rem)' }}
               >
                 {trip.title}
               </h1>
 
               {trip.subtitle && (
-                <p className="mt-4 text-white/75 leading-[1.7] max-w-xl text-sm sm:text-lg">{trip.subtitle}</p>
+                <p className="mt-3 sm:mt-4 text-white/75 leading-[1.65] sm:leading-[1.7] max-w-xl text-[14px] sm:text-lg user-text">{trip.subtitle}</p>
               )}
 
-              <div className="mt-7 flex flex-wrap gap-x-7 gap-y-4">
-                <div className="flex items-center gap-3">
+              <div className="mt-6 sm:mt-7 flex flex-wrap gap-x-6 sm:gap-x-7 gap-y-4 user-text-box">
+                <div className="flex items-center gap-3 min-w-0 max-w-full">
                   <span className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
                     <Calendar size={17} className="text-gold" />
                   </span>
                   <div className="min-w-0">
                     <p className="text-[9px] font-black text-white/45 uppercase tracking-[0.14em]">When</p>
-                    <p className="text-sm font-black text-white tracking-tight">{formatDateRange(trip.startDate, trip.endDate)}</p>
+                    <p className="text-[13px] sm:text-sm font-black text-white tracking-tight user-text">{formatDateRange(trip.startDate, trip.endDate)}</p>
                   </div>
                 </div>
                 {trip.location && (
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 max-w-full">
                     <span className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
                       <MapPin size={17} className="text-saffron" />
                     </span>
                     <div className="min-w-0">
                       <p className="text-[9px] font-black text-white/45 uppercase tracking-[0.14em]">Where</p>
-                      <p className="text-sm font-black text-white tracking-tight truncate">{trip.location}</p>
+                      <p className="text-[13px] sm:text-sm font-black text-white tracking-tight truncate user-text">{trip.location}</p>
                     </div>
                   </div>
                 )}
                 {price > 0 && (
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0 max-w-full">
                     <span className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
                       <Ticket size={17} className="text-gold" />
                     </span>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[9px] font-black text-white/45 uppercase tracking-[0.14em]">From</p>
-                      <p className="text-sm font-black text-white tracking-tight">{inr(price)} / person</p>
+                      <p className="text-[13px] sm:text-sm font-black text-white tracking-tight user-text">{inr(price)} / person</p>
                     </div>
                   </div>
                 )}
@@ -754,12 +922,12 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 }`}
               >
                 {notice.tone === 'success' ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" /> : <Info size={18} className="shrink-0 mt-0.5" />}
-                <p className="text-xs sm:text-sm font-semibold leading-relaxed flex-1">{notice.text}</p>
+                <p className="text-xs sm:text-sm font-semibold leading-relaxed flex-1 min-w-0 user-text">{notice.text}</p>
                 <button
                   type="button"
                   onClick={() => setNotice(null)}
                   aria-label="Dismiss message"
-                  className="w-8 h-8 shrink-0 rounded-lg hover:bg-black/5 flex items-center justify-center"
+                  className="w-11 h-11 -m-1.5 shrink-0 rounded-lg hover:bg-black/5 flex items-center justify-center"
                 >
                   <X size={15} />
                 </button>
@@ -767,19 +935,38 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             )}
           </AnimatePresence>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10 user-text-box">
             {/* ---------- Booking rail (first on mobile, right on desktop) ---------- */}
-            <aside className="order-1 lg:order-2 lg:col-span-1">
+            <aside className="order-1 lg:order-2 lg:col-span-1 min-w-0">
               <div className="lg:sticky lg:top-6 space-y-5">{bookingPanel}</div>
             </aside>
 
             {/* ---------- Main content ---------- */}
-            <div className="order-2 lg:order-1 lg:col-span-2 space-y-8 sm:space-y-10">
+            <div className="order-2 lg:order-1 lg:col-span-2 min-w-0 space-y-6 sm:space-y-10">
+              {/* Nothing written up yet — say so gracefully rather than
+                  dropping the reader straight onto the contact band. */}
+              {!trip.description && highlights.length === 0 && itinerary.length === 0
+                && inclusions.length === 0 && exclusions.length === 0 && gallery.length === 0 && (
+                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-dashed border-saffron/25 p-6 sm:p-10 text-center user-text-box">
+                  <div className="relative w-16 h-16 mx-auto mb-5">
+                    <span className="absolute inset-0 rounded-3xl bg-saffron/10 blur-xl" aria-hidden="true" />
+                    <span className="relative w-16 h-16 rounded-3xl bg-gradient-to-br from-saffron/15 to-gold/10 text-saffron flex items-center justify-center ring-1 ring-saffron/15">
+                      <Compass size={26} />
+                    </span>
+                  </div>
+                  <h2 className="text-[15px] sm:text-lg font-black text-gray-800 tracking-tight">Full details coming soon</h2>
+                  <p className="mt-2 text-[13px] sm:text-sm text-gray-400 font-medium leading-relaxed max-w-sm mx-auto">
+                    The itinerary and inclusions for this yatra are still being written up.
+                    The dates and price beside this are confirmed — reserve your seat, or ask the team anything.
+                  </p>
+                </section>
+              )}
+
               {/* About */}
               {trip.description && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-6 sm:p-9">
+                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<Compass size={13} />} eyebrow="About this yatra" title="The journey" />
-                  <p className="text-[15px] text-gray-600 leading-[1.85] font-medium whitespace-pre-line">
+                  <p className="text-[14px] sm:text-[15px] text-gray-600 leading-[1.8] sm:leading-[1.85] font-medium whitespace-pre-line user-text">
                     {trip.description}
                   </p>
                 </section>
@@ -787,15 +974,15 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Highlights */}
               {highlights.length > 0 && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-6 sm:p-9">
+                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<Sparkles size={13} />} eyebrow="Highlights" title="What makes this special" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {highlights.map((h, i) => (
-                      <div key={i} className="flex items-start gap-3 p-4 rounded-2xl bg-cream/60 border border-saffron/10">
+                      <div key={i} className="flex items-start gap-3 p-4 rounded-2xl bg-cream/60 border border-saffron/10 min-w-0">
                         <span className="w-7 h-7 shrink-0 rounded-lg bg-gradient-to-br from-saffron to-gold text-white flex items-center justify-center mt-0.5">
                           <Check size={14} />
                         </span>
-                        <p className="text-sm font-semibold text-gray-700 leading-relaxed">{h}</p>
+                        <p className="text-[13px] sm:text-sm font-semibold text-gray-700 leading-relaxed min-w-0 user-text">{h}</p>
                       </div>
                     ))}
                   </div>
@@ -804,21 +991,21 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Itinerary */}
               {itinerary.length > 0 && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-6 sm:p-9">
+                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<MapIcon size={13} />} eyebrow="Day by day" title="The itinerary" />
                   <ol className="relative space-y-6 sm:space-y-7">
                     {/* Timeline spine */}
                     <span className="absolute left-[19px] sm:left-[23px] top-3 bottom-3 w-px bg-gradient-to-b from-saffron/50 via-saffron/20 to-transparent" aria-hidden="true" />
                     {itinerary.map((item, i) => (
-                      <li key={i} className="relative flex gap-4 sm:gap-5">
+                      <li key={i} className="relative flex gap-4 sm:gap-5 min-w-0">
                         <span className="relative z-10 w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl bg-gradient-to-br from-saffron to-gold-dark text-white flex flex-col items-center justify-center shadow-lg shadow-saffron/20">
                           <span className="text-[7px] font-black uppercase tracking-[0.1em] leading-none opacity-80">Day</span>
-                          <span className="text-sm sm:text-base font-black leading-none mt-0.5">{item.day ?? i + 1}</span>
+                          <span className="max-w-full px-1 text-sm sm:text-base font-black leading-none mt-0.5 truncate">{item.day ?? i + 1}</span>
                         </span>
-                        <div className="min-w-0 pt-1 pb-1">
-                          <h3 className="text-sm sm:text-base font-black text-gray-900 tracking-tight">{item.title || `Day ${item.day ?? i + 1}`}</h3>
+                        <div className="min-w-0 max-w-full pt-1 pb-1">
+                          <h3 className="text-[14px] sm:text-base font-black text-gray-900 tracking-tight leading-snug user-text">{item.title || `Day ${item.day ?? i + 1}`}</h3>
                           {item.details && (
-                            <p className="mt-1.5 text-sm text-gray-500 font-medium leading-[1.8] whitespace-pre-line">{item.details}</p>
+                            <p className="mt-1.5 text-[13px] sm:text-sm text-gray-500 font-medium leading-[1.75] sm:leading-[1.8] whitespace-pre-line user-text">{item.details}</p>
                           )}
                         </div>
                       </li>
@@ -829,36 +1016,38 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Inclusions / exclusions */}
               {(inclusions.length > 0 || exclusions.length > 0) && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-6 sm:p-9">
+                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<Info size={13} />} eyebrow="The fine print" title="What's included" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="text-[10px] font-black uppercase tracking-[0.16em] text-green-600 mb-4 flex items-center gap-2">
-                        <CheckCircle2 size={14} /> Included
+                        <CheckCircle2 size={14} className="shrink-0" /> Included
                       </h3>
                       {inclusions.length === 0 ? (
-                        <p className="text-sm text-gray-400 italic">Details shared on confirmation.</p>
+                        <p className="text-[13px] sm:text-sm text-gray-400 italic">Details shared on confirmation.</p>
                       ) : (
                         <ul className="space-y-2.5">
                           {inclusions.map((item, i) => (
-                            <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600 font-medium leading-relaxed">
-                              <Check size={16} className="text-green-500 shrink-0 mt-0.5" /> {item}
+                            <li key={i} className="flex items-start gap-2.5 text-[13px] sm:text-sm text-gray-600 font-medium leading-relaxed min-w-0">
+                              <Check size={16} className="text-green-500 shrink-0 mt-0.5" />
+                              <span className="min-w-0 user-text">{item}</span>
                             </li>
                           ))}
                         </ul>
                       )}
                     </div>
-                    <div className="sm:border-l sm:border-gray-100 sm:pl-8">
+                    <div className="min-w-0 pt-5 border-t border-gray-100 sm:pt-0 sm:border-t-0 sm:border-l sm:border-gray-100 sm:pl-8">
                       <h3 className="text-[10px] font-black uppercase tracking-[0.16em] text-red-500 mb-4 flex items-center gap-2">
-                        <XCircle size={14} /> Not included
+                        <XCircle size={14} className="shrink-0" /> Not included
                       </h3>
                       {exclusions.length === 0 ? (
-                        <p className="text-sm text-gray-400 italic">Nothing listed.</p>
+                        <p className="text-[13px] sm:text-sm text-gray-400 italic">Nothing listed.</p>
                       ) : (
                         <ul className="space-y-2.5">
                           {exclusions.map((item, i) => (
-                            <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600 font-medium leading-relaxed">
-                              <X size={16} className="text-red-400 shrink-0 mt-0.5" /> {item}
+                            <li key={i} className="flex items-start gap-2.5 text-[13px] sm:text-sm text-gray-600 font-medium leading-relaxed min-w-0">
+                              <X size={16} className="text-red-400 shrink-0 mt-0.5" />
+                              <span className="min-w-0 user-text">{item}</span>
                             </li>
                           ))}
                         </ul>
@@ -870,7 +1059,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Gallery */}
               {gallery.length > 0 && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-6 sm:p-9">
+                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<Camera size={13} />} eyebrow="Gallery" title="A glimpse" />
                   <div className={`grid gap-3 ${gallery.length === 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
                     {gallery.map((src, i) => (
@@ -879,9 +1068,9 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                         type="button"
                         onClick={() => setLightbox(src)}
                         aria-label={`Open gallery image ${i + 1}`}
-                        className={`group relative overflow-hidden rounded-2xl bg-cream aspect-[4/3] ${gallery.length === 3 && i === 0 ? 'col-span-2 sm:col-span-1' : ''}`}
+                        className={`group relative overflow-hidden rounded-2xl bg-cream aspect-[4/3] min-w-0 ${gallery.length === 3 && i === 0 ? 'col-span-2 sm:col-span-1' : ''}`}
                       >
-                        <img src={src} alt={`${trip.title} photo ${i + 1}`} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                        <img src={src} alt={`${trip.title} photo ${i + 1}`} loading="lazy" className="w-full max-w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         <span className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" aria-hidden="true" />
                       </button>
                     ))}
@@ -891,18 +1080,18 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Meeting point */}
               {(trip.meetingPoint || trip.startDate) && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-6 sm:p-9">
+                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<MapPin size={13} />} eyebrow="Logistics" title="Where we meet" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-5 rounded-2xl bg-cream/60 border border-saffron/10">
+                    <div className="p-4 sm:p-5 rounded-2xl bg-cream/60 border border-saffron/10 min-w-0">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Meeting point</p>
-                      <p className="mt-2 text-sm font-bold text-gray-800 leading-relaxed">
+                      <p className="mt-2 text-[13px] sm:text-sm font-bold text-gray-800 leading-relaxed user-text">
                         {trip.meetingPoint || 'Shared with confirmed travellers.'}
                       </p>
                     </div>
-                    <div className="p-5 rounded-2xl bg-cream/60 border border-saffron/10">
+                    <div className="p-4 sm:p-5 rounded-2xl bg-cream/60 border border-saffron/10 min-w-0">
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Departure &amp; return</p>
-                      <p className="mt-2 text-sm font-bold text-gray-800 leading-relaxed">
+                      <p className="mt-2 text-[13px] sm:text-sm font-bold text-gray-800 leading-relaxed user-text">
                         {formatLong(trip.startDate)} &rarr; {formatLong(trip.endDate)}
                       </p>
                     </div>
@@ -913,10 +1102,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               {/* Contact — dark anchor band */}
               <section className="relative overflow-hidden rounded-[1.75rem] sm:rounded-[2rem] bg-[#0B0A09] text-white">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,153,51,0.32),transparent_60%)]" aria-hidden="true" />
-                <div className="relative z-10 p-6 sm:p-10 flex flex-col sm:flex-row sm:items-center gap-6 justify-between">
+                <div className="relative z-10 p-5 sm:p-10 flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 justify-between">
                   <div className="min-w-0">
-                    <h3 className="text-lg sm:text-xl font-black tracking-tight">Questions before you book?</h3>
-                    <p className="mt-2 text-sm text-white/60 font-medium leading-relaxed max-w-md">
+                    <h3 className="text-base sm:text-xl font-black tracking-tight">Questions before you book?</h3>
+                    <p className="mt-2 text-[13px] sm:text-sm text-white/60 font-medium leading-relaxed max-w-md user-text">
                       The yatra team can help with travel, rooms, dietary needs and group bookings.
                       {trip.contactPhone ? ` Call or WhatsApp ${trip.contactPhone}.` : ''}
                     </p>
@@ -948,24 +1137,25 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               {otherTrips.length > 0 && (
                 <section>
                   <SectionHeading icon={<Bus size={13} />} eyebrow="Also coming up" title="Other yatras" />
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
                     {otherTrips.map((t) => (
                       <button
                         key={t.id}
                         type="button"
                         onClick={() => openTrip && openTrip(t.slug)}
-                        className="group text-left bg-white rounded-2xl overflow-hidden shadow-premium border border-saffron/5 hover:shadow-premium-xl hover:-translate-y-1 transition-all"
+                        aria-label={`${t.title || 'Trip'} — view details`}
+                        className="group text-left bg-white rounded-2xl overflow-hidden shadow-premium border border-saffron/5 hover:shadow-premium-xl hover:-translate-y-1 transition-all min-w-0"
                       >
                         <div className="h-24 overflow-hidden bg-gradient-to-br from-saffron to-gold-dark">
                           {t.coverImage && (
-                            <img src={t.coverImage} alt="" loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                            <img src={t.coverImage} alt="" loading="lazy" className="w-full max-w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                           )}
                         </div>
-                        <div className="p-4">
-                          <p className="text-sm font-black text-gray-900 tracking-tight line-clamp-2">{t.title}</p>
-                          <p className="mt-1.5 text-[10px] font-black text-gray-400 uppercase tracking-[0.12em] flex items-center gap-1.5">
+                        <div className="p-4 min-w-0">
+                          <p className="text-[13px] sm:text-sm font-black text-gray-900 tracking-tight line-clamp-2 user-text">{t.title}</p>
+                          <p className="mt-1.5 text-[10px] font-black text-gray-400 uppercase tracking-[0.12em] flex items-center gap-1.5 min-w-0">
                             <Calendar size={11} className="text-saffron shrink-0" />
-                            <span className="truncate">{formatDateRange(t.startDate, t.endDate)}</span>
+                            <span className="truncate min-w-0">{formatDateRange(t.startDate, t.endDate)}</span>
                           </p>
                           <span className="mt-3 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.14em] text-saffron-dark">
                             View <ArrowRight size={12} />
@@ -985,22 +1175,34 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
            already owns the bottom edge with its nav) ============ */}
       {isPublicView && !blockedReason && !(myRegistration && (myRegistration.status || '').toLowerCase() !== 'cancelled') && (
         <>
-          <div className="h-24 lg:hidden" aria-hidden="true" />
-          <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-saffron/10 px-4 py-3 flex items-center gap-4">
-            <div className="min-w-0">
-              <p className="text-lg font-black text-gray-900 leading-none tracking-tight">
+          <div className="h-28 lg:hidden" aria-hidden="true" />
+          <div
+            className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-saffron/10 px-4 pt-3 flex items-center gap-3 sm:gap-4"
+            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+          >
+            <div className="min-w-0 shrink">
+              <p className="text-base sm:text-lg font-black text-gray-900 leading-none tracking-tight truncate">
                 {price > 0 ? inr(price) : 'By seva'}
               </p>
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.12em] mt-1">
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.12em] mt-1 truncate">
                 {price > 0 ? 'Per person' : 'No fixed fee'}
               </p>
             </div>
             <button
               type="button"
               onClick={() => (user ? setModalOpen(true) : onLoginClick && onLoginClick())}
-              className="flex-1 min-h-[48px] rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg shadow-saffron/25 inline-flex items-center justify-center gap-2"
+              className="flex-1 min-w-0 min-h-[48px] px-3 rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.12em] text-[10px] xs:text-[11px] shadow-lg shadow-saffron/25 inline-flex items-center justify-center gap-2"
             >
-              <Ticket size={16} /> {user ? 'Reserve seat' : 'Sign in to register'}
+              <Ticket size={16} className="shrink-0" />
+              <span className="truncate">
+                {!user
+                  ? 'Sign in to register'
+                  : noPaymentAvailable
+                    ? 'Request a seat'
+                    : cashAvailable && !onlineAvailable
+                      ? 'Register & pay cash'
+                      : 'Reserve seat'}
+              </span>
             </button>
           </div>
         </>
@@ -1019,29 +1221,32 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               initial={{ scale: 0.94, y: 28, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.94, y: 28, opacity: 0 }}
-              className="relative w-full max-w-lg bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-premium-xl border border-saffron/10 overflow-y-auto max-h-[90vh] p-6 sm:p-9"
+              className="relative w-full max-w-lg bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-premium-xl border border-saffron/10 overflow-y-auto overscroll-contain max-h-[90vh] p-5 sm:p-9 user-text-box"
             >
               <button
                 type="button"
                 onClick={() => !submitting && setModalOpen(false)}
                 aria-label="Close registration form"
-                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors"
               >
                 <X size={21} />
               </button>
 
-              <div className="mb-7 pr-12">
-                <div className="w-[52px] h-[52px] bg-gradient-to-br from-saffron to-gold rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+              <div className="mb-6 sm:mb-7 pr-12 user-text-box">
+                <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-gradient-to-br from-saffron to-gold rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                   <Ticket className="text-white" size={24} />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Reserve your seat</h2>
-                <p className="text-gray-400 text-sm font-medium mt-1.5">{trip.title}</p>
+                <h2 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {noPaymentAvailable ? 'Request a seat' : 'Reserve your seat'}
+                </h2>
+                <p className="text-gray-400 text-[13px] sm:text-sm font-medium mt-1.5 user-text">{trip.title}</p>
               </div>
 
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
-                  handleRegister('pay')
+                  // The submit button carries whichever method is in force.
+                  handleRegister(submitMode)
                 }}
                 className="space-y-5"
               >
@@ -1072,124 +1277,228 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   )}
                 </div>
 
+                {/* ---- Payment method: only a real choice gets a chooser ---- */}
+                {bothAvailable && (
+                  <fieldset className="space-y-2">
+                    <legend className="text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1 mb-2">How would you like to pay?</legend>
+                    <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
+                      {[
+                        {
+                          id: 'online',
+                          icon: <CreditCard size={18} />,
+                          title: 'Pay online now',
+                          body: `${inr(payNow)} by UPI, card or netbanking. Your seat is marked paid as soon as our server confirms it.`,
+                        },
+                        {
+                          id: 'cash',
+                          icon: <Banknote size={18} />,
+                          title: 'Pay cash at the office',
+                          body: `Reserve now and hand over ${inr(payNow)} at the FOLK office. Staff confirm the seat when they receive it.`,
+                        },
+                      ].map((opt) => {
+                        const active = payMethod === opt.id
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setPayMethod(opt.id)}
+                            aria-pressed={active}
+                            className={`text-left min-h-[44px] p-4 rounded-2xl border-2 transition-all min-w-0 ${
+                              active
+                                ? 'border-saffron bg-saffron/5 shadow-md shadow-saffron/10'
+                                : 'border-gray-200 bg-white hover:border-saffron/40'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2.5">
+                              <span className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${
+                                active ? 'bg-gradient-to-br from-saffron to-gold-dark text-white' : 'bg-cream text-saffron'
+                              }`}>
+                                {opt.icon}
+                              </span>
+                              <span className="text-[12px] font-black text-gray-900 tracking-tight leading-tight min-w-0 user-text">{opt.title}</span>
+                              {active && <Check size={16} className="ml-auto shrink-0 text-saffron" />}
+                            </span>
+                            <span className="block mt-2 text-[11px] font-medium text-gray-500 leading-snug user-text">{opt.body}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </fieldset>
+                )}
+
                 {/* Contact */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label htmlFor="trip-phone" className="text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Phone</label>
+                  <div className="space-y-2 min-w-0">
+                    <label htmlFor="trip-phone" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Phone</label>
                     <input
                       id="trip-phone"
                       type="tel"
                       required
+                      size={1}
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
                       placeholder="10-digit mobile"
-                      className="w-full min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium"
+                      className="w-full min-w-0 min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px]"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label htmlFor="trip-email" className="text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Email</label>
+                  <div className="space-y-2 min-w-0">
+                    <label htmlFor="trip-email" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Email</label>
                     <input
                       id="trip-email"
                       type="email"
+                      size={1}
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       placeholder="you@example.com"
-                      className="w-full min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium"
+                      className="w-full min-w-0 min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px]"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="trip-emergency" className="text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Emergency contact</label>
+                <div className="space-y-2 min-w-0">
+                  <label htmlFor="trip-emergency" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Emergency contact</label>
                   <input
                     id="trip-emergency"
                     type="text"
                     required
+                    size={1}
                     value={form.emergencyContact}
                     onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })}
                     placeholder="Name & number of someone at home"
-                    className="w-full min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium"
+                    className="w-full min-w-0 min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px]"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="trip-notes" className="text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Traveller notes (optional)</label>
+                <div className="space-y-2 min-w-0">
+                  <label htmlFor="trip-notes" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Traveller notes (optional)</label>
                   <textarea
                     id="trip-notes"
                     rows={3}
                     value={form.travellerNotes}
                     onChange={(e) => setForm({ ...form, travellerNotes: e.target.value })}
                     placeholder="Names of co-travellers, dietary needs, boarding point…"
-                    className="w-full bg-cream/30 border border-saffron/10 rounded-2xl px-4 py-3 outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium resize-none"
+                    className="w-full min-w-0 bg-cream/30 border border-saffron/10 rounded-2xl px-4 py-3 outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px] resize-none"
                   />
                 </div>
 
                 {/* Price breakdown */}
-                <div className="rounded-2xl bg-cream/60 border border-saffron/10 p-5 space-y-2.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500 font-semibold">{inr(price)} × {seats} traveller{seats === 1 ? '' : 's'}</span>
-                    <span className="font-black text-gray-800">{inr(total)}</span>
+                <div className="rounded-2xl bg-cream/60 border border-saffron/10 p-4 sm:p-5 space-y-2.5 user-text-box">
+                  <div className="flex items-center justify-between gap-3 text-[13px] sm:text-sm">
+                    <span className="text-gray-500 font-semibold min-w-0">{inr(price)} × {seats} traveller{seats === 1 ? '' : 's'}</span>
+                    <span className="font-black text-gray-800 shrink-0">{inr(total)}</span>
                   </div>
                   {advance > 0 && (
                     <>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500 font-semibold">Advance now ({inr(advance)} / person)</span>
-                        <span className="font-black text-saffron-dark">{inr(payNow)}</span>
+                      <div className="flex items-center justify-between gap-3 text-[13px] sm:text-sm">
+                        <span className="text-gray-500 font-semibold min-w-0">Advance now ({inr(advance)} / person)</span>
+                        <span className="font-black text-saffron-dark shrink-0">{inr(payNow)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm pt-2.5 border-t border-saffron/10">
-                        <span className="text-gray-500 font-semibold">Balance before departure</span>
-                        <span className="font-black text-gray-800">{inr(balance)}</span>
+                      <div className="flex items-center justify-between gap-3 text-[13px] sm:text-sm pt-2.5 border-t border-saffron/10">
+                        <span className="text-gray-500 font-semibold min-w-0">Balance before departure</span>
+                        <span className="font-black text-gray-800 shrink-0">{inr(balance)}</span>
                       </div>
                     </>
                   )}
                   {advance === 0 && (
-                    <div className="flex items-center justify-between text-sm pt-2.5 border-t border-saffron/10">
-                      <span className="text-gray-600 font-black uppercase tracking-[0.1em] text-[10px]">Payable now</span>
-                      <span className="font-black text-saffron-dark text-base">{inr(total)}</span>
+                    <div className="flex items-center justify-between gap-3 text-sm pt-2.5 border-t border-saffron/10">
+                      <span className="text-gray-600 font-black uppercase tracking-[0.1em] text-[10px] min-w-0">
+                        {noPaymentAvailable ? 'Total' : effectiveMethod === 'cash' ? 'Payable at the office' : 'Payable now'}
+                      </span>
+                      <span className="font-black text-saffron-dark text-base shrink-0">{inr(total)}</span>
                     </div>
                   )}
                 </div>
 
-                {!razorpayConfigured() && (
-                  <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
-                    <AlertTriangle size={17} className="text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-xs font-semibold text-amber-800 leading-relaxed">
-                      Online payment isn&apos;t switched on for this site yet. You can still reserve your
-                      seat — the yatra team will collect the amount directly.
+                {/* Cash: say exactly what happens next, before they commit. */}
+                {effectiveMethod === 'cash' && !noPaymentAvailable && (
+                  <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3 user-text-box">
+                    <Building2 size={17} className="text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-emerald-900 uppercase tracking-[0.1em]">Paying in cash</p>
+                      <p className="mt-1 text-xs font-semibold text-emerald-800 leading-relaxed user-text">
+                        Your seat is held as <span className="font-black">pending</span> the moment you register.
+                        Hand {inr(payNow)} to the yatra team at the FOLK office — they confirm the seat once the cash is received.
+                        {trip.contactPhone ? ` Call ${trip.contactPhone} if you need directions.` : ''}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* No method on offer at all */}
+                {noPaymentAvailable && (
+                  <div className={`rounded-2xl p-4 flex items-start gap-3 user-text-box ${
+                    total > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-cream/70 border border-saffron/15'
+                  }`}>
+                    {total > 0
+                      ? <AlertTriangle size={17} className="text-amber-500 shrink-0 mt-0.5" />
+                      : <Info size={17} className="text-saffron shrink-0 mt-0.5" />}
+                    <p className={`text-xs font-semibold leading-relaxed user-text ${total > 0 ? 'text-amber-800' : 'text-gray-600'}`}>
+                      {total === 0
+                        ? 'There is nothing to pay for this yatra. '
+                        : isOnlineEnabled(trip) && !razorpayConfigured()
+                          ? 'Online payment isn’t switched on for this site yet. '
+                          : 'No payment method is open for this yatra right now. '}
+                      Your registration is saved as
+                      <span className="font-black"> pending</span> and the yatra team will confirm your
+                      seat{total > 0 ? ' and arrange payment with you directly' : ''}.
+                      {trip.contactPhone ? ` Call or WhatsApp ${trip.contactPhone}.` : ''}
                     </p>
                   </div>
                 )}
 
                 {formError && (
-                  <div className="rounded-2xl bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+                  <div className="rounded-2xl bg-red-50 border border-red-200 p-4 flex items-start gap-3 user-text-box" role="alert">
                     <XCircle size={17} className="text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-xs font-semibold text-red-600 leading-relaxed">{formError}</p>
+                    <p className="text-xs font-semibold text-red-600 leading-relaxed user-text">{formError}</p>
                   </div>
                 )}
 
                 <div className="space-y-3 pt-1">
-                  {razorpayConfigured() && total > 0 && (
+                  <button
+                    type="submit"
+                    disabled={!!submitting}
+                    className="w-full min-h-[52px] px-4 rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.13em] text-[11px] shadow-lg shadow-saffron/25 hover:brightness-105 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                  >
+                    {submitting
+                      ? <Loader2 size={17} className="animate-spin shrink-0" />
+                      : submitMode === 'cash'
+                        ? <Banknote size={17} className="shrink-0" />
+                        : submitMode === 'later'
+                          ? <Clock3 size={17} className="shrink-0" />
+                          : <CreditCard size={17} className="shrink-0" />}
+                    <span className="min-w-0 user-text">
+                      {submitting === 'pay'
+                        ? 'Opening checkout…'
+                        : submitting
+                          ? 'Reserving…'
+                          : submitMode === 'cash'
+                            ? 'Register & pay cash'
+                            : submitMode === 'later'
+                              ? 'Send my request'
+                              : `Register & pay ${inr(payNow)}`}
+                    </span>
+                  </button>
+
+                  {/* "Pay later" stays available whenever online checkout is the
+                      primary route — it is the pre-existing escape hatch. It is
+                      redundant (and confusing) once cash is the chosen method. */}
+                  {submitMode === 'pay' && (
                     <button
-                      type="submit"
+                      type="button"
                       disabled={!!submitting}
-                      className="w-full min-h-[52px] rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg shadow-saffron/25 hover:brightness-105 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                      onClick={() => handleRegister('later')}
+                      className="w-full min-h-[48px] px-4 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.14em] text-[10px] hover:bg-gray-800 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
                     >
-                      {submitting === 'pay' ? <Loader2 size={17} className="animate-spin" /> : <CreditCard size={17} />}
-                      {submitting === 'pay' ? 'Opening checkout…' : `Register & pay ${inr(payNow)}`}
+                      {submitting === 'later' ? <Loader2 size={16} className="animate-spin shrink-0" /> : <Clock3 size={16} className="shrink-0" />}
+                      {submitting === 'later' ? 'Reserving…' : 'Register, pay later'}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    disabled={!!submitting}
-                    onClick={() => handleRegister('later')}
-                    className="w-full min-h-[48px] rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.14em] text-[10px] hover:bg-gray-800 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                  >
-                    {submitting === 'later' ? <Loader2 size={16} className="animate-spin" /> : <Clock3 size={16} />}
-                    {submitting === 'later' ? 'Reserving…' : 'Register, pay later'}
-                  </button>
+
                   <p className="text-[11px] text-gray-400 font-medium text-center leading-relaxed">
                     Your seat stays <span className="font-bold">pending</span> until the team confirms it.
-                    Payments are verified by our server, never by this page.
+                    {effectiveMethod === 'cash' && !noPaymentAvailable
+                      ? ' Cash is recorded by the yatra team, never by this page.'
+                      : ' Payments are verified by our server, never by this page.'}
                   </p>
                 </div>
               </form>
@@ -1221,7 +1530,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               >
                 <X size={21} />
               </button>
-              <img src={lightbox} alt={`${trip.title} photo`} className="w-full h-auto object-contain" />
+              <img src={lightbox} alt={`${trip.title} photo`} className="w-full max-w-full h-auto object-contain" />
             </motion.div>
           </div>
         )}
