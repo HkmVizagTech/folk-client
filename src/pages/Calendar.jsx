@@ -31,11 +31,11 @@ const Calendar = () => {
     <div className="min-h-screen bg-cream">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-4 max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-widest">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-label">
             <CalendarIcon size={14} /> Vaishnava Calendar
           </span>
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tighter uppercase italic leading-[0.95]">
-            Festivals & <span className="bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent">fasting days</span>
+          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight uppercase leading-[0.95]">
+            Festivals & <span className="bg-saffron bg-clip-text text-transparent">fasting days</span>
           </h1>
           <p className="text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
             The Vedic lunar calendar marks Ekadashis, appearance days and the most auspicious months of
@@ -56,9 +56,9 @@ const Calendar = () => {
                   <button onClick={() => setMonth(m => (m + 1) % 12)} aria-label="Next month" className="w-9 h-9 rounded-xl bg-gray-50 hover:bg-saffron/10 text-gray-500 hover:text-saffron font-black transition-all">›</button>
                 </div>
               </div>
-              <div className="w-12 h-1.5 rounded-full bg-gradient-to-r from-saffron to-gold mb-4" />
-              <div className={`p-6 rounded-3xl bg-gradient-to-br from-saffron/10 to-gold/10 border border-saffron/15 min-h-[120px] flex flex-col justify-center`}>
-                <p className="text-lg sm:text-xl font-black text-saffron-dark uppercase italic leading-snug">
+              <div className="w-12 h-1.5 rounded-full bg-saffron mb-4" />
+              <div className={`p-6 rounded-3xl bg-saffron border border-saffron/15 min-h-[120px] flex flex-col justify-center`}>
+                <p className="text-lg sm:text-xl font-black text-saffron-dark uppercase leading-snug">
                   {HIGHLIGHTS[month] || 'Nitya (daily) japa & class'}
                 </p>
                 <p className="text-xs text-gray-500 font-medium mt-2">Daily program continues: Mangala-arati 4:30 am · Japa class · Evening kirtan.</p>
@@ -84,7 +84,7 @@ const Calendar = () => {
                 href="https://wa.me/919154881444"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-2 text-[11px] font-black text-saffron uppercase tracking-widest hover:gap-3 transition-all"
+                className="mt-5 inline-flex items-center gap-2 text-[11px] font-black text-saffron uppercase tracking-label hover:gap-3 transition-all"
               >
                 Get the monthly Ekadashi reminders <span className="text-saffron">→</span>
               </a>

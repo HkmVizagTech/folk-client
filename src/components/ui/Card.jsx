@@ -1,5 +1,4 @@
 import React from 'react'
-import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -7,19 +6,13 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-const Card = ({ children, className, hover = true, ...props }) => {
-  return (
-    <motion.div
-      whileHover={hover ? { y: -5 } : {}}
-      className={cn(
-        "bg-white/70 backdrop-blur-xl border border-white/40 shadow-premium-xl rounded-[1.75rem] sm:rounded-[2.5rem] p-5 sm:p-8",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  )
-}
+// Plain surface: white, hairline border, no glass/blur and no hover lift.
+// `hover` is accepted for older call sites and ignored.
+// eslint-disable-next-line no-unused-vars
+const Card = ({ children, className, hover, ...props }) => (
+  <div className={cn('bg-white border border-line rounded-xl p-5 sm:p-6', className)} {...props}>
+    {children}
+  </div>
+)
 
 export default Card

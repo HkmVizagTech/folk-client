@@ -181,7 +181,7 @@ const Accommodation = () => {
           <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Accommodation Type</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Accommodation Type</label>
                 <div className="relative">
                   <select
                     value={formData.type}
@@ -197,7 +197,7 @@ const Accommodation = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Number of Guests</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Number of Guests</label>
                 <div className="relative">
                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                    <input 
@@ -213,7 +213,7 @@ const Accommodation = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Arrival Date</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Arrival Date</label>
                 <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input 
@@ -226,7 +226,7 @@ const Accommodation = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Departure Date</label>
+                 <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Departure Date</label>
                  <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input 
@@ -241,7 +241,7 @@ const Accommodation = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Special Requirements / Purpose</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Special Requirements / Purpose</label>
               <textarea 
                 rows={4} 
                 value={formData.requirements}
@@ -253,7 +253,7 @@ const Accommodation = () => {
 
             <Button 
               disabled={isSubmitting}
-              className="w-full py-4 text-lg bg-gradient-to-r from-saffron to-gold shadow-lg hover:shadow-xl transition-all font-bold rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50"
+              className="w-full py-4 text-lg bg-saffron shadow-lg hover:shadow-xl transition-all font-bold rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50"
             >
               {isSubmitting ? <Loader2 className="animate-spin" /> : <Send size={20} />}
               {isSubmitting ? 'Submitting...' : 'Submit Booking Request'}
@@ -263,7 +263,7 @@ const Accommodation = () => {
 
         {/* Sidebar Info & Recent */}
         <div className="space-y-8">
-          <Card className="bg-gradient-to-br from-saffron/5 to-gold/5 border-saffron/10 p-6 shadow-sm">
+          <Card className="bg-saffron border-saffron/10 p-6 shadow-sm">
             <h3 className="font-bold flex items-center gap-2 mb-4 text-saffron-dark">
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
                  <Info size={16} className="text-saffron" />
@@ -310,10 +310,10 @@ const Accommodation = () => {
                     <Card className="p-5 border-none shadow-sm hover:shadow-md transition-all relative overflow-hidden bg-white">
                       <div className="flex justify-between items-start gap-2 mb-3">
                         <div className="flex flex-col min-w-0">
-                          <span className="text-[10px] font-bold text-gray-400 font-mono tracking-tighter uppercase truncate">{req.userName || 'Devotee'}</span>
-                          <span className="text-[9px] text-gray-400 font-mono tracking-tighter">REQ_{req.id.slice(0,6).toUpperCase()}</span>
+                          <span className="text-[10px] font-bold text-gray-400 font-mono tracking-tight uppercase truncate">{req.userName || 'Devotee'}</span>
+                          <span className="text-[9px] text-gray-400 font-mono tracking-tight">REQ_{req.id.slice(0,6).toUpperCase()}</span>
                         </div>
-                        <span className={`shrink-0 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border whitespace-nowrap ${getStatusColor(req.status)}`}>
+                        <span className={`shrink-0 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-label border whitespace-nowrap ${getStatusColor(req.status)}`}>
                           {req.status}
                         </span>
                       </div>
@@ -355,7 +355,7 @@ const Accommodation = () => {
                     </Card>
                   </motion.div>
                 )) : (
-                  <div className="p-10 text-center text-gray-300 italic text-sm">No requests found.</div>
+                  <div className="p-10 text-center text-gray-300 text-sm">No requests found.</div>
                 )}
               </AnimatePresence>
             </div>
@@ -391,7 +391,7 @@ const Accommodation = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-start">
                   <div className="space-y-6">
                     <div>
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-4">Select Scanning Device</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-label block mb-4">Select Scanning Device</label>
                       <div className="grid grid-cols-1 gap-3">
                         {cameras.length > 0 ? cameras.map((camera) => (
                           <button
@@ -399,7 +399,7 @@ const Accommodation = () => {
                             onClick={() => setSelectedCameraId(camera.id)}
                             className={`p-4 rounded-2xl border-2 transition-all text-left flex items-center gap-4 ${
                               selectedCameraId === camera.id 
-                                ? 'border-saffron bg-saffron/5 shadow-md shadow-saffron/10' 
+                                ? 'border-saffron bg-saffron/5 shadow-md' 
                                 : 'border-gray-100 hover:border-saffron/20 bg-gray-50/50'
                             }`}
                           >
@@ -410,7 +410,7 @@ const Accommodation = () => {
                               <p className={`font-bold text-sm truncate ${selectedCameraId === camera.id ? 'text-saffron-dark' : 'text-gray-700'}`}>
                                 {camera.label || `Camera ${cameras.indexOf(camera) + 1}`}
                               </p>
-                              <p className="text-[10px] text-gray-400 font-medium truncate uppercase tracking-widest">{camera.id.slice(0, 12)}...</p>
+                              <p className="text-[10px] text-gray-400 font-medium truncate uppercase tracking-label">{camera.id.slice(0, 12)}...</p>
                             </div>
                             {selectedCameraId === camera.id && (
                               <div className="w-2 h-2 rounded-full bg-saffron animate-pulse" />
@@ -429,14 +429,14 @@ const Accommodation = () => {
                         <Button 
                           onClick={startScanning}
                           disabled={!selectedCameraId}
-                          className="flex-1 py-4 bg-gradient-to-r from-saffron to-gold text-white border-none font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-saffron/20"
+                          className="flex-1 py-4 bg-saffron text-white border-none font-black text-xs uppercase tracking-label shadow-lg"
                         >
                           Start Scanning
                         </Button>
                       ) : (
                         <Button 
                           onClick={stopScanning}
-                          className="flex-1 py-4 bg-red-500 text-white border-none font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-red-200 flex items-center justify-center gap-2"
+                          className="flex-1 py-4 bg-red-500 text-white border-none font-black text-xs uppercase tracking-label shadow-lg shadow-red-200 flex items-center justify-center gap-2"
                         >
                           <StopCircle size={18} /> Stop Scanning
                         </Button>
@@ -455,13 +455,13 @@ const Accommodation = () => {
                       <motion.div 
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="p-6 bg-green-50 border border-green-100 rounded-[2rem] flex items-center gap-4"
+                        className="p-6 bg-green-50 border border-green-100 rounded-xl flex items-center gap-4"
                       >
                          <div className="w-12 h-12 bg-green-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green-100">
                            <CheckCircle2 size={24} />
                          </div>
                          <div>
-                            <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1">Scan Successful</p>
+                            <p className="text-[10px] font-black text-green-600 uppercase tracking-label mb-1">Scan Successful</p>
                             <p className="text-sm font-bold text-green-900 font-mono">{scanResult}</p>
                          </div>
                       </motion.div>
@@ -469,12 +469,12 @@ const Accommodation = () => {
                   </div>
 
                   <div className="relative">
-                    <div className="aspect-square rounded-[2.5rem] bg-gray-900 overflow-hidden border-8 border-gray-50 shadow-inner relative group">
+                    <div className="aspect-square rounded-xl bg-gray-900 overflow-hidden border-8 border-gray-50 shadow-inner relative group">
                       <div id="reader" className="w-full h-full object-cover" />
                       {!isScanning && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20 group-hover:text-white/40 transition-colors">
                            <Zap size={64} className="mb-4" />
-                           <p className="text-[10px] font-black uppercase tracking-[0.3em]">Camera Standby</p>
+                           <p className="text-[10px] font-black uppercase tracking-label">Camera Standby</p>
                         </div>
                       )}
                       {isScanning && (
@@ -493,7 +493,7 @@ const Accommodation = () => {
       )}
 
       <Card className="p-6 sm:p-10 border-none shadow-premium bg-gradient-to-r from-white to-cream/30 relative overflow-hidden">
-        <div className="absolute inset-0 bg-white/20 backdrop-blur-[2px] opacity-10 pointer-events-none" />
+        <div className="absolute inset-0 bg-white/20-[2px] opacity-10 pointer-events-none" />
         <h2 className="text-xl font-bold mb-8 sm:mb-10 text-center text-gray-800">Reservation Lifecycle</h2>
         <div className="relative flex flex-col md:flex-row justify-between items-center max-w-3xl mx-auto gap-8 md:gap-0 md:px-10">
           <div className="hidden md:block absolute top-[28px] left-[50px] right-[50px] h-0.5 bg-gray-100 -z-0" />
@@ -506,13 +506,13 @@ const Accommodation = () => {
             <div key={i} className="relative z-10 flex md:flex-col items-center gap-4 md:gap-3 w-full md:w-auto">
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-500 shrink-0 ${
                 step.done 
-                  ? 'bg-saffron border-saffron shadow-lg shadow-saffron/20 text-white' 
+                  ? 'bg-saffron border-saffron shadow-lg text-white' 
                   : 'bg-white border-gray-100 text-gray-300'
               }`}>
                 {React.cloneElement(step.icon, { size: 24 })}
               </div>
               <div className="flex flex-col md:items-center">
-                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${step.done ? 'text-saffron-dark' : 'text-gray-400'}`}>
+                <span className={`text-[10px] font-black uppercase tracking-label ${step.done ? 'text-saffron-dark' : 'text-gray-400'}`}>
                   {step.label}
                 </span>
                 <span className="text-[9px] text-gray-400 md:hidden font-medium">Pending verification</span>

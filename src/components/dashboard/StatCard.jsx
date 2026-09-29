@@ -11,9 +11,9 @@ const StatCard = ({ label, value, sub, color = 'saffron', onClick }) => {
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); } } : undefined}
     >
-      <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">{label}</p>
+      <p className="text-gray-500 text-[10px] font-black uppercase tracking-label">{label}</p>
       <h3 className="text-xl sm:text-2xl font-black mt-2 font-poppins text-gray-800 break-words">{value}</h3>
-      <p className="text-[10px] text-gray-400 mt-1 font-bold italic">{sub}</p>
+      <p className="text-[10px] text-gray-400 mt-1 font-bold">{sub}</p>
     </Card>
   )
 }

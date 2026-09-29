@@ -96,7 +96,7 @@ const razorpayConfigured = () => {
 /* ------------------------------------------------------------------ */
 
 const PublicTopBar = ({ onLoginClick }) => (
-  <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-saffron/10">
+  <header className="sticky top-0 z-40 bg-white/85 border-b border-saffron/10">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="h-16 sm:h-[70px] flex items-center justify-between gap-3">
         <a href="/" className="min-w-0 flex items-center shrink-0" aria-label="FOLK Vizag — home">
@@ -116,7 +116,7 @@ const PublicTopBar = ({ onLoginClick }) => (
 
 const SectionHeading = ({ icon, eyebrow, title }) => (
   <div className="mb-5 sm:mb-6 user-text-box">
-    <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] sm:tracking-[0.18em] text-saffron-dark">
+    <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-label sm:tracking-label text-saffron-dark">
       <span className="shrink-0">{icon}</span> {eyebrow}
     </span>
     <h2 className="mt-2 text-lg sm:text-2xl font-black text-gray-900 tracking-tight leading-tight">{title}</h2>
@@ -140,7 +140,7 @@ const DetailSkeleton = () => (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
           <div className="order-1 lg:order-2 lg:col-span-1">
-            <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/10 p-6 space-y-4">
+            <div className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/10 p-6 space-y-4">
               <div className="h-8 w-32 rounded-full bg-cream-dark/70" />
               <div className="h-3 w-24 rounded-full bg-cream-dark/50" />
               <div className="space-y-3 pt-2">
@@ -152,7 +152,7 @@ const DetailSkeleton = () => (
           </div>
           <div className="order-2 lg:order-1 lg:col-span-2 space-y-6">
             {[0, 1].map((i) => (
-              <div key={i} className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-6 sm:p-9 space-y-3">
+              <div key={i} className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/5 p-6 sm:p-9 space-y-3">
                 <div className="h-3 w-28 rounded-full bg-cream-dark/50" />
                 <div className="h-6 w-2/5 rounded-full bg-cream-dark/70" />
                 <div className="h-3 w-full rounded-full bg-cream-dark/40 mt-4" />
@@ -423,7 +423,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
           email: (form.email || '').trim(),
           contact: (form.phone || '').trim(),
         },
-        theme: { color: '#FF9933' },
+        theme: { color: '#E4702A' },
         modal: {
           ondismiss: function () {
             setSubmitting(null)
@@ -492,7 +492,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
   if (!trip) {
     return shell(
       <div className="min-h-[60vh] flex items-center justify-center px-4 py-12 sm:py-16">
-        <div className="max-w-md w-full text-center bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/10 p-6 sm:p-12">
+        <div className="max-w-md w-full text-center bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/10 p-6 sm:p-12">
           <div className="w-16 h-16 mx-auto rounded-3xl bg-saffron/10 text-saffron flex items-center justify-center mb-6">
             <Compass size={28} />
           </div>
@@ -504,7 +504,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
           <button
             type="button"
             onClick={() => setActiveTab && setActiveTab('trips')}
-            className="mt-7 w-full min-h-[48px] rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.16em] text-[11px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
+            className="mt-7 w-full min-h-[48px] rounded-2xl bg-gray-900 text-white font-black uppercase tracking-label text-[11px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
           >
             <ArrowLeft size={16} /> All trips &amp; yatras
           </button>
@@ -543,7 +543,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
   /* ---------------- Booking panel (shared by desktop rail + mobile) --- */
   const bookingPanel = (
-    <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium-xl border border-saffron/10 overflow-hidden user-text-box">
+    <div className="bg-white rounded-xl sm:rounded-xl shadow-premium-xl border border-saffron/10 overflow-hidden user-text-box">
       {/* Price header — the single loudest piece of information on the page */}
       <div className="relative bg-gradient-to-br from-cream to-white border-b border-saffron/10 px-5 sm:px-7 py-5 sm:py-6">
         <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -638,7 +638,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             >
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  seatsLeft === 0 ? 'bg-red-400' : 'bg-gradient-to-r from-saffron to-gold-dark'
+                  seatsLeft === 0 ? 'bg-red-400' : 'bg-saffron'
                 }`}
                 style={{ width: `${Math.min(100, Math.round((seatsTaken / capacity) * 100))}%` }}
               />
@@ -656,7 +656,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               <button
                 type="button"
                 onClick={() => onLoginClick && onLoginClick()}
-                className="w-full min-h-[52px] rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg shadow-saffron/25 hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
+                className="w-full min-h-[52px] rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
               >
                 <Ticket size={16} /> Sign in to register
               </button>
@@ -751,7 +751,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               )}
 
               {myRegistration.staffNotes && (
-                <p className="text-xs text-gray-500 italic bg-cream/60 rounded-xl p-3 leading-relaxed user-text">
+                <p className="text-xs text-gray-500 bg-cream/60 rounded-xl p-3 leading-relaxed user-text">
                   &ldquo;{myRegistration.staffNotes}&rdquo;
                 </p>
               )}
@@ -766,7 +766,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
-                className="w-full min-h-[52px] rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg shadow-saffron/25 hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
+                className="w-full min-h-[52px] rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
               >
                 <Ticket size={16} className="shrink-0" />
                 {noPaymentAvailable ? 'Request a seat' : cashAvailable && !onlineAvailable ? 'Register & pay cash' : 'Reserve my seat'}
@@ -827,7 +827,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <button
               type="button"
               onClick={() => setActiveTab && setActiveTab('trips')}
-              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/85 text-[10px] font-black uppercase tracking-[0.16em] hover:bg-white/20 transition-colors"
+              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full bg-white/10 border border-white/20 text-white/85 text-[10px] font-black uppercase tracking-label hover:bg-white/20 transition-colors"
             >
               <ArrowLeft size={15} /> All trips
             </button>
@@ -839,16 +839,16 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               className="mt-5 sm:mt-6 max-w-3xl min-w-0"
             >
               <div className="flex flex-wrap items-center gap-2 user-text-box">
-                <span className={`px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.16em] ${STATUS_PILL[tripStatus] || STATUS_PILL.upcoming}`}>
+                <span className={`px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-label ${STATUS_PILL[tripStatus] || STATUS_PILL.upcoming}`}>
                   {statusLabel(tripStatus)}
                 </span>
                 {trip.durationLabel && (
-                  <span className="max-w-full px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/85 text-[9px] font-black uppercase tracking-[0.16em] user-text">
+                  <span className="max-w-full px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/85 text-[9px] font-black uppercase tracking-label user-text">
                     {trip.durationLabel}
                   </span>
                 )}
                 {trip.registrationOpen === false && tripStatus !== 'completed' && tripStatus !== 'cancelled' && (
-                  <span className="px-3.5 py-1.5 rounded-full bg-white/90 text-gray-800 text-[9px] font-black uppercase tracking-[0.16em]">
+                  <span className="px-3.5 py-1.5 rounded-full bg-white text-gray-800 text-[9px] font-black uppercase tracking-label">
                     Registration closed
                   </span>
                 )}
@@ -947,10 +947,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   dropping the reader straight onto the contact band. */}
               {!trip.description && highlights.length === 0 && itinerary.length === 0
                 && inclusions.length === 0 && exclusions.length === 0 && gallery.length === 0 && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-dashed border-saffron/25 p-6 sm:p-10 text-center user-text-box">
+                <section className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-dashed border-saffron/25 p-6 sm:p-10 text-center user-text-box">
                   <div className="relative w-16 h-16 mx-auto mb-5">
                     <span className="absolute inset-0 rounded-3xl bg-saffron/10 blur-xl" aria-hidden="true" />
-                    <span className="relative w-16 h-16 rounded-3xl bg-gradient-to-br from-saffron/15 to-gold/10 text-saffron flex items-center justify-center ring-1 ring-saffron/15">
+                    <span className="relative w-16 h-16 rounded-3xl bg-saffron text-saffron flex items-center justify-center ring-1 ring-saffron/15">
                       <Compass size={26} />
                     </span>
                   </div>
@@ -964,7 +964,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* About */}
               {trip.description && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
+                <section className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<Compass size={13} />} eyebrow="About this yatra" title="The journey" />
                   <p className="text-[14px] sm:text-[15px] text-gray-600 leading-[1.8] sm:leading-[1.85] font-medium whitespace-pre-line user-text">
                     {trip.description}
@@ -974,12 +974,12 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Highlights */}
               {highlights.length > 0 && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
+                <section className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<Sparkles size={13} />} eyebrow="Highlights" title="What makes this special" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {highlights.map((h, i) => (
                       <div key={i} className="flex items-start gap-3 p-4 rounded-2xl bg-cream/60 border border-saffron/10 min-w-0">
-                        <span className="w-7 h-7 shrink-0 rounded-lg bg-gradient-to-br from-saffron to-gold text-white flex items-center justify-center mt-0.5">
+                        <span className="w-7 h-7 shrink-0 rounded-lg bg-saffron text-white flex items-center justify-center mt-0.5">
                           <Check size={14} />
                         </span>
                         <p className="text-[13px] sm:text-sm font-semibold text-gray-700 leading-relaxed min-w-0 user-text">{h}</p>
@@ -991,14 +991,14 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Itinerary */}
               {itinerary.length > 0 && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
+                <section className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<MapIcon size={13} />} eyebrow="Day by day" title="The itinerary" />
                   <ol className="relative space-y-6 sm:space-y-7">
                     {/* Timeline spine */}
                     <span className="absolute left-[19px] sm:left-[23px] top-3 bottom-3 w-px bg-gradient-to-b from-saffron/50 via-saffron/20 to-transparent" aria-hidden="true" />
                     {itinerary.map((item, i) => (
                       <li key={i} className="relative flex gap-4 sm:gap-5 min-w-0">
-                        <span className="relative z-10 w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl bg-gradient-to-br from-saffron to-gold-dark text-white flex flex-col items-center justify-center shadow-lg shadow-saffron/20">
+                        <span className="relative z-10 w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl bg-saffron text-white flex flex-col items-center justify-center shadow-lg">
                           <span className="text-[7px] font-black uppercase tracking-[0.1em] leading-none opacity-80">Day</span>
                           <span className="max-w-full px-1 text-sm sm:text-base font-black leading-none mt-0.5 truncate">{item.day ?? i + 1}</span>
                         </span>
@@ -1016,15 +1016,15 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Inclusions / exclusions */}
               {(inclusions.length > 0 || exclusions.length > 0) && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
+                <section className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<Info size={13} />} eyebrow="The fine print" title="What's included" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
                     <div className="min-w-0">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.16em] text-green-600 mb-4 flex items-center gap-2">
+                      <h3 className="text-[10px] font-black uppercase tracking-label text-green-600 mb-4 flex items-center gap-2">
                         <CheckCircle2 size={14} className="shrink-0" /> Included
                       </h3>
                       {inclusions.length === 0 ? (
-                        <p className="text-[13px] sm:text-sm text-gray-400 italic">Details shared on confirmation.</p>
+                        <p className="text-[13px] sm:text-sm text-gray-400">Details shared on confirmation.</p>
                       ) : (
                         <ul className="space-y-2.5">
                           {inclusions.map((item, i) => (
@@ -1037,11 +1037,11 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                       )}
                     </div>
                     <div className="min-w-0 pt-5 border-t border-gray-100 sm:pt-0 sm:border-t-0 sm:border-l sm:border-gray-100 sm:pl-8">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.16em] text-red-500 mb-4 flex items-center gap-2">
+                      <h3 className="text-[10px] font-black uppercase tracking-label text-red-500 mb-4 flex items-center gap-2">
                         <XCircle size={14} className="shrink-0" /> Not included
                       </h3>
                       {exclusions.length === 0 ? (
-                        <p className="text-[13px] sm:text-sm text-gray-400 italic">Nothing listed.</p>
+                        <p className="text-[13px] sm:text-sm text-gray-400">Nothing listed.</p>
                       ) : (
                         <ul className="space-y-2.5">
                           {exclusions.map((item, i) => (
@@ -1059,7 +1059,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Gallery */}
               {gallery.length > 0 && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
+                <section className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<Camera size={13} />} eyebrow="Gallery" title="A glimpse" />
                   <div className={`grid gap-3 ${gallery.length === 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
                     {gallery.map((src, i) => (
@@ -1080,7 +1080,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {/* Meeting point */}
               {(trip.meetingPoint || trip.startDate) && (
-                <section className="bg-white rounded-[1.75rem] sm:rounded-[2rem] shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
+                <section className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<MapPin size={13} />} eyebrow="Logistics" title="Where we meet" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 sm:p-5 rounded-2xl bg-cream/60 border border-saffron/10 min-w-0">
@@ -1100,7 +1100,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               )}
 
               {/* Contact — dark anchor band */}
-              <section className="relative overflow-hidden rounded-[1.75rem] sm:rounded-[2rem] bg-[#0B0A09] text-white">
+              <section className="relative overflow-hidden rounded-xl sm:rounded-xl bg-[#0B0A09] text-white">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,153,51,0.32),transparent_60%)]" aria-hidden="true" />
                 <div className="relative z-10 p-5 sm:p-10 flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 justify-between">
                   <div className="min-w-0">
@@ -1146,7 +1146,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                         aria-label={`${t.title || 'Trip'} — view details`}
                         className="group text-left bg-white rounded-2xl overflow-hidden shadow-premium border border-saffron/5 hover:shadow-premium-xl hover:-translate-y-1 transition-all min-w-0"
                       >
-                        <div className="h-24 overflow-hidden bg-gradient-to-br from-saffron to-gold-dark">
+                        <div className="h-24 overflow-hidden bg-saffron">
                           {t.coverImage && (
                             <img src={t.coverImage} alt="" loading="lazy" className="w-full max-w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                           )}
@@ -1177,7 +1177,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
         <>
           <div className="h-28 lg:hidden" aria-hidden="true" />
           <div
-            className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-saffron/10 px-4 pt-3 flex items-center gap-3 sm:gap-4"
+            className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-saffron/10 px-4 pt-3 flex items-center gap-3 sm:gap-4"
             style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
           >
             <div className="min-w-0 shrink">
@@ -1191,7 +1191,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <button
               type="button"
               onClick={() => (user ? setModalOpen(true) : onLoginClick && onLoginClick())}
-              className="flex-1 min-w-0 min-h-[48px] px-3 rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.12em] text-[10px] xs:text-[11px] shadow-lg shadow-saffron/25 inline-flex items-center justify-center gap-2"
+              className="flex-1 min-w-0 min-h-[48px] px-3 rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.12em] text-[10px] xs:text-[11px] shadow-lg inline-flex items-center justify-center gap-2"
             >
               <Ticket size={16} className="shrink-0" />
               <span className="truncate">
@@ -1215,13 +1215,13 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !submitting && setModalOpen(false)}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+              className="absolute inset-0 bg-gray-900/60"
             />
             <motion.div
               initial={{ scale: 0.94, y: 28, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.94, y: 28, opacity: 0 }}
-              className="relative w-full max-w-lg bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-premium-xl border border-saffron/10 overflow-y-auto overscroll-contain max-h-[90vh] p-5 sm:p-9 user-text-box"
+              className="relative w-full max-w-lg bg-white rounded-xl sm:rounded-xl shadow-premium-xl border border-saffron/10 overflow-y-auto overscroll-contain max-h-[90vh] p-5 sm:p-9 user-text-box"
             >
               <button
                 type="button"
@@ -1233,7 +1233,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               </button>
 
               <div className="mb-6 sm:mb-7 pr-12 user-text-box">
-                <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-gradient-to-br from-saffron to-gold rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+                <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-saffron rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                   <Ticket className="text-white" size={24} />
                 </div>
                 <h2 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">
@@ -1252,7 +1252,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               >
                 {/* Seats */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Travellers</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Travellers</label>
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
@@ -1280,7 +1280,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 {/* ---- Payment method: only a real choice gets a chooser ---- */}
                 {bothAvailable && (
                   <fieldset className="space-y-2">
-                    <legend className="text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1 mb-2">How would you like to pay?</legend>
+                    <legend className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-1 mb-2">How would you like to pay?</legend>
                     <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                       {[
                         {
@@ -1305,13 +1305,13 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                             aria-pressed={active}
                             className={`text-left min-h-[44px] p-4 rounded-2xl border-2 transition-all min-w-0 ${
                               active
-                                ? 'border-saffron bg-saffron/5 shadow-md shadow-saffron/10'
+                                ? 'border-saffron bg-saffron/5 shadow-md'
                                 : 'border-gray-200 bg-white hover:border-saffron/40'
                             }`}
                           >
                             <span className="flex items-center gap-2.5">
                               <span className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${
-                                active ? 'bg-gradient-to-br from-saffron to-gold-dark text-white' : 'bg-cream text-saffron'
+                                active ? 'bg-saffron text-white' : 'bg-cream text-saffron'
                               }`}>
                                 {opt.icon}
                               </span>
@@ -1329,7 +1329,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 {/* Contact */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 min-w-0">
-                    <label htmlFor="trip-phone" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Phone</label>
+                    <label htmlFor="trip-phone" className="block text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Phone</label>
                     <input
                       id="trip-phone"
                       type="tel"
@@ -1342,7 +1342,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     />
                   </div>
                   <div className="space-y-2 min-w-0">
-                    <label htmlFor="trip-email" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Email</label>
+                    <label htmlFor="trip-email" className="block text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Email</label>
                     <input
                       id="trip-email"
                       type="email"
@@ -1356,7 +1356,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 </div>
 
                 <div className="space-y-2 min-w-0">
-                  <label htmlFor="trip-emergency" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Emergency contact</label>
+                  <label htmlFor="trip-emergency" className="block text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Emergency contact</label>
                   <input
                     id="trip-emergency"
                     type="text"
@@ -1370,7 +1370,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 </div>
 
                 <div className="space-y-2 min-w-0">
-                  <label htmlFor="trip-notes" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Traveller notes (optional)</label>
+                  <label htmlFor="trip-notes" className="block text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Traveller notes (optional)</label>
                   <textarea
                     id="trip-notes"
                     rows={3}
@@ -1457,7 +1457,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   <button
                     type="submit"
                     disabled={!!submitting}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.13em] text-[11px] shadow-lg shadow-saffron/25 hover:brightness-105 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                    className="w-full min-h-[52px] px-4 rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.13em] text-[11px] shadow-lg hover:brightness-105 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
                   >
                     {submitting
                       ? <Loader2 size={17} className="animate-spin shrink-0" />
@@ -1514,13 +1514,13 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setLightbox(null)}
-              className="absolute inset-0 bg-gray-900/85 backdrop-blur-xl"
+              className="absolute inset-0 bg-gray-900/85"
             />
             <motion.div
               initial={{ scale: 0.94, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.94, opacity: 0 }}
-              className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-[1.5rem] sm:rounded-[2rem] bg-black"
+              className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl sm:rounded-xl bg-black"
             >
               <button
                 type="button"

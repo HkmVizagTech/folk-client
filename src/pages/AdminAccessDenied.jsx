@@ -62,7 +62,7 @@ const AdminAccessDenied = () => {
   return (
     <div className="min-h-screen bg-gray-950 relative flex flex-col items-center justify-center p-4 overflow-hidden font-inter">
       <div className="absolute top-0 left-0 w-full h-full opacity-[0.06] pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, #FF9933 0, transparent 40%), radial-gradient(circle at 75% 75%, #7C3AED 0, transparent 40%)' }}
+        style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, #E4702A 0, transparent 40%), radial-gradient(circle at 75% 75%, #7C3AED 0, transparent 40%)' }}
       />
 
       <motion.div
@@ -71,7 +71,7 @@ const AdminAccessDenied = () => {
         transition={{ duration: 0.4 }}
         className="w-full max-w-md relative z-10"
       >
-        <div className="bg-gray-900/90 backdrop-blur-2xl border border-gray-800 rounded-[2.5rem] shadow-2xl p-8 sm:p-10 text-center">
+        <div className="bg-gray-900/90 backdrop-hidden border border-gray-800 rounded-xl shadow-2xl p-8 sm:p-10 text-center">
           <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-red-950/60 border border-red-900/60 flex items-center justify-center">
             <ShieldAlert className="text-red-400" size={32} />
           </div>
@@ -91,7 +91,7 @@ const AdminAccessDenied = () => {
               href="/"
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full py-4 bg-gradient-to-r from-saffron to-gold rounded-2xl font-black text-gray-950 shadow-lg shadow-saffron/20 flex items-center justify-center gap-2 uppercase tracking-[0.15em] text-xs"
+              className="w-full py-4 bg-saffron rounded-2xl font-black text-gray-950 shadow-lg flex items-center justify-center gap-2 uppercase tracking-label text-xs"
             >
               <span>Go to Member App</span>
               <ArrowRight size={16} />
@@ -99,7 +99,7 @@ const AdminAccessDenied = () => {
 
             <button
               onClick={logout}
-              className="w-full py-3.5 bg-gray-800/70 border border-gray-700/60 rounded-2xl font-bold text-gray-400 hover:text-red-400 hover:border-red-900/60 flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-[0.15em]"
+              className="w-full py-3.5 bg-gray-800/70 border border-gray-700/60 rounded-2xl font-bold text-gray-400 hover:text-red-400 hover:border-red-900/60 flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-label"
             >
               <LogOut size={15} />
               Sign out
@@ -112,7 +112,7 @@ const AdminAccessDenied = () => {
             <button
               type="button"
               onClick={() => setShowBootstrap(!showBootstrap)}
-              className="w-full flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-gray-300 transition-colors"
+              className="w-full flex items-center justify-between text-[10px] font-black uppercase tracking-label text-gray-500 hover:text-gray-300 transition-colors"
             >
               <span>Site owner? Create or reset the admin login</span>
               <ChevronDown size={14} className={`transition-transform ${showBootstrap ? 'rotate-180' : ''}`} />
@@ -123,15 +123,15 @@ const AdminAccessDenied = () => {
                 <p className="text-[11px] text-gray-500 leading-relaxed mb-4">
                   This creates the shared administrator account (username{' '}
                   <span className="font-bold text-gray-300">admin</span>) with the password you
-                  choose, or resets it. Only the site owner's account, or someone with the
-                  server's setup code, can do this.
+                  choose, or resets it. Only the site owner&apos;s account, or someone with the
+                  server&apos;s setup code, can do this.
                 </p>
 
                 {/* Direct unblock: paste this UID as ROOT_ADMIN_UID on the
                     server (Railway env var) to give YOUR account bootstrap
                     rights, then click Create Admin Login below. */}
                 <div className="mb-4 p-3 rounded-xl bg-gray-800/60 border border-gray-700/50">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                  <p className="text-[10px] font-black uppercase tracking-label text-gray-500 mb-2">
                     Your Firebase UID — set it as ROOT_ADMIN_UID on Railway to bootstrap with this account
                   </p>
                   <div className="flex items-center gap-2">
@@ -148,7 +148,7 @@ const AdminAccessDenied = () => {
                     </button>
                   </div>
                   <div className="mt-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                    <p className="text-[10px] font-black uppercase tracking-label text-gray-500 mb-2">
                       Or paste your ADMIN_SETUP_CODE (server env var) — works even if UID matching fails
                     </p>
                     <input
@@ -174,7 +174,7 @@ const AdminAccessDenied = () => {
                 <button
                   onClick={createSiteAdmin}
                   disabled={setupState.status === 'working'}
-                  className="w-full py-3.5 bg-gradient-to-r from-celestial to-purple-500 rounded-2xl font-black text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-xs uppercase tracking-[0.15em]"
+                  className="w-full py-3.5 bg-navy rounded-2xl font-black text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all text-xs uppercase tracking-label"
                 >
                   {setupState.status === 'working' ? (
                     <Loader2 className="animate-spin" size={16} />

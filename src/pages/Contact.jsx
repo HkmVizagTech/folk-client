@@ -32,11 +32,11 @@ const Contact = () => {
     <div className="min-h-screen bg-cream">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-4 max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-widest">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-label">
             <MessageCircle size={14} /> Contact Us
           </span>
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tighter uppercase italic leading-[0.95]">
-            We would love to <span className="bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent">hear from you</span>
+          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight uppercase leading-[0.95]">
+            We would love to <span className="bg-saffron bg-clip-text text-transparent">hear from you</span>
           </h1>
           <p className="text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
             Questions about events, trips, Gita classes, seva or anything else — reach out to us directly.
@@ -49,7 +49,7 @@ const Contact = () => {
               <Card className="flex items-start gap-4 p-5 sm:p-6">
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${c.color}`}>{c.icon}</div>
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{c.label}</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-label mb-1">{c.label}</p>
                   <p className="text-sm font-bold text-gray-700 leading-relaxed">{c.value}</p>
                 </div>
               </Card>
@@ -60,7 +60,7 @@ const Contact = () => {
         <div className="grid lg:grid-cols-5 gap-5">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2">
             <Card className="h-full p-6 sm:p-8">
-              <h3 className="font-black text-gray-900 uppercase italic tracking-tight text-lg mb-5">Connect with us</h3>
+              <h3 className="font-black text-gray-900 uppercase tracking-tight text-lg mb-5">Connect with us</h3>
               <div className="grid grid-cols-2 gap-3">
                 {SOCIALS.map(s => (
                   <a
@@ -90,7 +90,7 @@ const Contact = () => {
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-3">
             <Card className="h-full p-6 sm:p-8">
-              <h3 className="font-black text-gray-900 uppercase italic tracking-tight text-lg mb-2">Send a message</h3>
+              <h3 className="font-black text-gray-900 uppercase tracking-tight text-lg mb-2">Send a message</h3>
               <p className="text-xs text-gray-400 font-medium mb-6">We typically reply within 24 hours.</p>
               {sent ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -108,7 +108,7 @@ const Contact = () => {
                   </div>
                   <input required placeholder="Subject" className="w-full px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-100 focus:border-saffron focus:outline-none text-sm font-medium placeholder-gray-300 transition-colors" />
                   <textarea required rows="5" placeholder="Your message..." className="w-full px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-100 focus:border-saffron focus:outline-none text-sm font-medium placeholder-gray-300 transition-colors resize-none" />
-                  <button type="submit" disabled={sending} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-saffron text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-saffron/25 hover:scale-[1.02] hover:bg-saffron-dark transition-all active:scale-95 disabled:opacity-60">
+                  <button type="submit" disabled={sending} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-saffron text-white font-black uppercase tracking-label text-xs shadow-lg hover:scale-[1.02] hover:bg-saffron-dark transition-all active:scale-95 disabled:opacity-60">
                     {sending ? <><Loader2 size={16} className="animate-spin" /> Sending...</> : <><Send size={16} /> Send message</>}
                   </button>
                 </form>

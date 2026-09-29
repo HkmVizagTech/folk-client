@@ -182,7 +182,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             <p className="text-sm text-gray-500">
               Signed in as <span className="font-bold text-gray-700">{user?.name || user?.displayName || user?.email || 'Administrator'}</span>
             </p>
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0 ${
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-label shrink-0 ${
               backendStatus === 'online' ? 'bg-green-100 text-green-600' :
               backendStatus === 'offline' ? 'bg-red-100 text-red-600' :
               'bg-gray-100 text-gray-400'
@@ -202,11 +202,11 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
 
       {/* Quick Actions Row */}
       <div className="mb-10">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Command Center</h3>
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-label mb-4">Command Center</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Add Devotee', icon: <Plus size={20} />, tab: 'devotees', color: 'bg-saffron text-white shadow-saffron/20' },
-            { label: 'New Event', icon: <Calendar size={20} />, tab: 'events', color: 'bg-gold text-white shadow-gold/20' },
+            { label: 'Add Devotee', icon: <Plus size={20} />, tab: 'devotees', color: 'bg-saffron text-white' },
+            { label: 'New Event', icon: <Calendar size={20} />, tab: 'events', color: 'bg-gold text-white' },
             { label: 'Manage Seva', icon: <Heart size={20} />, tab: 'seva', color: 'bg-orange-500 text-white shadow-orange-200' },
             { label: 'Verify Stay', icon: <Home size={20} />, tab: 'accommodation', color: 'bg-celestial text-white shadow-celestial/20' },
             { label: 'Manage Residency', icon: <Building2 size={20} />, tab: 'hostels', color: 'bg-emerald-600 text-white shadow-emerald-200' },
@@ -243,7 +243,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                 <Calendar className="text-saffron" size={24} />
                 Upcoming Spiritual Gatherings
               </h2>
-              <button onClick={() => setActiveTab('events')} className="text-saffron font-bold hover:translate-x-1 transition-transform text-xs uppercase tracking-widest">View All</button>
+              <button onClick={() => setActiveTab('events')} className="text-saffron font-bold hover:translate-x-1 transition-transform text-xs uppercase tracking-label">View All</button>
             </div>
             <div className="space-y-4">
               {allEvents.length > 0 ? allEvents.slice(0, 3).map((event) => (
@@ -258,7 +258,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                       <span className="text-[10px] font-black tracking-[0.2em] text-saffron uppercase bg-white px-2 py-0.5 rounded-md shadow-sm">{event.category}</span>
+                       <span className="text-[10px] font-black tracking-label text-saffron uppercase bg-white px-2 py-0.5 rounded-md shadow-sm">{event.category}</span>
                        <span className="text-[10px] text-green-500 font-bold">• {event.attendingCount || 0} Attending</span>
                        <span className="text-[10px] text-red-400 font-bold">• {event.declinedCount || 0} Declined</span>
                     </div>
@@ -274,7 +274,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                   </button>
                 </motion.div>
               )) : (
-                <div className="p-10 text-center text-gray-400 italic">No upcoming events scheduled.</div>
+                <div className="p-10 text-center text-gray-400">No upcoming events scheduled.</div>
               )}
             </div>
             <div className="mt-8 pt-8 border-t border-gray-50 flex justify-center">
@@ -300,7 +300,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
               <div className="min-w-[600px] sm:min-w-full px-4 sm:px-0">
                 <table className="w-full">
                   <thead>
-                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">
+                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-label border-b border-gray-50">
                       <th className="pb-4 font-black">Devotee</th>
                       <th className="pb-4 font-black">Type</th>
                       <th className="pb-4 font-black">Date Range</th>
@@ -335,7 +335,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                         <td colSpan="5" className="py-20 text-center space-y-4">
                            <div className="flex flex-col items-center justify-center text-gray-300">
                              <ShieldCheck size={40} className="mb-4 opacity-20" />
-                             <p className="text-sm font-bold uppercase tracking-widest text-gray-400">All caught up!</p>
+                             <p className="text-sm font-bold uppercase tracking-label text-gray-400">All caught up!</p>
                              <p className="text-xs mt-1">No pending accommodation requests.</p>
                              <Button
                               variant="secondary"
@@ -384,7 +384,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
               <div className="min-w-[600px] sm:min-w-full px-4 sm:px-0">
                 <table className="w-full">
                   <thead>
-                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">
+                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-label border-b border-gray-50">
                       <th className="pb-4 font-black">Devotee</th>
                       <th className="pb-4 font-black">Room / Bed</th>
                       <th className="pb-4 font-black">Stay Dates</th>
@@ -415,7 +415,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                         <td colSpan="5" className="py-20 text-center space-y-4">
                           <div className="flex flex-col items-center justify-center text-gray-300">
                             <BedDouble size={40} className="mb-4 opacity-20" />
-                            <p className="text-sm font-bold uppercase tracking-widest text-gray-400">
+                            <p className="text-sm font-bold uppercase tracking-label text-gray-400">
                               {activeHostelListings.length === 0 ? 'No listings yet' : 'All caught up!'}
                             </p>
                             <p className="text-xs mt-1">
@@ -469,7 +469,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
               <div className="min-w-[600px] sm:min-w-full px-4 sm:px-0">
                 <table className="w-full">
                   <thead>
-                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50">
+                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-label border-b border-gray-50">
                       <th className="pb-4 font-black">Trip</th>
                       <th className="pb-4 font-black">Dates</th>
                       <th className="pb-4 font-black">Registered</th>
@@ -520,7 +520,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                         <td colSpan="5" className="py-20 text-center space-y-4">
                           <div className="flex flex-col items-center justify-center text-gray-300">
                             <Bus size={40} className="mb-4 opacity-20" />
-                            <p className="text-sm font-bold uppercase tracking-widest text-gray-400">No upcoming trips</p>
+                            <p className="text-sm font-bold uppercase tracking-label text-gray-400">No upcoming trips</p>
                             <p className="text-xs mt-1">Create a yatra to start taking registrations.</p>
                             <Button
                               variant="secondary"
@@ -545,7 +545,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                 <Heart className="text-orange-500" size={24} />
                 Seva Opportunity Monitoring
               </h2>
-              <button onClick={() => setActiveTab('seva')} className="text-orange-500 font-bold hover:underline text-xs uppercase tracking-widest">Manage All</button>
+              <button onClick={() => setActiveTab('seva')} className="text-orange-500 font-bold hover:underline text-xs uppercase tracking-label">Manage All</button>
             </div>
 
             <div className="space-y-4">
@@ -569,7 +569,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                   </div>
                 </div>
               )) : (
-                <div className="p-10 text-center text-gray-300 italic">No active sevas to monitor.</div>
+                <div className="p-10 text-center text-gray-300">No active sevas to monitor.</div>
               )}
             </div>
           </Card>
@@ -584,7 +584,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
               </h3>
               <button
                 onClick={() => setActiveTab('devotees')}
-                className="text-xs font-bold text-saffron uppercase tracking-widest hover:underline"
+                className="text-xs font-bold text-saffron uppercase tracking-label hover:underline"
               >
                 View All
               </button>
@@ -598,7 +598,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                     <div key={d.id} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/50 hover:bg-white hover:shadow-md transition-all group border border-transparent hover:border-saffron/10">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-saffron/10 to-gold/10 flex items-center justify-center font-bold text-saffron-dark overflow-hidden">
+                        <div className="w-10 h-10 rounded-xl bg-saffron flex items-center justify-center font-bold text-saffron-dark overflow-hidden">
                           {d.photo ? (
                             <img
                               src={getSafeProfileImage(d.photo, d.name)}
@@ -660,7 +660,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             </div>
 
             <div className="mt-8 pt-8 border-t border-gray-50">
-               <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-4">Devotee Levels (1-5)</h4>
+               <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-label mb-4">Devotee Levels (1-5)</h4>
                <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((lvl) => {
                     const count = allUsers.filter(u => u.level === String(lvl)).length;
@@ -687,7 +687,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
                   <p className="text-[10px] font-black uppercase text-saffron mb-1">Total Active Community</p>
                   <p className="text-2xl font-black text-saffron-dark">{allUsers.length}</p>
                </div>
-               <Button variant="secondary" onClick={generateGrowthAudit} className="w-full py-3 border-gray-100 text-gray-400 text-xs font-bold uppercase tracking-widest hover:text-saffron hover:border-saffron/20">
+               <Button variant="secondary" onClick={generateGrowthAudit} className="w-full py-3 border-gray-100 text-gray-400 text-xs font-bold uppercase tracking-label hover:text-saffron hover:border-saffron/20">
                 Generate Growth Audit
                </Button>
             </div>
@@ -702,7 +702,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             </h3>
             <p className="text-xs text-gray-500 mb-6 leading-relaxed">Create the dedicated administrator login for managing the whole site, or reset its password. The shared login uses username <span className="font-bold text-gray-700">admin</span> and the password you choose here.</p>
             <div className="flex flex-wrap gap-2 mb-4">
-               <span className="px-3 py-1.5 rounded-full bg-celestial/10 text-celestial text-[10px] font-black uppercase tracking-widest">Username: admin</span>
+               <span className="px-3 py-1.5 rounded-full bg-celestial/10 text-celestial text-[10px] font-black uppercase tracking-label">Username: admin</span>
             </div>
             <div className="mb-6">
               <AdminPasswordFields
@@ -716,7 +716,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             <Button
               onClick={createSiteAdmin}
               disabled={adminSetupState.status === 'working'}
-              className="w-full bg-gradient-to-r from-celestial to-purple-500 border-none font-bold py-4 rounded-xl shadow-lg"
+              className="w-full bg-navy border-none font-bold py-4 rounded-xl shadow-lg"
             >
               {adminSetupState.status === 'working' ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Create / Reset Admin Login'}
             </Button>

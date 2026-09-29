@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ArrowRight, Users, CheckCircle2, Lock, User, Phone, Key, RefreshCw } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle2, Lock, User, Phone, Key, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { auth } from '../lib/firebase';
 
@@ -39,7 +38,7 @@ const Login = () => {
   const [selectedRole, setSelectedRole] = useState('devotee');
   
   // Auth Modes
-  const [authMethod, setAuthMethod] = useState('email'); // 'email' | 'phone'
+  const [authMethod, setAuthMethod] = useState(PHONE_AUTH_ENABLED ? 'phone' : 'email'); // 'email' | 'phone'
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   
@@ -160,16 +159,24 @@ const Login = () => {
     // Every new account starts as a Devotee - Folks Head / Admin access is
     // granted afterwards by an existing admin, not chosen here (this is
     // enforced server-side by firestore.rules regardless of what the UI sends).
-    if (isSignUp && !name) {
-      setError('Please provide your Full Name to complete registration.');
+    // Phone sign-ups have no name on the account yet, so the name is
+    // required here unless the account already carries one (Google/email).
+    const finalName = (name || user?.displayName || '').trim();
+    if (!finalName) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (finalName.length > 80) {
+      setError('That name is too long. Please use up to 80 characters.');
       return;
     }
 
     setLoading(true);
+    setError('');
     try {
-      await completeProfile(selectedRole, name);
+      await completeProfile(selectedRole, finalName);
     } catch (err) {
-      setError('Failed to save role. Please try again.');
+      setError('Could not save your profile. Please try again.');
     } finally { setLoading(false); }
   };
 
@@ -186,240 +193,197 @@ const Login = () => {
     );
   }
 
-  const inputWrapperClass = "relative flex items-center bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden focus-within:border-saffron focus-within:ring-2 focus-within:ring-saffron/20 transition-all";
-  const inputClass = "w-full py-4 pl-12 pr-4 bg-transparent outline-none text-gray-700 font-medium placeholder:text-gray-400";
-  const iconClass = "absolute left-4 text-gray-400";
+  const fieldWrap = "relative flex items-center bg-white border border-line rounded-md focus-within:border-navy focus-within:ring-2 focus-within:ring-navy/15";
+  const fieldInput = "w-full h-12 pl-11 pr-3 bg-transparent outline-none text-[16px] text-ink placeholder:text-ink-muted/70";
+  const fieldIcon = "absolute left-3.5 text-ink-muted";
+  const Spinner = () => <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" aria-hidden="true" />;
+  const tabBtn = (on) => `flex-1 h-10 inline-flex items-center justify-center gap-2 rounded text-[14px] font-semibold ${on ? 'bg-white text-ink shadow-card' : 'text-ink-muted hover:text-ink'}`;
 
   return (
-    <div className="min-h-screen bg-cream relative flex flex-col items-center justify-center p-4 overflow-hidden font-inter">
-      <div className="absolute top-0 left-0 w-full h-full tilak-bg opacity-30 pointer-events-none" />
-      <div className="absolute -top-32 -left-32 w-[35rem] h-[35rem] bg-saffron/10 rounded-full blur-[100px] animate-pulse pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-gold/10 rounded-full blur-[80px] pointer-events-none" />
+    <div className="min-h-screen bg-paper lg:grid lg:grid-cols-2">
+      {/* Left: brand panel (desktop) / slim header (mobile) */}
+      <aside className="bg-ink text-white px-6 py-6 lg:px-14 lg:py-12 flex lg:flex-col justify-between gap-6">
+        <a href="/" className="flex items-center gap-3" aria-label="FOLK Vizag home">
+          <img src="/folk_logo_white.png" alt="" className="h-10 lg:h-14 w-auto" />
+          <span className="leading-tight">
+            <span className="block font-display text-[13px] lg:text-[15px] font-bold">FOLK Vizag</span>
+            <span className="block text-[12px] lg:text-[13px] text-white/60">Youth Empowerment Club</span>
+          </span>
+        </a>
+        <div className="hidden lg:block max-w-md">
+          <p className="kicker text-marigold">Members</p>
+          <h1 className="display-lg mt-3 text-white">Your FOLK, in one place.</h1>
+          <ul className="mt-8 space-y-3 text-white/75 text-[16px]">
+            {['RSVP to programs and check in with your QR', 'Book yatras and pay online', 'Track your chanting and sadhana', 'Stay in touch with your FOLK guide'].map((t) => (
+              <li key={t} className="flex gap-3"><CheckCircle2 size={19} className="mt-0.5 text-saffron shrink-0" aria-hidden="true" />{t}</li>
+            ))}
+          </ul>
+        </div>
+        <p className="hidden lg:block text-[13px] text-white/45">Hare Krishna Movement, Visakhapatnam</p>
+      </aside>
 
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md relative z-10"
-      >
-        <div className="bg-white/90 backdrop-blur-2xl border border-white/50 rounded-[2.5rem] shadow-premium-xl p-8 sm:p-10 md:p-12 overflow-hidden">
-          
-          <div className="text-center mb-8">
-            <motion.div 
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="w-24 h-24 mx-auto mb-6 relative group"
-            >
-              <motion.div 
-                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute inset-0 bg-saffron/20 rounded-full blur-2xl -z-10"
-              />
-              <img 
-                src="/folk_logo_blue.png" 
-                alt="Folkvizag Logo" 
-                className="w-full h-full object-contain opacity-90 transition-transform group-hover:scale-110 duration-500" 
-              />
-            </motion.div>
-            <h1 className="text-4xl font-black bg-gradient-to-r from-saffron via-gold to-saffron-dark bg-clip-text text-transparent font-cinzel mb-2 tracking-tighter drop-shadow-sm">Folkvizag</h1>
-            <p className="text-gray-400 text-sm font-bold uppercase tracking-[0.3em]">The Divine Journey Begins</p>
-          </div>
-
-          <AnimatePresence>
-            {error && (
-              <motion.div initial={{ opacity: 0, y: -10, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: -10, height: 0 }} className="bg-red-50 text-red-600 px-5 py-3 rounded-2xl text-xs font-bold mb-6 border border-red-100 flex items-center gap-3 overflow-hidden">
-                <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse shrink-0" />
-                {error}
-              </motion.div>
-            )}
-            {message && !error && (
-              <motion.div initial={{ opacity: 0, y: -10, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: -10, height: 0 }} className="bg-green-50 text-green-600 px-5 py-3 rounded-2xl text-xs font-bold mb-6 border border-green-100 flex items-center gap-3 overflow-hidden">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shrink-0" />
-                {message}
-              </motion.div>
-            )}
-          </AnimatePresence>
+      {/* Right: form */}
+      <main className="flex items-start lg:items-center justify-center px-4 py-8 sm:py-12">
+        <div className="w-full max-w-[420px]">
+          {error && (
+            <div role="alert" className="mb-5 flex gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-[15px] text-red-700">
+              <span className="mt-1.5 w-2 h-2 rounded-full bg-red-600 shrink-0" aria-hidden="true" />{error}
+            </div>
+          )}
+          {message && !error && (
+            <div role="status" className="mb-5 flex gap-3 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-[15px] text-green-800">
+              <CheckCircle2 size={18} className="mt-0.5 shrink-0" aria-hidden="true" />{message}
+            </div>
+          )}
 
           {user?.requiresRole ? (
-            <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-800 mb-1">Welcome, Devotee</h2>
-                <p className="text-gray-400 text-xs">Confirm your name to continue your journey</p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  { id: 'devotee', title: 'Devotee', desc: 'Log sadhana, track attendance, and join events.', icon: <Users className="text-saffron" size={20} /> }
-                ].map((role) => (
-                  <button key={role.id} onClick={() => setSelectedRole(role.id)} className={`flex items-start gap-4 p-5 rounded-[2rem] border-2 transition-all text-left group relative overflow-hidden ${selectedRole === role.id ? 'border-saffron bg-saffron/5 shadow-premium scale-[1.02]' : 'border-gray-50 hover:border-gray-100 bg-gray-50/50'}`}>
-                    {selectedRole === role.id && <div className="absolute top-0 right-0 w-24 h-24 bg-saffron/5 rounded-full -mr-12 -mt-12 blur-2xl" />}
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 shrink-0 ${selectedRole === role.id ? 'bg-white shadow-md scale-110' : 'bg-gray-100'}`}>{role.icon}</div>
-                    <div className="flex-1 relative z-10">
-                      <div className="flex justify-between items-center mb-1">
-                        <h4 className="font-black text-gray-800 text-sm font-cinzel tracking-tight">{role.title}</h4>
-                        {selectedRole === role.id && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckCircle2 size={16} className="text-saffron" /></motion.div>}
-                      </div>
-                      <p className="text-[10px] text-gray-400 font-bold leading-relaxed tracking-wide">{role.desc}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-3 pt-2">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={!selectedRole || loading} onClick={handleCompleteProfile} className="w-full py-5 bg-gradient-to-r from-saffron via-gold to-saffron rounded-[2rem] font-black text-white shadow-premium-xl flex items-center justify-center gap-3 disabled:opacity-50 transition-all uppercase tracking-[0.2em] text-xs font-cinzel">
-                  {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <ArrowRight size={18} />}
-                  <span>Enter Application</span>
-                </motion.button>
-                <p className="text-center text-[10px] text-gray-400 font-medium leading-relaxed px-4">
-                  Folks Head or Admin access is granted by an existing admin after you sign up.
-                </p>
-              </div>
-            </motion.div>
+            <section className="card p-6 sm:p-8">
+              <h2 className="display-md">Welcome to FOLK Vizag</h2>
+              <p className="mt-1.5 text-ink-muted">Tell us your name to finish setting up your account.</p>
+              <label className="block mt-6">
+                <span className="block mb-1.5 text-[14px] font-semibold">Full name</span>
+                <div className={fieldWrap}>
+                  <User className={fieldIcon} size={19} aria-hidden="true" />
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    placeholder="e.g. Ravi Kumar"
+                    value={name || (user?.displayName || '')}
+                    onChange={(e) => setName(e.target.value)}
+                    className={fieldInput}
+                  />
+                </div>
+              </label>
+              <button type="button" disabled={loading} onClick={handleCompleteProfile} className="btn-primary w-full mt-6">
+                {loading ? <Spinner /> : <>Continue <ArrowRight size={17} /></>}
+              </button>
+              <p className="mt-4 text-[13px] text-ink-muted">New accounts start as members. FOLK guide and admin access is given by the team.</p>
+            </section>
           ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <section className="card p-6 sm:p-8">
               {!otpSent && !isForgotPassword && (
-                <div className="flex flex-col gap-4">
+                <>
+                  <h2 className="display-md">{isSignUp ? 'Create your account' : 'Sign in'}</h2>
+                  <p className="mt-1.5 text-ink-muted">
+                    {isSignUp ? 'Already a member?' : 'New to FOLK?'}{' '}
+                    <button type="button" onClick={() => { setIsSignUp(!isSignUp); setError(''); }} className="font-semibold text-saffron hover:underline">
+                      {isSignUp ? 'Sign in' : 'Create an account'}
+                    </button>
+                  </p>
                   {PHONE_AUTH_ENABLED && (
-                    <div className="flex p-1 bg-gray-100/50 rounded-xl mb-2">
-                      <button onClick={() => setAuthMethod('email')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${authMethod === 'email' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                        <Mail size={14} /> Email
+                    <div className="mt-6 flex p-1 bg-paper rounded-md" role="tablist" aria-label="Sign-in method">
+                      <button type="button" role="tab" aria-selected={authMethod === 'phone'} onClick={() => setAuthMethod('phone')} className={tabBtn(authMethod === 'phone')}>
+                        <Phone size={16} aria-hidden="true" /> Phone
                       </button>
-                      <button onClick={() => { setAuthMethod('phone'); setIsSignUp(false); }} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${authMethod === 'phone' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                        <Phone size={14} /> Phone
+                      <button type="button" role="tab" aria-selected={authMethod === 'email'} onClick={() => setAuthMethod('email')} className={tabBtn(authMethod === 'email')}>
+                        <Mail size={16} aria-hidden="true" /> Email
                       </button>
                     </div>
                   )}
-                  
-                  <div className="flex gap-4 border-b border-gray-100 pb-2 mt-4">
-                    <button onClick={() => setIsSignUp(false)} className={`flex-1 text-sm font-bold transition-all ${!isSignUp ? 'text-saffron border-b-2 border-saffron pb-2' : 'text-gray-400 pb-2 hover:text-gray-600'}`}>Log In</button>
-                    <button onClick={() => setIsSignUp(true)} className={`flex-1 text-sm font-bold transition-all ${isSignUp ? 'text-saffron border-b-2 border-saffron pb-2' : 'text-gray-400 pb-2 hover:text-gray-600'}`}>Sign Up</button>
-                  </div>
-                </div>
+                </>
               )}
 
-              <AnimatePresence mode="wait">
+              <div className="mt-6">
                 {isForgotPassword ? (
-                  <motion.form key="reset-form" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onSubmit={handleEmailAuth} className="space-y-4">
-                    <div className="text-center mb-4">
-                      <h3 className="font-bold text-gray-800 text-lg">Reset Password</h3>
-                       <p className="text-xs text-gray-500 mt-1">Enter your email and we&apos;ll send you a link to reset your password.</p>
+                  <form onSubmit={handleEmailAuth} className="space-y-4">
+                    <h2 className="display-md">Reset password</h2>
+                    <p className="text-ink-muted">We&apos;ll email you a link to set a new password.</p>
+                    <div className={fieldWrap}>
+                      <Mail className={fieldIcon} size={19} aria-hidden="true" />
+                      <input type="email" autoComplete="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className={fieldInput} />
                     </div>
-                    
-                    <div className={inputWrapperClass}>
-                      <Mail className={iconClass} size={20} />
-                      <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
-                    </div>
-
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={loading} type="submit" className="w-full py-4 bg-gradient-to-r from-saffron to-gold rounded-2xl font-bold text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
-                      {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Send Reset Link</span>}
-                    </motion.button>
-
-                    <button type="button" onClick={() => { setIsForgotPassword(false); setError(''); setMessage(''); }} className="w-full text-xs font-bold text-gray-400 hover:text-gray-600 mt-2">Back to Sign In</button>
-                  </motion.form>
+                    <button disabled={loading} type="submit" className="btn-primary w-full">{loading ? <Spinner /> : 'Send reset link'}</button>
+                    <button type="button" onClick={() => { setIsForgotPassword(false); setError(''); setMessage(''); }} className="w-full h-10 text-[14px] font-semibold text-ink-muted hover:text-ink">Back to sign in</button>
+                  </form>
                 ) : authMethod === 'email' ? (
-                  <motion.form key="email-form" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onSubmit={handleEmailAuth} className="space-y-4">
-                    <AnimatePresence>
-                      {isSignUp && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                          <div className={inputWrapperClass}>
-                            <User className={iconClass} size={20} />
-                            <input type="text" placeholder="Your Full Name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <div className={inputWrapperClass}>
-                      <Mail className={iconClass} size={20} />
-                      <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+                  <form onSubmit={handleEmailAuth} className="space-y-4">
+                    {isSignUp && (
+                      <div className={fieldWrap}>
+                        <User className={fieldIcon} size={19} aria-hidden="true" />
+                        <input type="text" autoComplete="name" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} className={fieldInput} />
+                      </div>
+                    )}
+                    <div className={fieldWrap}>
+                      <Mail className={fieldIcon} size={19} aria-hidden="true" />
+                      <input type="email" autoComplete="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className={fieldInput} />
                     </div>
-
-                    <div className={inputWrapperClass}>
-                      <Lock className={iconClass} size={20} />
-                      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
+                    <div className={fieldWrap}>
+                      <Lock className={fieldIcon} size={19} aria-hidden="true" />
+                      <input type="password" autoComplete={isSignUp ? 'new-password' : 'current-password'} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className={fieldInput} />
                     </div>
-
                     {!isSignUp && (
-                       <div className="flex justify-end">
-                          <button type="button" onClick={() => setIsForgotPassword(true)} className="text-xs font-medium text-saffron hover:underline focus:outline-none">Forgot Password?</button>
-                       </div>
+                      <div className="flex justify-end">
+                        <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[14px] font-semibold text-saffron hover:underline">Forgot password?</button>
+                      </div>
                     )}
-
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={loading} type="submit" className="w-full py-4 bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl font-bold text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
-                      {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>}
-                    </motion.button>
-                  </motion.form>
+                    <button disabled={loading} type="submit" className="btn-dark w-full">{loading ? <Spinner /> : (isSignUp ? 'Create account' : 'Sign in')}</button>
+                  </form>
+                ) : !otpSent ? (
+                  <form onSubmit={handlePhoneAuth} className="space-y-4">
+                    <label className="block">
+                      <span className="block mb-1.5 text-[14px] font-semibold">Mobile number</span>
+                      <div className={fieldWrap}>
+                        <Phone className={fieldIcon} size={19} aria-hidden="true" />
+                        <input type="tel" inputMode="tel" autoComplete="tel" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} className={fieldInput} />
+                      </div>
+                    </label>
+                    <p className="text-[14px] text-ink-muted">We&apos;ll send a 6-digit code to this number on WhatsApp.</p>
+                    <button disabled={loading} type="submit" className="btn-dark w-full">{loading ? <Spinner /> : 'Send code on WhatsApp'}</button>
+                  </form>
                 ) : (
-                  <motion.form key="phone-form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                    {!otpSent ? (
-                      <>
-                        <AnimatePresence>
-                          {isSignUp && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-4">
-                              <div className={inputWrapperClass}>
-                                <User className={iconClass} size={20} />
-                                <input type="text" placeholder="Your Full Name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                        <div className={inputWrapperClass}>
-                          <Phone className={iconClass} size={20} />
-                          <input type="tel" placeholder="+91 9876543210" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
-                        </div>
-                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={loading} onClick={handlePhoneAuth} className="w-full py-4 bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl font-bold text-white shadow-lg flex items-center justify-center gap-2 mt-4">
-                          {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>{isSignUp ? 'Sign Up with OTP' : 'Send OTP'}</span>}
-                        </motion.button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="text-center text-sm text-gray-500 mb-2">Code sent to <span className="font-bold text-gray-800">{phone}</span></div>
-                        <div className={inputWrapperClass}>
-                          <Key className={iconClass} size={20} />
-                          <input type="text" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} className={inputClass} maxLength={6} />
-                        </div>
-                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={loading || otp.length < 6} onClick={submitOTP} className="w-full py-4 bg-gradient-to-r from-saffron to-gold rounded-2xl font-bold text-white shadow-lg flex items-center justify-center gap-2">
-                          {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Verify Route</span>}
-                        </motion.button>
-                        <div className="flex items-center justify-center gap-4 mt-2">
-                          <button type="button" disabled={resendLoading} onClick={handleResendOTP} className="text-xs font-bold text-saffron hover:underline disabled:opacity-50 flex items-center gap-1.5">
-                            <RefreshCw size={12} className={resendLoading ? 'animate-spin' : ''} /> Resend Code
-                          </button>
-                          <span className="text-gray-200">|</span>
-                          <button type="button" onClick={() => setOtpSent(false)} className="text-xs font-bold text-gray-400 hover:text-gray-600">Change Phone Number</button>
-                        </div>
-                      </>
-                    )}
-                  </motion.form>
+                  <form onSubmit={submitOTP} className="space-y-4">
+                    <h2 className="display-md">Enter the code</h2>
+                    <p className="text-ink-muted">Sent on WhatsApp to <span className="font-semibold text-ink">{phone}</span></p>
+                    <div className={fieldWrap}>
+                      <Key className={fieldIcon} size={19} aria-hidden="true" />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        pattern="[0-9]*"
+                        placeholder="6-digit code"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className={`${fieldInput} tracking-[0.3em] font-semibold`}
+                        maxLength={6}
+                        autoFocus
+                      />
+                    </div>
+                    <button disabled={loading || otp.length < 6} type="submit" className="btn-primary w-full">{loading ? <Spinner /> : 'Verify & sign in'}</button>
+                    <div className="flex items-center justify-between text-[14px]">
+                      <button type="button" disabled={resendLoading} onClick={handleResendOTP} className="font-semibold text-saffron hover:underline disabled:opacity-50 inline-flex items-center gap-1.5">
+                        <RefreshCw size={14} className={resendLoading ? 'animate-spin' : ''} aria-hidden="true" /> Resend code
+                      </button>
+                      <button type="button" onClick={() => { setOtpSent(false); setOtp(''); }} className="font-semibold text-ink-muted hover:text-ink">Change number</button>
+                    </div>
+                  </form>
                 )}
-              </AnimatePresence>
+              </div>
 
               {!otpSent && !isForgotPassword && (
                 <>
-                  <div className="relative py-4">
-                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
-                    <div className="relative flex justify-center text-[10px] uppercase font-bold"><span className="bg-white px-4 text-gray-300 tracking-[0.2em]">or auto</span></div>
+                  <div className="my-6 flex items-center gap-3 text-[13px] text-ink-muted">
+                    <span className="h-px flex-1 bg-line" /> or <span className="h-px flex-1 bg-line" />
                   </div>
-                  <motion.button whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }} onClick={handleGoogleAuth} disabled={loading} className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 py-3 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-300">
-                    <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0">
+                  <button type="button" onClick={handleGoogleAuth} disabled={loading} className="w-full h-12 inline-flex items-center justify-center gap-3 rounded-md border border-line bg-white font-semibold text-ink hover:bg-paper disabled:opacity-50">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" aria-hidden="true">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
-                    <span className="text-sm">Continue with Google</span>
-                  </motion.button>
+                    Continue with Google
+                  </button>
                 </>
               )}
-            </motion.div>
+            </section>
           )}
 
-          <div className="mt-8 text-center text-[9px] text-gray-400 font-medium px-4 leading-relaxed tracking-wide">
-            Access strictly governed by our <span className="text-saffron font-bold cursor-pointer hover:underline mx-1">Privacy Terms</span> and <span className="text-saffron font-bold cursor-pointer hover:underline mx-1">Ethical Guidelines</span>.
-          </div>
+          <p className="mt-6 text-center text-[14px]">
+            <a href="/" className="font-semibold text-ink-muted hover:text-ink">← Back to folkvizag.org</a>
+          </p>
         </div>
-      </motion.div>
+      </main>
     </div>
   );
 };

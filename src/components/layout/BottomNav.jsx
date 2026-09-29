@@ -1,58 +1,101 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { LayoutDashboard, TrendingUp, Calendar, Home, CheckSquare, Heart, QrCode, User, Building2, Bus, Gift, Sparkles } from 'lucide-react'
+import React, { useEffect, useState } from 'react';
+import { LayoutGrid, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { MOBILE_PRIMARY, STAFF, findNavItem, visibleGroups } from './navConfig';
 
+/**
+ * Phones and tablets: four fixed tabs plus "More", which opens a sheet with
+ * everything else. Replaces the old strip of 11 sideways-scrolling icons.
+ */
 const BottomNav = ({ activeTab, setActiveTab }) => {
   const { user } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const isStaff = STAFF.includes(user?.role);
+  const primary = (isStaff ? MOBILE_PRIMARY.staff : MOBILE_PRIMARY.devotee).map(findNavItem).filter(Boolean);
+  const inPrimary = primary.some((i) => i.id === activeTab || (i.id === 'trips' && activeTab === 'trip-detail'));
 
-  const allItems = [
-    { id: 'admin', icon: <LayoutDashboard size={20} />, label: 'Admin', roles: ['admin', 'folks_head'] },
-    { id: 'dashboard', icon: <TrendingUp size={20} />, label: 'Sadhana', roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'events', icon: <Calendar size={20} />, label: 'Events', roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'attendance', icon: <QrCode size={20} />, label: 'Verify', roles: ['admin', 'folks_head'] },
-    { id: 'seva', icon: <Heart size={20} />, label: 'Seva', roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'hostels', icon: <Building2 size={20} />, label: 'Hostels', roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'accommodation', icon: <Home size={20} />, label: 'Stay', roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'trips', icon: <Bus size={20} />, label: 'Trips', roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'donate', icon: <Gift size={20} />, label: 'Donate', roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'profile', icon: <User size={20} />, label: 'Profile', roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'about', icon: <Sparkles size={20} />, label: 'About', roles: ['admin', 'folks_head', 'devotee'] },
-  ]
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e) => e.key === 'Escape' && setMoreOpen(false);
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [moreOpen]);
 
-  const navItems = allItems.filter(item => item.roles.includes(user?.role));
+  const go = (id) => { setMoreOpen(false); setActiveTab(id); };
+
+  const Tab = ({ id, label, icon: Icon, active, onClick }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 h-full ${active ? 'text-saffron' : 'text-ink-muted'}`}
+    >
+      <Icon size={22} strokeWidth={active ? 2.4 : 2} aria-hidden="true" />
+      <span className={`text-[11px] leading-none truncate max-w-full ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
+      <span className={`h-0.5 w-6 rounded-full ${active ? 'bg-saffron' : 'bg-transparent'}`} />
+    </button>
+  );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-xl border-t border-saffron/10 z-[100] md:hidden pb-2 shadow-[0_-10px_30px_-15px_rgba(255,153,51,0.15)]">
-      <div className="flex items-stretch overflow-x-auto scrollbar-hide h-full px-2 gap-1">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className="min-w-[70px] flex-1 flex flex-col items-center justify-center gap-1.5 relative py-2 shrink-0"
+    <>
+      <nav
+        className="lg:hidden fixed bottom-0 inset-x-0 z-[90] bg-white border-t border-line"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        aria-label="App"
+      >
+        <div className="h-16 flex items-stretch">
+          {primary.map((i) => (
+            <Tab
+              key={i.id}
+              {...i}
+              active={activeTab === i.id || (i.id === 'trips' && activeTab === 'trip-detail')}
+              onClick={() => go(i.id)}
+            />
+          ))}
+          <Tab id="more" label="More" icon={LayoutGrid} active={moreOpen || !inPrimary} onClick={() => setMoreOpen(true)} />
+        </div>
+      </nav>
+
+      {moreOpen && (
+        <div className="lg:hidden fixed inset-0 z-[150]" role="dialog" aria-modal="true" aria-label="All sections">
+          <div className="absolute inset-0 bg-ink/60" onClick={() => setMoreOpen(false)} />
+          <div
+            className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl max-h-[85vh] overflow-y-auto"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
-            <div className={`transition-all duration-300 p-2 rounded-xl ${
-              activeTab === item.id 
-                ? 'bg-saffron text-white shadow-lg shadow-saffron/30 -translate-y-1' 
-                : 'text-gray-400'
-            }`}>
-              {item.icon}
+            <div className="sticky top-0 bg-white px-5 h-14 flex items-center justify-between border-b border-line">
+              <h2 className="font-display font-bold">All sections</h2>
+              <button type="button" onClick={() => setMoreOpen(false)} aria-label="Close" className="w-10 h-10 inline-flex items-center justify-center rounded-md hover:bg-paper">
+                <X size={20} />
+              </button>
             </div>
-            <span className={`text-[10px] font-bold transition-all ${
-              activeTab === item.id ? 'text-saffron opacity-100' : 'text-gray-400 opacity-80'
-            }`}>
-              {item.label}
-            </span>
-            {activeTab === item.id && (
-              <motion.div 
-                layoutId="bottomNavIndicator"
-                className="absolute -top-1 w-1 h-1 bg-saffron rounded-full"
-              />
-            )}
-          </button>
-        ))}
-      </div>
-    </nav>
+            <div className="p-4 space-y-5">
+              {visibleGroups(user?.role).map((g) => (
+                <section key={g.title}>
+                  <h3 className="px-1 mb-2 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted">{g.title}</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {g.items.map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => go(id)}
+                        className={`flex flex-col items-center justify-center gap-2 h-20 rounded-lg border text-center px-1 ${
+                          activeTab === id ? 'border-saffron bg-saffron-50 text-saffron-dark' : 'border-line text-ink hover:bg-paper'
+                        }`}
+                      >
+                        <Icon size={22} aria-hidden="true" />
+                        <span className="text-[12px] font-semibold leading-tight">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

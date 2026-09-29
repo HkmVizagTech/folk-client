@@ -240,7 +240,7 @@ const Attendance = ({ onOpenScanner }) => {
              onClick={() => {
                onOpenScanner('attendance');
              }}
-             className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-saffron to-gold text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all"
+             className="flex items-center justify-center gap-2 px-4 py-2 bg-saffron text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all"
            >
              <QrIcon size={16} />
              <span>Scan Pass</span>
@@ -270,7 +270,7 @@ const Attendance = ({ onOpenScanner }) => {
               <div className="min-w-[600px] sm:min-w-full px-6 sm:px-0">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+                    <tr className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-label border-b border-gray-100">
                       <th className="px-6 py-4 font-black">Devotee</th>
                       <th className="px-6 py-4 font-black">Session</th>
                       <th className="px-6 py-4 font-black">Time</th>
@@ -303,7 +303,7 @@ const Attendance = ({ onOpenScanner }) => {
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan="4" className="px-6 py-20 text-center text-gray-400 font-medium italic">
+                        <td colSpan="4" className="px-6 py-20 text-center text-gray-400 font-medium">
                           <div className="flex flex-col items-center gap-3">
                             <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-200">
                                <Search size={24} />
@@ -324,7 +324,7 @@ const Attendance = ({ onOpenScanner }) => {
         <div className="space-y-6">
           {user?.role !== 'devotee' ? (
             <Card className="p-5 sm:p-8 border-none shadow-premium bg-white">
-            <h3 className="font-extrabold text-gray-800 mb-6 flex items-center gap-3 italic uppercase tracking-tighter">
+            <h3 className="font-extrabold text-gray-800 mb-6 flex items-center gap-3 uppercase tracking-tight">
                 <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center text-saffron shrink-0">
                    <QrIcon size={20} />
                 </div>
@@ -347,7 +347,7 @@ const Attendance = ({ onOpenScanner }) => {
               <div className="flex gap-2 mb-6 p-1 bg-gray-50 rounded-2xl">
                 <button 
                   onClick={() => setScanMode('attendance')}
-                  className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                  className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-label transition-all ${
                     scanMode === 'attendance' ? 'bg-white shadow-premium text-saffron border border-saffron/10' : 'text-gray-400'
                   }`}
                 >
@@ -355,7 +355,7 @@ const Attendance = ({ onOpenScanner }) => {
                 </button>
                 <button 
                   onClick={() => setScanMode('prasadam')}
-                  className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                  className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-label transition-all ${
                     scanMode === 'prasadam' ? 'bg-white shadow-premium text-orange-600 border border-orange-100' : 'text-gray-400'
                   }`}
                 >
@@ -367,7 +367,7 @@ const Attendance = ({ onOpenScanner }) => {
                 <button 
                   disabled={verifying}
                   onClick={() => onOpenScanner(scanMode)}
-                  className="w-full py-6 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-premium-xl flex items-center justify-center gap-3 hover:bg-black transition-all disabled:opacity-30"
+                  className="w-full py-6 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-label shadow-premium-xl flex items-center justify-center gap-3 hover:bg-black transition-all disabled:opacity-30"
                 >
                   <QrIcon size={20} />
                   Open Camera Scanner
@@ -375,7 +375,7 @@ const Attendance = ({ onOpenScanner }) => {
                 
                 <div className="relative flex items-center gap-4 py-2">
                   <div className="h-px flex-1 bg-gray-100" />
-                  <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">or use token</span>
+                  <span className="text-[10px] font-black text-gray-300 uppercase tracking-label">or use token</span>
                   <div className="h-px flex-1 bg-gray-100" />
                 </div>
 
@@ -387,12 +387,12 @@ const Attendance = ({ onOpenScanner }) => {
                       placeholder="8-digit token..."
                       value={tokenInput}
                       onChange={(e) => setTokenInput(e.target.value)}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-saffron focus:bg-white transition-all font-mono font-bold uppercase tracking-widest text-lg"
+                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-saffron focus:bg-white transition-all font-mono font-bold uppercase tracking-label text-lg"
                     />
                   </div>
                   <button 
                     disabled={verifying}
-                    className="w-full py-5 bg-saffron text-white rounded-2xl font-black shadow-premium-xl transition-all hover:scale-[1.02] disabled:opacity-50 uppercase tracking-widest text-xs"
+                    className="w-full py-5 bg-saffron text-white rounded-2xl font-black shadow-premium-xl transition-all hover:scale-[1.02] disabled:opacity-50 uppercase tracking-label text-xs"
                   >
                     {verifying ? 'Verifying...' : 'Verify Manual Token'}
                   </button>
@@ -405,7 +405,7 @@ const Attendance = ({ onOpenScanner }) => {
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className={`mt-6 overflow-hidden rounded-[2.5rem] shadow-premium-xl border-4 ${
+                    className={`mt-6 overflow-hidden rounded-xl shadow-premium-xl border-4 ${
                       verifyResult.success 
                         ? 'bg-white border-green-500' 
                         : 'bg-white border-red-500'
@@ -418,17 +418,17 @@ const Attendance = ({ onOpenScanner }) => {
                                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-2">
                                   <CheckCircle2 size={40} className="text-white" />
                                </div>
-                               <h2 className="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter">ALLOWED</h2>
+                               <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight">ALLOWED</h2>
                              </>
                            ) : (
                              <>
                                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-2">
                                   <XCircle size={40} className="text-white" />
                                </div>
-                               <h2 className="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter">DENIED</h2>
+                               <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight">DENIED</h2>
                              </>
                            )}
-                           <p className="font-bold text-xs uppercase tracking-[0.3em] opacity-80 px-2">{verifyResult.message}</p>
+                           <p className="font-bold text-xs uppercase tracking-label opacity-80 px-2">{verifyResult.message}</p>
                         </div>
                     </div>
 
@@ -439,9 +439,9 @@ const Attendance = ({ onOpenScanner }) => {
                               {verifyResult.devotee.name?.charAt(0)}
                           </div>
                           <div className="flex flex-col min-w-0">
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Devotee Identity</span>
-                              <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tighter italic uppercase truncate">{verifyResult.devotee.name}</h3>
-                              <span className="text-[10px] font-mono font-bold text-saffron uppercase tracking-widest truncate">ID: {verifyResult.devotee.id?.slice(0,12)}...</span>
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-label mb-1">Devotee Identity</span>
+                              <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight uppercase truncate">{verifyResult.devotee.name}</h3>
+                              <span className="text-[10px] font-mono font-bold text-saffron uppercase tracking-label truncate">ID: {verifyResult.devotee.id?.slice(0,12)}...</span>
                           </div>
                         </div>
                       )}
@@ -457,7 +457,7 @@ const Attendance = ({ onOpenScanner }) => {
                         <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 shadow-sm">
                            <div className="flex items-center gap-2 mb-3">
                               <Home size={14} className="text-amber-600" />
-                              <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Reserved Stay</span>
+                              <span className="text-[10px] font-black uppercase tracking-label text-amber-700">Reserved Stay</span>
                            </div>
                            <div className="flex justify-between items-center gap-3">
                               <span className="text-xs font-bold text-gray-800 truncate min-w-0">{verifyResult.accommodation.type}</span>
@@ -471,7 +471,7 @@ const Attendance = ({ onOpenScanner }) => {
 
                       <button 
                          onClick={() => setVerifyResult(null)}
-                         className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-black transition-all"
+                         className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-label hover:bg-black transition-all"
                       >
                          Dismiss
                       </button>
@@ -481,8 +481,8 @@ const Attendance = ({ onOpenScanner }) => {
               </AnimatePresence>
             </Card>
           ) : (
-            <Card className="p-8 bg-gradient-to-br from-saffron to-gold text-white border-none shadow-premium overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+            <Card className="p-8 bg-saffron text-white border-none shadow-premium overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 hidden" />
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <Ticket size={24} /> My Registrations
               </h3>
@@ -490,15 +490,15 @@ const Attendance = ({ onOpenScanner }) => {
               
               <div className="space-y-4 relative z-10">
                 {myRegistrations.length > 0 ? myRegistrations.map((reg) => (
-                  <div key={reg.id} className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">{reg.eventTitle}</p>
+                  <div key={reg.id} className="bg-white/10 p-4 rounded-2xl border border-white/20">
+                    <p className="text-[10px] font-black uppercase tracking-label text-white/60 mb-1">{reg.eventTitle}</p>
                     <div className="flex justify-between items-center">
-                      <span className="text-xl font-mono font-black tracking-tighter">{reg.token}</span>
+                      <span className="text-xl font-mono font-black tracking-tight">{reg.token}</span>
                       <QrIcon size={20} className="text-white/40" />
                     </div>
                   </div>
                 )) : (
-                  <p className="text-sm italic opacity-60">No active registrations.</p>
+                  <p className="text-sm opacity-60">No active registrations.</p>
                 )}
               </div>
             </Card>

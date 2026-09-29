@@ -1,749 +1,334 @@
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Flame, TrendingUp, Calendar, Zap, Loader2, Plus, CheckCircle2, Circle, Trophy, Star, Target, ShieldCheck, ChevronRight, ArrowRight, Info, Award, Save, Sun, X } from 'lucide-react'
-import Card from '../components/ui/Card'
-import CircularProgress from '../components/sadhana/CircularProgress'
-import Button from '../components/ui/Button'
-import { useAuth } from '../hooks/useAuth'
-import { db } from '../lib/firebase'
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, runTransaction, serverTimestamp } from 'firebase/firestore'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import QRView from '../components/qr/QRView'
-import { QrCode } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Flame, Trophy, CalendarCheck, Minus, Plus, CheckCircle2, Lock, Soup, MapPinCheck } from 'lucide-react';
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
+import { useAuth } from '../hooks/useAuth';
+import { db } from '../lib/firebase';
+import { todayIST, yesterdayIST, dateKeyIST, toDate, formatDay } from '../lib/dates';
+import { ROUNDS_TARGET } from '../content/journey';
+
+const TARGET_OPTIONS = [4, 8, 12, 16, 20, 24, 32, 64];
+const MAX_ROUNDS = 200;
+
+const byNewest = (field) => (a, b) => (toDate(b[field])?.getTime() || 0) - (toDate(a[field])?.getTime() || 0);
+
+const Stat = ({ icon: Icon, value, label, tone }) => (
+  <div className="card p-4 sm:p-5 flex items-center gap-4">
+    <span className={`w-11 h-11 rounded-md inline-flex items-center justify-center ${tone}`}><Icon size={22} aria-hidden="true" /></span>
+    <span>
+      <span className="block font-display text-2xl sm:text-3xl font-extrabold leading-none">{value}</span>
+      <span className="text-[14px] text-ink-muted">{label}</span>
+    </span>
+  </div>
+);
 
 const SadhanaTracker = () => {
   const { user } = useAuth();
+  const today = todayIST();
+  const isStaff = user?.role === 'admin' || user?.role === 'folks_head';
+
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [showQR, setShowQR] = useState(false);
-  const [sadhanaData, setSadhanaData] = useState({ profile: {}, logs: [], attendance: [], prasadam: [] });
-  const [inputRounds, setInputRounds] = useState('');
-  const [targetInput, setTargetInput] = useState(16);
-  const [showSaved, setShowSaved] = useState(false);
-  const [showMilestone, setShowMilestone] = useState(false);
-  const [indexBuilding, setIndexBuilding] = useState(false);
-  const [skippedTargetToday, setSkippedTargetToday] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(null); // { tone: 'ok'|'err', text }
+  const [profile, setProfile] = useState({ streak: 0, longestStreak: 0, lastSadhanaDate: null });
+  const [logs, setLogs] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [prasadam, setPrasadam] = useState([]);
+  const [rounds, setRounds] = useState(0);
+  const [target, setTarget] = useState(ROUNDS_TARGET);
 
-  const fetchData = async () => {
-    if (!user) return;
+  const load = useCallback(async () => {
+    if (!user?.uid) return;
     try {
-      const userRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
-      const uData = userSnap.data() || {};
+      const uSnap = await getDoc(doc(db, 'users', user.uid));
+      const u = uSnap.data() || {};
+      // A streak only counts while unbroken: target last met today or yesterday.
+      const lastDone = u.lastCompletedDate || ((u.streak || 0) > 0 ? u.lastSadhanaDate : null);
+      const alive = lastDone === today || lastDone === yesterdayIST();
+      setProfile({ streak: alive ? (u.streak || 0) : 0, longestStreak: u.longestStreak || 0, lastSadhanaDate: u.lastSadhanaDate || null });
+      if (u.sadhanaTarget) setTarget(Number(u.sadhanaTarget) || ROUNDS_TARGET);
 
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      
-      let displayStreak = uData.streak || 0;
-      if (uData.lastSadhanaDate && uData.lastSadhanaDate !== today && uData.lastSadhanaDate !== yesterdayStr) {
-        displayStreak = 0;
-      }
-
-      const profileStats = {
-        name: uData.fullName || user.displayName || 'Devotee',
-        streak: displayStreak,
-        score: uData.score || 0,
-        longestStreak: uData.longestStreak || 0,
-        totalLogs: 0
-      };
-
+      let recent = [];
       try {
-        const q = query(
-          collection(db, 'sadhana_logs'),
-          where('userId', '==', user.uid),
-          orderBy('date', 'desc'),
-          limit(7)
-        );
-        const logsSnap = await getDocs(q);
-        const logs = logsSnap.docs.map(doc => doc.data());
-        profileStats.totalLogs = logs.length;
-
-        // Fetch user's attendance and prasadam logs with in-memory sorting to bypass index requirements
-        let attendanceLogs = [];
-        let prasadamLogs = [];
-        
-        try {
-          // Alternative: Query only by userId and sort in JS
-          const attQ = query(collection(db, 'attendance'), where('userId', '==', user.uid));
-          const attSnap = await getDocs(attQ);
-          attendanceLogs = attSnap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .sort((a, b) => {
-               const timeA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-               const timeB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-               return timeB - timeA;
-            })
-            .slice(0, 5);
-        } catch (attError) {
-          console.error("Error fetching attendance logs:", attError.message);
-        }
-
-        try {
-          // Alternative: Query only by userId and sort in JS
-          const prasQ = query(collection(db, 'prasadam_logs'), where('userId', '==', user.uid));
-          const prasSnap = await getDocs(prasQ);
-          prasadamLogs = prasSnap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .sort((a, b) => {
-               const timeA = a.timestamp?.toDate?.() || new Date(a.timestamp || 0);
-               const timeB = b.timestamp?.toDate?.() || new Date(b.timestamp || 0);
-               return timeB - timeA;
-            })
-            .slice(0, 5);
-        } catch (prasError) {
-          console.error("Error fetching prasadam logs:", prasError.message);
-        }
-        
-        setSadhanaData({ 
-          profile: profileStats, 
-          logs: logs.reverse(),
-          attendance: attendanceLogs,
-          prasadam: prasadamLogs
-        });
-        setIndexBuilding(false);
-      } catch (innerError) {
-        if (innerError.message?.includes('index') || innerError.code === 'failed-precondition') {
-          setIndexBuilding(true);
-          const qSimple = query(
-            collection(db, 'sadhana_logs'),
-            where('userId', '==', user.uid),
-            limit(7)
-          );
-          const logsSnapSimple = await getDocs(qSimple);
-          const logsSimple = logsSnapSimple.docs.map(doc => doc.data());
-          profileStats.totalLogs = logsSimple.length;
-          setSadhanaData({ 
-            profile: profileStats, 
-            logs: logsSimple.sort((a,b) => a.date.localeCompare(b.date)) 
-          });
-        } else {
-          throw innerError;
-        }
+        const snap = await getDocs(query(collection(db, 'sadhana_logs'), where('userId', '==', user.uid), orderBy('date', 'desc'), limit(14)));
+        recent = snap.docs.map((d) => d.data());
+      } catch (e) {
+        // Composite index still building: fall back to an unordered read.
+        const snap = await getDocs(query(collection(db, 'sadhana_logs'), where('userId', '==', user.uid), limit(30)));
+        recent = snap.docs.map((d) => d.data()).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14);
       }
+      setLogs(recent);
+      const todays = recent.find((l) => l.date === today);
+      if (todays) {
+        setRounds(Number(todays.roundsCompleted) || 0);
+        setTarget(Number(todays.target) || ROUNDS_TARGET);
+      }
+
+      const [att, pras] = await Promise.allSettled([
+        getDocs(query(collection(db, 'attendance'), where('userId', '==', user.uid))),
+        getDocs(query(collection(db, 'prasadam_logs'), where('userId', '==', user.uid))),
+      ]);
+      if (att.status === 'fulfilled') setAttendance(att.value.docs.map((d) => ({ id: d.id, ...d.data() })).sort(byNewest('createdAt')).slice(0, 6));
+      if (pras.status === 'fulfilled') setPrasadam(pras.value.docs.map((d) => ({ id: d.id, ...d.data() })).sort(byNewest('timestamp')).slice(0, 6));
     } catch (error) {
-      console.error("Critical error fetching sadhana data:", error);
+      console.error('Sadhana load failed:', error);
+      setNotice({ tone: 'err', text: 'Could not load your sadhana right now. Check your connection and try again.' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.uid, today]);
 
-  useEffect(() => {
-    if (user) {
-      setLoading(true);
-      fetchData();
-    } else {
-      setSadhanaData({ profile: {}, logs: [] });
-      setLoading(false);
-    }
-  }, [user?.uid]);
+  useEffect(() => { load(); }, [load]);
 
-  const todayLog = sadhanaData.logs.find(log => log.date === today);
-  const currentTarget = todayLog ? todayLog.target : 0;
-  const currentRounds = todayLog ? todayLog.roundsCompleted : 0;
+  const todayLog = logs.find((l) => l.date === today) || null;
+  const targetLocked = !!todayLog;
+  const effectiveTarget = isStaff ? ROUNDS_TARGET : target;
 
-  useEffect(() => {
-    if (todayLog && todayLog.roundsCompleted !== undefined && !inputRounds) {
-      setInputRounds(String(todayLog.roundsCompleted));
-    }
-  }, [todayLog]);
-
-  const handleSetTarget = async () => {
-    if (targetInput < 8 || targetInput > 64) {
-      alert("Target must be between 8 and 64 rounds.");
+  const save = async (e) => {
+    e.preventDefault();
+    const n = Number(rounds);
+    if (!Number.isInteger(n) || n < 0 || n > MAX_ROUNDS) {
+      setNotice({ tone: 'err', text: `Enter a whole number of rounds between 0 and ${MAX_ROUNDS}.` });
       return;
     }
-
-    setSubmitting(true);
-    const logId = `${user.uid}_${today}`;
-    const logRef = doc(db, 'sadhana_logs', logId);
-
+    setSaving(true);
+    setNotice(null);
+    const logRef = doc(db, 'sadhana_logs', `${user.uid}_${today}`);
+    const userRef = doc(db, 'users', user.uid);
+    const yesterday = yesterdayIST();
     try {
-      await runTransaction(db, async (transaction) => {
-        const logDoc = await transaction.get(logRef);
-        if (logDoc.exists()) throw new Error("Target already set for today.");
+      const result = await runTransaction(db, async (t) => {
+        const [uDoc, lDoc] = [await t.get(userRef), await t.get(logRef)];
+        const u = uDoc.data() || {};
+        const old = lDoc.exists() ? lDoc.data() : null;
+        // The day's target is fixed the first time you log it.
+        const dayTarget = isStaff ? ROUNDS_TARGET : (old?.target || effectiveTarget);
+        const done = n >= dayTarget;
 
-        transaction.set(logRef, {
+        // Streak = consecutive days the target was met, ending on
+        // lastCompletedDate. A partial log in the morning must not break it
+        // (the old code reset it to 0), and editing today's count down undoes
+        // only today. Older profiles lack lastCompletedDate; for them a
+        // positive streak always ended on lastSadhanaDate.
+        const lastDone = u.lastCompletedDate || ((u.streak || 0) > 0 ? u.lastSadhanaDate : null);
+        const base = lastDone === today ? Math.max(0, (u.streak || 0) - 1)
+          : lastDone === yesterday ? (u.streak || 0)
+          : 0;
+        const streak = done ? base + 1 : base;
+        const lastCompletedDate = done ? today : (lastDone === today ? (base > 0 ? yesterday : null) : lastDone || null);
+
+        const bonuses = new Set(old?.bonusClaimed || []);
+        let score = n * 2 + (done ? 10 : 0);
+        for (const [len, pts] of [[3, 20], [7, 50], [30, 200]]) {
+          if (done && streak === len && !bonuses.has(len)) { score += pts; bonuses.add(len); }
+        }
+        const scoreDiff = score - (old?.score || 0);
+
+        const logData = {
           userId: user.uid,
           date: today,
-          target: targetInput,
-          roundsCompleted: 0,
-          progressPercentage: 0,
-          streak: 0,
-          score: 0,
+          target: dayTarget,
+          roundsCompleted: n,
+          progressPercentage: Math.min(100, Math.round((n / dayTarget) * 100)),
+          streak,
+          score,
+          completed: done,
+          bonusClaimed: [...bonuses],
           status: 'locked',
-          createdAt: serverTimestamp()
-        });
-      });
-      await fetchData();
-      setShowSaved(true);
-      setTimeout(() => setShowSaved(false), 2000);
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+          updatedAt: serverTimestamp(),
+        };
+        if (old) t.update(logRef, logData);
+        else t.set(logRef, { ...logData, createdAt: serverTimestamp() });
 
-  const handleLogSadhana = async () => {
-    const rounds = parseInt(inputRounds);
-    if (isNaN(rounds) || rounds < 0 || rounds > 200) {
-      alert("Please enter a valid number of rounds.");
-      return;
-    }
-
-    setSubmitting(true);
-    const logId = `${user.uid}_${today}`;
-    const logRef = doc(db, 'sadhana_logs', logId);
-    const userRef = doc(db, 'users', user.uid);
-
-    try {
-      await runTransaction(db, async (transaction) => {
-        const uDoc = await transaction.get(userRef);
-        const lDoc = await transaction.get(logRef);
-        
-        if (!lDoc.exists()) {
-          throw new Error("Please set your target first!");
-        }
-
-        const uData = uDoc.data() || {};
-        const oldLogData = lDoc.data();
-        let target = oldLogData.target || 16;
-        
-        // Admins must complete 16 rounds for streak
-        if (uData.role === 'admin' || uData.role === 'folks_head') {
-          target = 16;
-        }
-
-        let currentStreak = uData.streak || 0;
-        const yesterdayDate = new Date();
-        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-        const yesterdayString = yesterdayDate.toISOString().split('T')[0];
-
-        if (uData.lastSadhanaDate && uData.lastSadhanaDate !== today && uData.lastSadhanaDate !== yesterdayString) {
-          currentStreak = 0;
-        }
-
-        if (rounds >= target) {
-          if (!oldLogData.completed) {
-            if (uData.lastSadhanaDate === yesterdayString || currentStreak === 0) {
-              currentStreak = (currentStreak) + 1;
-            } else if (uData.lastSadhanaDate !== today) {
-              currentStreak = 1;
-            }
-          }
-        } else {
-           currentStreak = 0;
-        }
-
-        let logScore = rounds * 2;
-        if (rounds >= target) {
-          logScore += 10;
-          if (currentStreak === 3 && (!oldLogData.bonusClaimed || !oldLogData.bonusClaimed.includes(3))) logScore += 20;
-          if (currentStreak === 7 && (!oldLogData.bonusClaimed || !oldLogData.bonusClaimed.includes(7))) logScore += 50;
-          if (currentStreak === 30 && (!oldLogData.bonusClaimed || !oldLogData.bonusClaimed.includes(30))) logScore += 200;
-        }
-
-        const scoreDiff = logScore - (oldLogData.score || 0);
-        const newLongestStreak = Math.max(uData.longestStreak || 0, currentStreak);
-
-        transaction.update(lDoc.ref, {
-          roundsCompleted: rounds,
-          progressPercentage: Math.min(100, Math.round((rounds / target) * 100)),
-          streak: currentStreak,
-          score: logScore,
-          completed: rounds >= target,
-          updatedAt: serverTimestamp()
-        });
-
-        transaction.update(userRef, {
-          streak: currentStreak,
-          longestStreak: newLongestStreak,
-          score: Math.max(0, (uData.score || 0) + scoreDiff),
+        t.update(userRef, {
+          streak,
+          longestStreak: Math.max(u.longestStreak || 0, streak),
+          score: Math.max(0, (u.score || 0) + scoreDiff),
           lastSadhanaDate: today,
-          updatedAt: serverTimestamp()
+          lastCompletedDate,
+          sadhanaTarget: dayTarget,
+          updatedAt: serverTimestamp(),
         });
+        return { done, firstCompletion: done && !old?.completed, streak };
       });
-
-      if (rounds >= currentTarget && !todayLog?.completed) {
-        setShowMilestone(true);
-      } else {
-        setShowSaved(true);
-      }
-      
-      setTimeout(() => {
-        setShowMilestone(false);
-        setShowSaved(false);
-      }, 3000);
-      
-      await fetchData();
+      setNotice({
+        tone: 'ok',
+        text: result.firstCompletion
+          ? `Target reached. That's ${result.streak} day${result.streak === 1 ? '' : 's'} in a row. Jaya!`
+          : 'Saved.',
+      });
+      await load();
     } catch (error) {
-      alert(error.message);
+      console.error('Sadhana save failed:', error);
+      setNotice({ tone: 'err', text: 'Could not save. Please try again.' });
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
-  const chartData = sadhanaData.logs.map(log => ({
-    day: new Date(log.date).toLocaleDateString('en-US', { weekday: 'short' }),
-    rounds: log.roundsCompleted,
-    target: log.target,
-    date: log.date
-  }));
+  const chart = useMemo(() => {
+    const byDate = new Map(logs.map((l) => [l.date, l]));
+    return Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(Date.now() - (13 - i) * 86400000);
+      const key = dateKeyIST(d);
+      const l = byDate.get(key);
+      return {
+        key,
+        day: d.toLocaleDateString('en-IN', { weekday: 'short', timeZone: 'Asia/Kolkata' }).slice(0, 2),
+        rounds: l ? Number(l.roundsCompleted) || 0 : 0,
+        done: !!l?.completed,
+      };
+    });
+  }, [logs]);
+  const daysDone = chart.filter((c) => c.done).length;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <Loader2 className="animate-spin text-saffron" size={48} />
-            <motion.div initial={{scale:0}} animate={{scale:1}} className="absolute inset-0 flex items-center justify-center">
-               <div className="w-2 h-2 bg-saffron rounded-full" />
-            </motion.div>
-          </div>
-          <p className="text-gray-400 font-bold animate-pulse uppercase tracking-[0.3em] text-[10px]">Spirituality Loading...</p>
-        </div>
+      <div className="space-y-5" aria-busy="true" aria-label="Loading sadhana">
+        <div className="grid gap-4 sm:grid-cols-3">{[0, 1, 2].map((i) => <div key={i} className="h-24 card animate-pulse" />)}</div>
+        <div className="h-72 card animate-pulse" />
       </div>
     );
   }
 
+  const pct = Math.min(100, Math.round((Number(rounds) / effectiveTarget) * 100)) || 0;
+
   return (
-    <div className="min-h-screen bg-[#fafafa] p-4 lg:p-10 relative overflow-x-hidden">
-      {/* Background Decorative Elements */}
-      <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-saffron/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-[600px] h-[600px] bg-gold/5 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/3 pointer-events-none" />
+    <div className="space-y-6">
+      <div>
+        <h1 className="display-lg">Sadhana</h1>
+        <p className="mt-1 text-ink-muted">Log your chanting every day. Small, steady steps build a strong practice.</p>
+      </div>
 
-      {/* Floating Status Toasts */}
-      <AnimatePresence>
-        {showSaved && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.8 }}
-            className="fixed bottom-24 lg:bottom-10 left-1/2 -translate-x-1/2 z-[110] flex items-center gap-3 bg-gray-900 text-white px-6 py-3.5 rounded-2xl shadow-premium-xl border border-white/10"
-          >
-            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-               <CheckCircle2 size={14} className="text-white" />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat icon={Flame} value={profile.streak} label="day streak" tone="bg-saffron-50 text-saffron" />
+        <Stat icon={Trophy} value={profile.longestStreak} label="best streak" tone="bg-marigold/15 text-marigold-dark" />
+        <Stat icon={CalendarCheck} value={`${daysDone}/14`} label="days on target" tone="bg-navy-50 text-navy-700" />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-5">
+        {/* Today */}
+        <form onSubmit={save} className="card p-5 sm:p-6 lg:col-span-2 flex flex-col">
+          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Today · {formatDay(new Date())}</h2>
+
+          <label className="mt-5 block">
+            <span className="block text-[15px] font-semibold">Rounds chanted</span>
+            <div className="mt-2 flex items-stretch gap-2">
+              <button type="button" onClick={() => setRounds((r) => Math.max(0, Number(r) - 1))} className="w-14 h-14 rounded-md border border-line inline-flex items-center justify-center hover:bg-paper" aria-label="One round less"><Minus size={20} /></button>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={MAX_ROUNDS}
+                value={rounds}
+                onChange={(e) => setRounds(e.target.value === '' ? '' : Math.max(0, Math.min(MAX_ROUNDS, parseInt(e.target.value, 10) || 0)))}
+                className="flex-1 min-w-0 h-14 rounded-md border border-line text-center font-display text-3xl font-extrabold focus:border-navy focus:ring-2 focus:ring-navy/15 outline-none"
+              />
+              <button type="button" onClick={() => setRounds((r) => Math.min(MAX_ROUNDS, Number(r) + 1))} className="w-14 h-14 rounded-md border border-line inline-flex items-center justify-center hover:bg-paper" aria-label="One round more"><Plus size={20} /></button>
             </div>
-            <span className="text-sm font-black uppercase tracking-widest text-white/90">Progress Recorded</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </label>
 
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 max-w-7xl mx-auto space-y-12"
-      >
-        {/* Daily Target Modal - Mandatory Check */}
-        <AnimatePresence>
-          {!todayLog && !skippedTargetToday && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] flex items-center justify-center bg-gray-900/60 backdrop-blur-xl p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.9, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 50 }}
-                className="bg-white rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-8 text-center shadow-premium-xl max-w-md w-full border border-saffron/20 relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 p-8 opacity-5">
-                   <Target size={140} />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSkippedTargetToday(true)}
-                  aria-label="Skip setting a target for now"
-                  className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex items-center justify-center transition-all"
-                >
-                  <X size={18} />
-                </button>
-                <div className="relative z-10">
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-saffron/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
-                     <Sun size={28} className="text-saffron animate-pulse" />
-                  </div>
-                  <div className="space-y-1.5 mb-5">
-                     <span className="text-[10px] font-black text-saffron uppercase tracking-[0.2em] sm:tracking-[0.3em]">Step 1: Set your daily target</span>
-                     <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-none">Morning Vow</h2>
-                  </div>
-                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mb-5">Commit to your daily rounds</p>
-
-                  <div className="bg-gray-50 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-gray-100 shadow-inner mb-5">
-                     <div className="flex items-center justify-between mb-4 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setTargetInput(p => Math.max(8, p - 8))}
-                          aria-label="Decrease target by 8 rounds"
-                          className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95"
-                        >-</button>
-                        <div className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tighter tabular-nums">{targetInput}</div>
-                        <button
-                          type="button"
-                          onClick={() => setTargetInput(p => Math.min(64, p + 8))}
-                          aria-label="Increase target by 8 rounds"
-                          className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl font-black shadow-lg hover:bg-saffron hover:text-white transition-all active:scale-95"
-                        >+</button>
-                     </div>
-                     <p className="text-xs text-gray-400 font-medium">Sacred Goal for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</p>
-                  </div>
-
-                  <Button onClick={handleSetTarget} disabled={submitting} className="w-full py-4 bg-gray-900 text-white font-black rounded-[2rem] shadow-2xl hover:bg-black group relative overflow-hidden">
-                     {submitting ? <Loader2 className="animate-spin mx-auto" /> : (
-                       <div className="flex items-center justify-center gap-3 tracking-widest uppercase text-xs">
-                           BEGIN TODAY&apos;S JOURNEY <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                       </div>
-                     )}
-                  </Button>
+          <div className="mt-5">
+            <span className="flex items-center justify-between text-[15px] font-semibold">
+              Today&apos;s target
+              {(targetLocked || isStaff) && <span className="inline-flex items-center gap-1 text-[13px] font-normal text-ink-muted"><Lock size={13} /> {isStaff ? 'Fixed for staff' : 'Set for today'}</span>}
+            </span>
+            {targetLocked || isStaff ? (
+              <p className="mt-2 font-display text-xl font-bold">{effectiveTarget} rounds</p>
+            ) : (
+              <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Target rounds">
+                {TARGET_OPTIONS.map((t) => (
                   <button
+                    key={t}
                     type="button"
-                    onClick={() => setSkippedTargetToday(true)}
-                    className="mt-3 text-[10px] font-black text-gray-300 hover:text-gray-500 uppercase tracking-widest transition-colors"
+                    role="radio"
+                    aria-checked={target === t}
+                    onClick={() => setTarget(t)}
+                    className={`h-10 min-w-[3rem] px-3 rounded-md border font-display font-bold ${target === t ? 'border-navy bg-navy text-white' : 'border-line hover:bg-paper'}`}
                   >
-                    Skip for now
+                    {t}
                   </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* Milestone Overlay Modal */}
-        <AnimatePresence>
-          {showMilestone && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.9, rotateY: 90 }}
-                animate={{ scale: 1, rotateY: 0 }}
-                exit={{ scale: 0.9, rotateY: -90 }}
-                className="bg-white rounded-[2.5rem] sm:rounded-[3.5rem] p-8 sm:p-12 text-center shadow-premium-xl max-w-sm w-full border border-saffron/20 relative overflow-hidden max-h-[90vh] overflow-y-auto"
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-saffron/10 to-transparent" />
-                <div className="relative z-10 flex flex-col items-center">
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-                    transition={{ repeat: Infinity, duration: 4 }}
-                    className="w-24 h-24 bg-gradient-to-br from-saffron to-gold rounded-[2rem] flex items-center justify-center shadow-xl mb-6"
-                  >
-                    <Flame size={56} fill="white" className="text-white" />
-                  </motion.div>
-                  <h2 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter italic uppercase">Day {sadhanaData.profile.streak}</h2>
-                  <p className="text-xl font-bold text-saffron mb-6">STREAK SECURED!</p>
-                  <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-8" />
-                   <p className="text-gray-500 font-medium mb-10 text-sm leading-relaxed italic">&ldquo;Consistent practice is the foundation of spiritual success.&rdquo;</p>
-                  <button 
-                    onClick={() => setShowMilestone(false)}
-                    className="w-full py-4 rounded-2xl bg-gray-900 text-white font-black hover:bg-black transition-all active:scale-95 shadow-xl uppercase tracking-widest text-xs"
-                  >
-                    Keep Going
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <div className="mt-6 h-3 rounded-full bg-paper overflow-hidden" aria-hidden="true">
+            <div className={`h-full rounded-full ${pct >= 100 ? 'bg-green-600' : 'bg-saffron'}`} style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-2 text-[14px] text-ink-muted">{pct}% of today&apos;s target</p>
 
-        {/* Header Section */}
-        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10 pt-10">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-3 px-5 py-2 bg-saffron/10 text-saffron rounded-full border border-saffron/20 shadow-sm">
-               <TrendingUp size={16} />
-               <span className="text-[11px] font-black uppercase tracking-[0.2em]">Sadhana Tracker v2.0</span>
-            </div>
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-gray-900 tracking-tighter leading-[0.8]">
-              SADHANA <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-saffron to-gold">TRACKER</span>
-            </h1>
-            <p className="text-xl font-bold text-gray-400 mt-4 uppercase tracking-widest italic">
-               Welcome Home, <span className="text-gray-900">{sadhanaData.profile.name}</span>
+          {notice && (
+            <p role={notice.tone === 'err' ? 'alert' : 'status'} className={`mt-4 flex gap-2 rounded-md px-3 py-2.5 text-[15px] ${notice.tone === 'err' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-800'}`}>
+              {notice.tone === 'ok' && <CheckCircle2 size={18} className="mt-0.5 shrink-0" />}{notice.text}
             </p>
+          )}
+
+          <button type="submit" disabled={saving || rounds === ''} className="btn-primary mt-auto pt-0 w-full" style={{ marginTop: '1.5rem' }}>
+            {saving ? 'Saving…' : todayLog ? 'Update today' : 'Save today'}
+          </button>
+        </form>
+
+        {/* Last 14 days */}
+        <section className="card p-5 sm:p-6 lg:col-span-3">
+          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Last 14 days</h2>
+          <div className="mt-4 h-64" role="img" aria-label={`Rounds per day over the last 14 days; on target ${daysDone} of 14 days`}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chart} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="#E3DDD1" />
+                <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fill: '#5B6170', fontSize: 12 }} />
+                <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: '#5B6170', fontSize: 12 }} domain={[0, (max) => Math.max(max, effectiveTarget)]} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(16,18,23,0.04)' }}
+                  formatter={(v) => [`${v} rounds`, '']}
+                  labelFormatter={(_, p) => (p?.[0]?.payload?.key ? formatDay(new Date(`${p[0].payload.key}T12:00:00+05:30`)) : '')}
+                  contentStyle={{ borderRadius: 8, border: '1px solid #E3DDD1' }}
+                />
+                <ReferenceLine y={effectiveTarget} stroke="#032B7C" strokeDasharray="4 4" />
+                <Bar dataKey="rounds" radius={[4, 4, 0, 0]} maxBarSize={28}>
+                  {chart.map((c) => <Cell key={c.key} fill={c.done ? '#16A34A' : c.rounds > 0 ? '#E4702A' : '#E3DDD1'} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-
-          <div className="flex flex-wrap items-center gap-4 sm:gap-8">
-            {[
-              { label: 'Current Streak', val: sadhanaData.profile.streak, unit: 'Days', icon: Flame, color: 'text-saffron', bg: 'bg-saffron/5' },
-              { label: 'Longest Record', val: sadhanaData.profile.longestStreak, unit: 'Days', icon: Trophy, color: 'text-gold-dark', bg: 'bg-gold/5' },
-              { label: 'Divine Score', val: Math.max(0, sadhanaData.profile.score || 0), unit: 'Pts', icon: Star, color: 'text-blue-600', bg: 'bg-blue-50' }
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ y: -8, scale: 1.02 }}
-                className={`flex items-center gap-4 sm:gap-6 ${stat.bg} px-4 py-4 sm:px-8 sm:py-5 rounded-[2rem] sm:rounded-[2.5rem] border border-white shadow-premium group transition-all`}
-              >
-                <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white border border-gray-100 flex items-center justify-center shadow-lg group-hover:rotate-12 transition-all">
-                   <stat.icon className={stat.color} fill={stat.color === 'text-saffron' ? '#FF9933' : 'transparent'} size={20} />
-                </div>
-                <div>
-                  <span className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">{stat.label}</span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-black text-gray-900 tabular-nums leading-none tracking-tighter">{stat.val}</span>
-                    <span className="text-[11px] font-bold text-gray-400 capitalize">{stat.unit}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+          <div className="mt-3 flex flex-wrap gap-4 text-[13px] text-ink-muted">
+            <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-600" /> On target</span>
+            <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-saffron" /> Below target</span>
+            <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-navy-700" /> Target</span>
           </div>
-        </div>
+        </section>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          {/* Main Interface */}
-          <Card className="lg:col-span-12 xl:col-span-4 p-6 sm:p-14 bg-white border-none shadow-premium-xl rounded-[3rem] sm:rounded-[4rem] relative overflow-hidden flex flex-col justify-center min-h-[400px] sm:min-h-[650px] group">
-             <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-all duration-700 group-hover:rotate-12 group-hover:scale-125">
-                <Target size={200} />
-             </div>
-
-             <div className="flex flex-col items-center relative z-10">
-                <div className="relative mb-8 sm:mb-14 flex items-center justify-center">
-                   <CircularProgress current={currentRounds} total={currentTarget || 16} />
-                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <motion.span 
-                        key={currentRounds}
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="text-5xl font-black text-gray-900 tracking-tighter leading-none shadow-sm pb-1"
-                      >
-                        {currentRounds}
-                      </motion.span>
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-1 bg-white/50 px-3 py-1 rounded-full">of {currentTarget || '--'} Rounds</span>
-                   </div>
-
-                </div>
-
-                <div className="w-full max-w-sm space-y-8 sm:space-y-12">
-                   {todayLog && (
-                     <div className="space-y-8 sm:space-y-12 text-center">
-                        <div className="space-y-2">
-                           <span className="text-[10px] font-black text-saffron uppercase tracking-[0.4em]">Step 2: Log your progress</span>
-                           <h3 className="text-xl font-black text-gray-900 uppercase italic">Daily Recording</h3>
-                        </div>
-                        
-                        <div className="bg-white p-4 rounded-[3.5rem] border border-gray-100 shadow-2xl relative group/input overflow-hidden">
-                           <div className="flex items-center justify-between relative z-10">
-                             <button
-                               type="button"
-                               onClick={() => setInputRounds(prev => Math.max(0, (parseInt(prev) || 0) - 1).toString())}
-                               aria-label="Decrease rounds logged by 1"
-                               className="w-14 h-14 sm:w-20 sm:h-20 shrink-0 rounded-2xl sm:rounded-[2.5rem] bg-gray-50 flex items-center justify-center text-gray-400 font-black text-2xl sm:text-3xl hover:bg-saffron/10 hover:text-saffron transition-all active:scale-90"
-                             >-</button>
-                              <div className="text-center">
-                                 <AnimatePresence mode="wait">
-                                    <motion.span key={inputRounds} initial={{y:20, opacity:0}} animate={{y:0, opacity:1}} exit={{y:-20, opacity:0}} className="text-5xl sm:text-7xl font-black text-gray-900 block tabular-nums leading-none mb-1">{inputRounds || 0}</motion.span>
-                                 </AnimatePresence>
-                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em] block">Rounds Logged</span>
-                              </div>
-                             <button
-                               type="button"
-                               onClick={() => setInputRounds(prev => Math.min(200, (parseInt(prev) || 0) + 1).toString())}
-                               aria-label="Increase rounds logged by 1"
-                               className="w-14 h-14 sm:w-20 sm:h-20 shrink-0 rounded-2xl sm:rounded-[2.5rem] bg-gray-50 flex items-center justify-center text-gray-400 font-black text-2xl sm:text-3xl hover:bg-saffron/10 hover:text-saffron transition-all active:scale-90"
-                             >+</button>
-                           </div>
-                           <div className="absolute inset-0 bg-saffron/5 translate-y-full group-hover/input:translate-y-0 transition-transform duration-700 pointer-events-none" />
-                        </div>
-
-                        <div className="space-y-6">
-                           <div className="space-y-4">
-                              <Button onClick={handleLogSadhana} disabled={submitting} className="w-full py-5 sm:py-7 bg-gradient-to-r from-saffron to-gold text-white font-black rounded-[3rem] shadow-premium-xl relative overflow-hidden group">
-                                 <div className="relative z-10 flex items-center justify-center gap-4 group-hover:scale-105 transition-transform uppercase tracking-[0.2em] text-xs">
-                                    <ShieldCheck size={24} /> {todayLog.roundsCompleted > 0 ? 'Update Record' : 'Submit Entry'}
-                                 </div>
-                                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                              </Button>
-                              <div className="flex items-center justify-center gap-2 text-xs font-black text-gray-300 uppercase tracking-widest">
-                                 <Target size={14} className="opacity-50" /> Vow: {currentTarget} Rounds
-                              </div>
-                           </div>
-
-                           {todayLog.score > 0 && (
-                              <motion.div initial={{ opacity:0, scale: 0.9 }} animate={{ opacity:1, scale: 1 }} className="flex gap-4">
-                                 <div className="flex-1 flex items-center gap-4 py-5 px-6 bg-green-50 rounded-[2.5rem] border border-green-100/50">
-                                    <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                                    <span className="text-[11px] font-black text-green-700 uppercase tracking-widest">SECURED</span>
-                                 </div>
-                                 <div className="flex-1 flex items-center justify-center gap-3 py-5 px-6 bg-gold/5 rounded-[2.5rem] border border-gold/10">
-                                    <Star size={18} fill="#FFD700" className="text-gold" />
-                                    <span className="text-lg font-black text-gold-dark tabular-nums">+{todayLog.score}</span>
-                                 </div>
-                              </motion.div>
-                           )}
-                        </div>
-                     </div>
-                   )}
-                   {!todayLog && skippedTargetToday && (
-                     <div className="text-center space-y-4 py-4">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
-                           Set today&apos;s rounds target to start logging your practice
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setSkippedTargetToday(false)}
-                          className="text-[10px] font-black text-saffron hover:text-saffron-dark uppercase tracking-[0.2em] underline underline-offset-4 transition-colors"
-                        >
-                          Set Target Now
-                        </button>
-                     </div>
-                   )}
-                </div>
-             </div>
-          </Card>
-
-          {/* Right Column */}
-          <div className="lg:col-span-12 xl:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-12 h-full">
-            {/* Analytics */}
-            <Card className="md:col-span-2 p-6 sm:p-10 lg:p-14 bg-white border-none shadow-premium-xl rounded-[2.5rem] sm:rounded-[4rem] h-full flex flex-col min-h-[400px] sm:min-h-[500px] overflow-hidden">
-               <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-8 mb-8 sm:mb-16">
-                  <div className="space-y-2">
-                     <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter flex items-center gap-3 sm:gap-5 italic uppercase leading-none">
-                        <TrendingUp className="text-saffron shrink-0 sm:w-9 sm:h-9" size={28} /> PERFORMANCE
-                     </h2>
-                     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.3em] pl-10 sm:pl-14">Your Weekly Discipline Pulse</p>
-                  </div>
-                  {indexBuilding && (
-                    <div className="flex items-center gap-3 text-[10px] font-black text-blue-600 bg-blue-50 px-6 py-3 rounded-full animate-pulse border border-blue-100">
-                      <Loader2 size={14} className="animate-spin" />
-                      <span>OPTIMIZING CORE ENGINE...</span>
-                    </div>
-                  )}
-               </div>
-
-               <div className="flex-1 w-full min-h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                       <defs>
-                          <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                             <stop offset="0%" stopColor="#FF9933" />
-                             <stop offset="100%" stopColor="#FFD700" />
-                          </linearGradient>
-                       </defs>
-                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#00000008" />
-                       <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill:'#9CA3AF', fontSize:11, fontWeight:900}} dy={20} />
-                       <YAxis axisLine={false} tickLine={false} tick={{fill:'#9CA3AF', fontSize:11, fontWeight:900}} dx={-10} />
-                       <Tooltip
-                        cursor={{fill: '#00000005', radius: 20}}
-                        contentStyle={{ borderRadius: '1.5rem', border: 'none', boxShadow: '0 35px 70px -15px rgba(0,0,0,0.2)', padding: '16px 20px' }}
-                       />
-                       <Bar dataKey="rounds" radius={[20, 20, 20, 20]} maxBarSize={50}>
-                          {chartData.map((entry, index) => (
-                             <Cell key={`cell-${index}`} fill={entry.rounds >= entry.target ? "url(#barGradient)" : "#F3F4F6"} />
-                          ))}
-                       </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-               </div>
-            </Card>
-
-             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
-               {/* Digital Identity QR */}
-               <Card className="md:col-span-5 p-6 sm:p-10 md:p-12 bg-white border-none shadow-premium-xl rounded-[2.5rem] sm:rounded-[3.5rem] relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-8 opacity-5 -mr-10 -mt-10 group-hover:opacity-10 transition-all duration-700">
-                     <QrCode size={180} />
-                  </div>
-                  <div className="relative z-10 h-full flex flex-col items-center">
-                    <div className="text-center mb-6 sm:mb-8">
-                      <span className="text-[10px] font-black text-saffron uppercase tracking-[0.2em] sm:tracking-[0.4em] block mb-2 font-cinzel">VAIKUNTHA PASS</span>
-                      <h4 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter leading-none uppercase italic">Your ID</h4>
-                    </div>
-
-                    <div className="bg-cream/50 p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-saffron/10 mb-6 sm:mb-8 w-full flex justify-center overflow-hidden">
-                       {user?.qrToken && (
-                         <QRView value={user.qrToken} name={user.fullName || user.displayName || 'Devotee'} size={150} />
-                       )}
-                    </div>
-
-                    <p className="text-[10px] font-bold text-gray-400 text-center uppercase tracking-widest leading-relaxed">
-                      Permanent code for Attendance & <br/> Prasadam distribution
-                    </p>
-                  </div>
-               </Card>
-
-               {/* Sacred Rules Info Grid */}
-               <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8 min-h-[400px]">
-                   {[
-                      { l: 'EARNINGS', v: '2 pts', d: 'Every round counts', c: 'text-blue-500', bg: 'bg-blue-50/70', icon: ShieldCheck },
-                      { l: 'BONUS', v: '+10 pts', d: 'When goal reached', c: 'text-green-600', bg: 'bg-green-50/70', icon: CheckCircle2 },
-                      { l: 'STREAK', v: 'BOOST', d: 'Higher streaks = More pts', c: 'text-purple-600', bg: 'bg-purple-50/70', icon: TrendingUp },
-                      { l: 'RULE', v: 'STRICT', d: 'Miss 1 day = Streak 0', c: 'text-red-500', bg: 'bg-red-50/70', icon: Zap }
-                   ].map((item, i) => (
-                      <div key={i} className={`${item.bg} p-8 rounded-[2.5rem] transition-all hover:scale-[1.03] hover:bg-white hover:shadow-2xl border border-transparent hover:border-gray-100 group relative overflow-hidden flex flex-col justify-between`}>
-                         <div className="flex items-center justify-between mb-4 relative z-10">
-                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 group-hover:text-gray-900 transition-colors uppercase">{item.l}</span>
-                            <div className={`text-[9px] font-black ${item.c} bg-white shadow-md px-3 py-1 rounded-full border border-gray-50`}>{item.v}</div>
-                         </div>
-                         <p className="text-xs font-bold text-gray-700 leading-tight group-hover:translate-x-2 transition-transform relative z-10">{item.d}</p>
-                         <item.icon className={`absolute -bottom-4 -right-4 opacity-5 group-hover:opacity-10 transition-opacity ${item.c}`} size={80} />
-                      </div>
-                   ))}
-               </div>
-             </div>
-
-             {/* Vaikuntha History */}
-             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-                <Card className="p-6 sm:p-10 bg-white border-none shadow-premium-xl rounded-[2.5rem] sm:rounded-[3.5rem] relative overflow-hidden group">
-                   <div className="flex items-center justify-between mb-6 sm:mb-8">
-                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 shrink-0 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
-                            <CheckCircle2 size={24} />
-                         </div>
-                         <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight uppercase italic">Attendance History</h3>
-                      </div>
-                   </div>
-                   <div className="space-y-4">
-                      {sadhanaData.attendance?.length > 0 ? sadhanaData.attendance.map((att, i) => (
-                        <div key={i} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-green-100 transition-all">
-                           <div className="flex flex-col min-w-0">
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{att.session}</span>
-                              <span className="text-sm font-bold text-gray-900">{new Date(att.createdAt?.toDate?.() || att.createdAt).toLocaleDateString()}</span>
-                           </div>
-                           <div className="text-right shrink-0">
-                              <span className="text-[10px] font-black text-green-600 bg-green-100/50 px-3 py-1 rounded-full uppercase tracking-tighter">Verified</span>
-                           </div>
-                        </div>
-                      )) : (
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest text-center py-6">No records found</p>
-                      )}
-                   </div>
-                </Card>
-
-                <Card className="p-6 sm:p-10 bg-white border-none shadow-premium-xl rounded-[2.5rem] sm:rounded-[3.5rem] relative overflow-hidden group">
-                   <div className="flex items-center justify-between mb-6 sm:mb-8">
-                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 shrink-0 bg-saffron/10 rounded-2xl flex items-center justify-center text-saffron">
-                            <Zap size={24} />
-                         </div>
-                         <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight uppercase italic">Prasadam Log</h3>
-                      </div>
-                   </div>
-                   <div className="space-y-4">
-                      {sadhanaData.prasadam?.length > 0 ? sadhanaData.prasadam.map((p, i) => (
-                        <div key={i} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-saffron/10 transition-all">
-                           <div className="flex flex-col min-w-0">
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{p.eventTitle}</span>
-                              <span className="text-sm font-bold text-gray-900">{new Date(p.timestamp?.toDate?.() || p.timestamp).toLocaleDateString()}</span>
-                           </div>
-                           <div className="text-right shrink-0">
-                              <span className="text-[10px] font-black text-saffron bg-saffron/10 px-3 py-1 rounded-full uppercase tracking-tighter">Received</span>
-                           </div>
-                        </div>
-                      )) : (
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest text-center py-6">No records found</p>
-                      )}
-                   </div>
-                </Card>
-             </div>
-          </div>
-        </div>
-      </motion.div>
-      <div className="h-40" />
+      <div className="grid gap-5 md:grid-cols-2">
+        <section className="card p-5 sm:p-6">
+          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Programs attended</h2>
+          {attendance.length ? (
+            <ul className="mt-3 divide-y divide-line">
+              {attendance.map((a) => (
+                <li key={a.id} className="py-3 flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-3 min-w-0"><MapPinCheck size={18} className="text-green-700 shrink-0" /><span className="truncate">{a.session || a.eventTitle || 'Program'}</span></span>
+                  <span className="shrink-0 text-[14px] text-ink-muted">{formatDay(toDate(a.createdAt || a.timestamp))}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="mt-3 text-ink-muted">Your check-ins at programs will show up here.</p>}
+        </section>
+        <section className="card p-5 sm:p-6">
+          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Prasadam</h2>
+          {prasadam.length ? (
+            <ul className="mt-3 divide-y divide-line">
+              {prasadam.map((p) => (
+                <li key={p.id} className="py-3 flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-3 min-w-0"><Soup size={18} className="text-saffron shrink-0" /><span className="truncate">{p.session || p.meal || 'Prasadam'}</span></span>
+                  <span className="shrink-0 text-[14px] text-ink-muted">{formatDay(toDate(p.timestamp || p.createdAt))}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="mt-3 text-ink-muted">Meals scanned at the prasadam counter will show up here.</p>}
+        </section>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default SadhanaTracker
+export default SadhanaTracker;

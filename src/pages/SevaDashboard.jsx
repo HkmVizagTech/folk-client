@@ -193,17 +193,17 @@ const SevaDashboard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
         <div>
-          <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-saffron via-gold to-saffron-dark bg-clip-text text-transparent font-cinzel tracking-tighter drop-shadow-sm">
+          <h1 className="text-4xl md:text-5xl font-black bg-saffron bg-clip-text text-transparent font-cinzel tracking-tight drop-shadow-sm">
             Seva Portal
           </h1>
-           <p className="text-gray-500 font-medium italic mt-1 font-playfair">&ldquo;Service is the highest form of worship.&rdquo;</p>
+           <p className="text-gray-500 font-medium mt-1 font-playfair">&ldquo;Service is the highest form of worship.&rdquo;</p>
         </div>
         {isAdmin && (
           <motion.button
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowCreateModal(true)}
-            className="bg-gradient-to-r from-saffron to-gold text-white px-6 py-4 rounded-[2rem] shadow-premium-xl flex items-center gap-3 font-black text-xs uppercase tracking-widest transition-all"
+            className="bg-saffron text-white px-6 py-4 rounded-xl shadow-premium-xl flex items-center gap-3 font-black text-xs uppercase tracking-label transition-all"
           >
             <Plus size={20} />
             <span>Add Seva</span>
@@ -232,7 +232,7 @@ const SevaDashboard = () => {
                 initial={{ opacity: 0, scale: 0.95, y: 30 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
-                className="bg-white/70 backdrop-blur-3xl rounded-[2.5rem] p-6 shadow-premium border border-white hover:shadow-premium-xl transition-all relative group overflow-hidden"
+                className="bg-white backdrop-hidden rounded-xl p-6 shadow-premium border border-white hover:shadow-premium-xl transition-all relative group overflow-hidden"
               >
                 {status === 'completed' && (
                   <div className="absolute top-0 right-0 bg-green-500 text-white px-4 py-1 rounded-bl-2xl text-xs font-bold flex items-center gap-1">
@@ -285,7 +285,7 @@ const SevaDashboard = () => {
                     {isAdmin && (
                       <button
                         onClick={() => viewParticipants(seva.id)}
-                        className="flex-1 py-4 rounded-2xl bg-gray-50 text-gray-600 font-black text-[10px] uppercase tracking-widest hover:bg-gray-100 transition-all flex items-center justify-center gap-2 border border-transparent shadow-sm"
+                        className="flex-1 py-4 rounded-2xl bg-gray-50 text-gray-600 font-black text-[10px] uppercase tracking-label hover:bg-gray-100 transition-all flex items-center justify-center gap-2 border border-transparent shadow-sm"
                       >
                         <Users size={16} />
                         Volunteers
@@ -296,13 +296,13 @@ const SevaDashboard = () => {
                       <button
                         disabled={isLoading}
                         onClick={() => handleCancelSeva(seva.id)}
-                        className="flex-1 py-4 rounded-2xl bg-red-50 text-red-600 font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all flex items-center justify-center gap-2 shadow-sm"
+                        className="flex-1 py-4 rounded-2xl bg-red-50 text-red-600 font-black text-[10px] uppercase tracking-label hover:bg-red-100 transition-all flex items-center justify-center gap-2 shadow-sm"
                       >
                         {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                         Cancel Submission
                       </button>
                     ) : status === 'completed' ? (
-                      <div className="flex-1 py-4 rounded-2xl bg-green-50 text-green-600 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-green-100">
+                      <div className="flex-1 py-4 rounded-2xl bg-green-50 text-green-600 font-black text-[10px] uppercase tracking-label flex items-center justify-center gap-2 border border-green-100">
                         <UserCheck size={18} className="animate-bounce" />
                         Blessed Service
                       </div>
@@ -310,10 +310,10 @@ const SevaDashboard = () => {
                       <button
                         disabled={isFull || isLoading}
                         onClick={() => handleJoinSeva(seva.id)}
-                        className={`flex-1 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${
+                        className={`flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-label transition-all flex items-center justify-center gap-3 ${
                           isFull 
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-gradient-to-r from-saffron to-gold text-white shadow-premium-xl hover:-translate-y-1'
+                            : 'bg-saffron text-white shadow-premium-xl hover:-translate-y-1'
                         }`}
                       >
                         {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Heart size={18} fill={isFull ? "none" : "currentColor"} />}
@@ -337,23 +337,23 @@ const SevaDashboard = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowCreateModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              className="absolute inset-0 bg-black/60"
             />
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 40 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 40 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white/95 backdrop-blur-3xl rounded-[3rem] p-8 w-full max-w-xl relative z-10 shadow-premium-xl max-h-[90vh] overflow-y-auto border border-white"
+              className="bg-white backdrop-hidden rounded-xl p-8 w-full max-w-xl relative z-10 shadow-premium-xl max-h-[90vh] overflow-y-auto border border-white"
             >
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-black text-gray-900 font-cinzel tracking-tighter uppercase drop-shadow-sm">Open New Seva</h2>
-                 <p className="text-gray-400 font-medium italic font-playfair mt-1">&ldquo;Opportunities to serve are blessings.&rdquo;</p>
+                <h2 className="text-3xl font-black text-gray-900 font-cinzel tracking-tight uppercase drop-shadow-sm">Open New Seva</h2>
+                 <p className="text-gray-400 font-medium font-playfair mt-1">&ldquo;Opportunities to serve are blessings.&rdquo;</p>
               </div>
 
               <form onSubmit={handleCreateSeva} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Service Title</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Service Title</label>
                   <input
                     required
                     type="text"
@@ -365,7 +365,7 @@ const SevaDashboard = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Description</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Description</label>
                   <textarea
                     required
                     rows="3"
@@ -378,7 +378,7 @@ const SevaDashboard = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Seva Type</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Seva Type</label>
                     <select
                       value={formData.sevaType}
                       onChange={e => setFormData({...formData, sevaType: e.target.value})}
@@ -393,7 +393,7 @@ const SevaDashboard = () => {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Max Slots</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Max Slots</label>
                     <input
                       required
                       type="number"
@@ -406,7 +406,7 @@ const SevaDashboard = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Date</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Date</label>
                     <input
                       required
                       type="date"
@@ -416,7 +416,7 @@ const SevaDashboard = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Time</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Time</label>
                     <input
                       required
                       type="time"
@@ -428,7 +428,7 @@ const SevaDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Location</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Location</label>
                   <input
                     required
                     type="text"
@@ -443,14 +443,14 @@ const SevaDashboard = () => {
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 py-5 bg-gray-100/50 text-gray-500 rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-gray-100 transition-all"
+                    className="flex-1 py-5 bg-gray-100/50 text-gray-500 rounded-xl font-black text-xs uppercase tracking-label hover:bg-gray-100 transition-all"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={actionLoading === 'create'}
-                    className="flex-[2] py-5 bg-gradient-to-r from-saffron to-gold text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-premium-xl hover:-translate-y-1 transition-all disabled:opacity-50 flex items-center justify-center"
+                    className="flex-[2] py-5 bg-saffron text-white rounded-xl font-black text-xs uppercase tracking-label shadow-premium-xl hover:-translate-y-1 transition-all disabled:opacity-50 flex items-center justify-center"
                   >
                     {actionLoading === 'create' ? <Loader2 size={24} className="animate-spin" /> : 'Deploy Seva'}
                   </button>
@@ -470,32 +470,32 @@ const SevaDashboard = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedSeva(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              className="absolute inset-0 bg-black/60"
             />
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 40 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 40 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white/95 backdrop-blur-3xl rounded-[3rem] p-8 w-full max-w-xl relative z-10 shadow-premium-xl max-h-[80vh] flex flex-col border border-white"
+              className="bg-white backdrop-hidden rounded-xl p-8 w-full max-w-xl relative z-10 shadow-premium-xl max-h-[80vh] flex flex-col border border-white"
             >
               <div className="mb-8 text-center">
-                <h2 className="text-3xl font-black text-gray-900 font-cinzel tracking-tighter uppercase drop-shadow-sm">Volunteer Roster</h2>
-                <p className="text-gray-400 font-medium italic font-playfair mt-1 truncate px-4">{selectedSeva.title}</p>
+                <h2 className="text-3xl font-black text-gray-900 font-cinzel tracking-tight uppercase drop-shadow-sm">Volunteer Roster</h2>
+                <p className="text-gray-400 font-medium font-playfair mt-1 truncate px-4">{selectedSeva.title}</p>
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-2 custom-scrollbar">
                 {loadingParticipants ? (
                   <div className="flex flex-col items-center justify-center h-full gap-4">
                     <Loader2 className="w-10 h-10 text-saffron animate-spin" />
-                    <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Retrieving Souls...</p>
+                    <p className="text-gray-400 font-bold text-xs uppercase tracking-label">Retrieving Souls...</p>
                   </div>
                 ) : participants.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-gray-300">
                     <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                        <Users size={32} className="opacity-20" />
                     </div>
-                    <p className="font-bold uppercase tracking-widest text-xs">No volunteers listed yet</p>
+                    <p className="font-bold uppercase tracking-label text-xs">No volunteers listed yet</p>
                   </div>
                 ) : (
                   participants.map(reg => (
@@ -511,7 +511,7 @@ const SevaDashboard = () => {
                         </div>
                         <div>
                           <p className="font-black text-gray-800 text-sm tracking-tight">{reg.userName || `Devotee ${reg.userId?.substring(0, 5) || '...'}`}</p> 
-                          <span className={`text-[10px] font-black uppercase tracking-widest ${
+                          <span className={`text-[10px] font-black uppercase tracking-label ${
                             reg.status === 'completed' ? 'text-green-500' : 
                             reg.status === 'cancelled' ? 'text-red-400' : 'text-saffron'
                           }`}>
@@ -552,7 +552,7 @@ const SevaDashboard = () => {
 
               <button
                 onClick={() => setSelectedSeva(null)}
-                className="mt-8 w-full py-5 bg-gray-100/50 text-gray-500 rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-gray-100 transition-all border border-transparent"
+                className="mt-8 w-full py-5 bg-gray-100/50 text-gray-500 rounded-xl font-black text-xs uppercase tracking-label hover:bg-gray-100 transition-all border border-transparent"
               >
                 Close Roster
               </button>

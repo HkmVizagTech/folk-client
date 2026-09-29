@@ -151,7 +151,7 @@ const AdminSetup = ({ setActiveTab }) => {
             <Button
               onClick={createSiteAdmin}
               disabled={adminSetupState.status === 'working'}
-              className="w-full bg-gradient-to-r from-celestial to-purple-500 border-none font-bold py-3 rounded-xl shadow-lg"
+              className="w-full bg-navy border-none font-bold py-3 rounded-xl shadow-lg"
             >
               {adminSetupState.status === 'working' ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Create / Reset Admin Login'}
             </Button>

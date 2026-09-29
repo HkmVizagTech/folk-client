@@ -33,11 +33,11 @@ const About = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-4 max-w-3xl mx-auto"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-widest">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-label">
             <GraduationCap size={14} /> About Us
           </span>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter uppercase italic leading-[0.95]">
-            Who we <span className="bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent">are</span>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight uppercase leading-[0.95]">
+            Who we <span className="bg-saffron bg-clip-text text-transparent">are</span>
           </h1>
           <p className="text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
             FOLK is a Faternity Of Lifestyle K(f)ara-crétières — the devotional youth wing of ISKCON
@@ -55,26 +55,26 @@ const About = () => {
               transition={{ delay: i * 0.08 }}
               className="text-center"
             >
-              <Card className="p-6 bg-white/70 rounded-[1.75rem]">
-                <p className="text-4xl font-black bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent">{s.value}</p>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-2">{s.label}</p>
+              <Card className="p-6 bg-white rounded-xl">
+                <p className="text-4xl font-black bg-saffron bg-clip-text text-transparent">{s.value}</p>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-label mt-2">{s.label}</p>
               </Card>
             </motion.div>
           ))}
         </div>
 
         <div>
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter uppercase italic mb-6 text-center">
-            What we <span className="bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent">offer</span>
+          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight uppercase mb-6 text-center">
+            What we <span className="bg-saffron bg-clip-text text-transparent">offer</span>
           </h2>
           <div className="grid sm:grid-cols-2 gap-5">
             {VALUES.map((v, i) => (
               <motion.div key={v.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
                 <Card className="h-full">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-saffron to-gold flex items-center justify-center text-white mb-4 shadow-lg shadow-saffron/25">
+                  <div className="w-12 h-12 rounded-2xl bg-saffron flex items-center justify-center text-white mb-4 shadow-lg">
                     {v.icon}
                   </div>
-                  <h3 className="text-lg font-black text-gray-900 uppercase italic tracking-tight">{v.title}</h3>
+                  <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">{v.title}</h3>
                   <p className="text-sm text-gray-500 font-medium mt-2 leading-relaxed">{v.desc}</p>
                 </Card>
               </motion.div>
@@ -83,8 +83,8 @@ const About = () => {
         </div>
 
         <div>
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter uppercase italic mb-6 text-center">
-            Our <span className="bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent">pillars</span>
+          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight uppercase mb-6 text-center">
+            Our <span className="bg-saffron bg-clip-text text-transparent">pillars</span>
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {PILLARS.map((p, i) => (
@@ -102,8 +102,8 @@ const About = () => {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="bg-gradient-to-br from-saffron to-gold text-white text-center p-8 sm:p-12 border-0">
-            <h2 className="text-2xl sm:text-3xl font-black uppercase italic tracking-tight mb-3">
+          <Card className="bg-saffron text-white text-center p-8 sm:p-12 border-0">
+            <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight mb-3">
               Join the Fraternity
             </h2>
             <p className="text-white/90 font-medium max-w-xl mx-auto text-sm sm:text-base leading-relaxed mb-6">
@@ -115,7 +115,7 @@ const About = () => {
               href="https://wa.me/919154881444"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-saffron-dark font-black uppercase tracking-widest text-xs rounded-2xl shadow-2xl hover:scale-[1.03] hover:shadow-white/30 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-saffron-dark font-black uppercase tracking-label text-xs rounded-2xl shadow-2xl hover:scale-[1.03] hover:shadow-white/30 transition-all active:scale-95"
             >
               Connect with us on WhatsApp
             </a>

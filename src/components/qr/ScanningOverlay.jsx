@@ -135,7 +135,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-gray-950/80 backdrop-blur-sm"
+          className="absolute inset-0 bg-gray-950/80"
           onClick={onClose}
         />
 
@@ -144,7 +144,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 50, opacity: 0 }}
-          className="relative w-full max-w-xl bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl overflow-x-hidden overflow-y-auto max-h-[90vh]"
+          className="relative w-full max-w-xl bg-white rounded-xl sm:rounded-xl shadow-2xl overflow-x-hidden overflow-y-auto max-h-[90vh]"
         >
           {!verifyResult ? (
             <>
@@ -153,9 +153,9 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shrink-0" />
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Scanner Live</span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-label">Scanner Live</span>
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-black text-gray-900 uppercase tracking-tight italic">
+                  <h3 className="text-xl sm:text-2xl font-black text-gray-900 uppercase tracking-tight">
                     Universal Verification
                   </h3>
                 </div>
@@ -173,7 +173,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
                 <div className="flex gap-2 p-1.5 bg-gray-100 rounded-2xl">
                   <button
                     onClick={() => setScanMode('attendance')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-label transition-all ${
                       scanMode === 'attendance' ? 'bg-white shadow-lg text-saffron' : 'text-gray-400 hover:text-gray-600'
                     }`}
                   >
@@ -181,7 +181,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
                   </button>
                   <button
                     onClick={() => setScanMode('prasadam')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-label transition-all ${
                       scanMode === 'prasadam' ? 'bg-white shadow-lg text-orange-600' : 'text-gray-400 hover:text-gray-600'
                     }`}
                   >
@@ -192,12 +192,12 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
 
               {/* Scanner Area */}
               <div className="p-5 sm:p-8">
-                <div className="relative rounded-[2rem] overflow-hidden border-4 border-gray-50 bg-gray-50 aspect-square">
+                <div className="relative rounded-xl overflow-hidden border-4 border-gray-50 bg-gray-50 aspect-square">
                   <QRScanner onScan={handleScan} onClose={onClose} mode={scanMode} />
                   {verifying && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-50">
+                    <div className="absolute inset-0 bg-white flex flex-col items-center justify-center gap-4 z-50">
                       <Zap className="text-saffron animate-bounce" size={40} />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 text-center px-4">Verifying Identity...</p>
+                      <p className="text-[10px] font-black uppercase tracking-label text-gray-500 text-center px-4">Verifying Identity...</p>
                     </div>
                   )}
                 </div>
@@ -221,10 +221,10 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
               {verifyResult.success ? (
                 <>
                   <div className="mb-8">
-                    <span className="px-4 py-1.5 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4 inline-block">
+                    <span className="px-4 py-1.5 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-label mb-4 inline-block">
                       {scanMode === 'attendance' ? 'Entry Allowed' : 'Prasadam Allowed'}
                     </span>
-                    <h4 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tight italic mb-2 break-words">
+                    <h4 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tight mb-2 break-words">
                       {verifyResult.devotee?.fullName || verifyResult.devotee?.displayName}
                     </h4>
                     <p className="text-gray-500 font-bold">{verifyResult.message}</p>
@@ -236,7 +236,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
                         <ShieldCheck size={24} />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Accommodation Check</p>
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-label mb-1">Accommodation Check</p>
                         <p className="text-sm font-bold text-blue-900 leading-tight">
                           Approved: {verifyResult.accommodation.roomType} <br/>
                           <span className="text-blue-600/70 font-medium">Guest Count: {verifyResult.accommodation.guestCount}</span>
@@ -247,23 +247,23 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
 
                   <button 
                     onClick={() => setVerifyResult(null)}
-                    className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all"
+                    className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-label shadow-xl hover:bg-black transition-all"
                   >
                     Done
                   </button>
                 </>
               ) : (
                 <>
-                  <h4 className="text-2xl font-black text-red-900 uppercase tracking-tight italic mb-4">
+                  <h4 className="text-2xl font-black text-red-900 uppercase tracking-tight mb-4">
                     Verification Failed
                   </h4>
                   <div className="p-4 bg-white rounded-2xl border border-red-100 mb-8 flex items-start gap-3 text-left">
                     <Info size={18} className="text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-sm font-bold text-red-600/80 leading-relaxed italic">{verifyResult.message}</p>
+                    <p className="text-sm font-bold text-red-600/80 leading-relaxed">{verifyResult.message}</p>
                   </div>
                   <button 
                     onClick={() => setVerifyResult(null)}
-                    className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-red-700 transition-all"
+                    className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-label shadow-xl hover:bg-red-700 transition-all"
                   >
                     Retry Scan
                   </button>

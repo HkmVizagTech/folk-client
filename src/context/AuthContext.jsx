@@ -47,7 +47,41 @@ const getProfileWithRetry = async (uid, attempts = 3) => {
   throw lastError;
 };
 
+// Development-only UI preview: http://localhost:3001/?devUser=devotee
+// (or folks_head / admin) renders the app as that role with a fake local
+// user, so screens can be designed without signing in. `import.meta.env.DEV`
+// is false in production builds, so Vite drops this entirely there.
+const DEV_PREVIEW_ROLE = (() => {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
+  if (!/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) return null;
+  const role = new URLSearchParams(window.location.search).get('devUser');
+  return ['devotee', 'folks_head', 'admin'].includes(role) ? role : null;
+})();
+
+const devPreviewUser = (role) => ({
+  uid: `dev-${role}`,
+  name: role === 'admin' ? 'Preview Admin' : role === 'folks_head' ? 'Preview Guide' : 'Preview Member',
+  email: '', phone: '+919000000000', role, requiresRole: false, streak: 12, score: 240,
+  getIdToken: async () => '',
+});
+
 export const AuthProvider = ({ children }) => {
+  if (DEV_PREVIEW_ROLE) {
+    const noop = async () => {};
+    return (
+      <AuthContext.Provider value={{
+        user: devPreviewUser(DEV_PREVIEW_ROLE), loading: false, loginGoogle: noop, loginEmail: noop,
+        registerEmail: noop, resetPassword: noop, sendOTP: noop, verifyOTP: noop,
+        logout: () => { window.location.search = ''; }, completeProfile: noop,
+      }}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
+  return <RealAuthProvider>{children}</RealAuthProvider>;
+};
+
+const RealAuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
       const cached = localStorage.getItem('fast_load_cache');

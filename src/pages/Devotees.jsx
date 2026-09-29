@@ -185,7 +185,7 @@ const Devotees = () => {
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-saffron to-gold text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-6 py-2.5 bg-saffron text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
           >
             <Plus size={20} />
             <span>Add Devotee</span>
@@ -285,7 +285,7 @@ const Devotees = () => {
                   </div>
 
                   <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-saffron/10 to-gold/10 p-1 shrink-0 shadow-inner">
+                    <div className="w-16 h-16 rounded-2xl bg-saffron p-1 shrink-0 shadow-inner">
                       <img 
                         src={getSafeProfileImage(devotee.photo, devotee.name)} 
                         className="w-full h-full rounded-2xl object-cover" 
@@ -356,7 +356,7 @@ const Devotees = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={handleCloseModal}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -464,7 +464,7 @@ const Devotees = () => {
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 py-3.5 px-6 bg-gradient-to-r from-saffron to-gold text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+                    className="flex-1 py-3.5 px-6 bg-saffron text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
                   >
                     {editingDevotee ? 'Update Devotee' : 'Save Devotee'}
                   </button>
@@ -484,13 +484,13 @@ const Devotees = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setQrModalDevotee(null)}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
+              className="absolute inset-0 bg-gray-900/60"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm max-h-[90vh] bg-white rounded-[2rem] sm:rounded-[3.5rem] shadow-premium-xl overflow-hidden text-center border border-white flex flex-col"
+              className="relative w-full max-w-sm max-h-[90vh] bg-white rounded-xl sm:rounded-xl shadow-premium-xl overflow-hidden text-center border border-white flex flex-col"
             >
               <button
                 onClick={() => setQrModalDevotee(null)}
@@ -503,24 +503,24 @@ const Devotees = () => {
               <div className="p-6 sm:p-10 overflow-y-auto">
                 <div className="mb-4">
                   <span className="text-[10px] font-black text-saffron uppercase tracking-[0.4rem] block mb-2">Vaikuntha ID Card</span>
-                  <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-6 sm:mb-10 pr-8">Permanent pass</h2>
+                  <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight uppercase leading-none mb-6 sm:mb-10 pr-8">Permanent pass</h2>
                 </div>
 
                 {qrModalDevotee.qrToken ? (
                   <QRView value={qrModalDevotee.qrToken} name={qrModalDevotee.name} />
                 ) : (
                   <div className="py-10 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
-                     <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-4">No token yet</p>
+                     <p className="text-gray-400 font-bold uppercase tracking-label text-xs mb-4">No token yet</p>
                      <button
                        onClick={() => generateQrToken(qrModalDevotee)}
-                       className="px-6 py-3 bg-saffron text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-saffron-dark transition-all"
+                       className="px-6 py-3 bg-saffron text-white rounded-xl font-bold text-xs uppercase tracking-label hover:bg-saffron-dark transition-all"
                      >
                        Generate QR Token
                      </button>
                   </div>
                 )}
 
-                <p className="mt-8 text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
+                <p className="mt-8 text-[11px] font-bold text-gray-400 uppercase tracking-label leading-relaxed">
                   Scan for Attendance & Prasadam <br/>
                   <span className="text-saffron-dark/40 font-black">Folkvizag Devotee Management</span>
                 </p>

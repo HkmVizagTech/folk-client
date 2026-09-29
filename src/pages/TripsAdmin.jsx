@@ -242,7 +242,7 @@ const payMeta = (state) => PAY_STATES[state] || PAY_STATES.unpaid
 
 const inputClass =
   'w-full px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-sm min-h-[44px]'
-const labelClass = 'text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1'
+const labelClass = 'text-[10px] font-black text-gray-400 uppercase tracking-label ml-1'
 
 /* ------------------------------------------------------------------ *
  *  Module-level sub components (kept outside so typing never remounts)
@@ -346,7 +346,7 @@ const SummaryTile = ({ label, value, sub, icon: Icon, tone = 'saffron' }) => {
     <div className={`rounded-2xl p-3.5 sm:p-4 bg-gradient-to-br ${tones[tone]} border border-white/60 shadow-premium user-text-box`}>
       <div className="flex items-center gap-2 mb-1 user-text-box">
         {Icon && <Icon size={14} className="shrink-0" />}
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80 truncate">{label}</p>
+        <p className="text-[9px] font-black uppercase tracking-label opacity-80 truncate">{label}</p>
       </div>
       <p className="text-lg sm:text-xl font-black leading-tight user-text">{value}</p>
       {sub && <p className="text-[10px] font-bold opacity-60 mt-0.5 user-text">{sub}</p>}
@@ -361,7 +361,7 @@ const PayChip = ({ pay, size = 'sm' }) => {
   const Icon = meta.icon
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-black rounded-lg uppercase tracking-widest border whitespace-nowrap ${meta.chip} ${
+      className={`inline-flex items-center gap-1.5 font-black rounded-lg uppercase tracking-label border whitespace-nowrap ${meta.chip} ${
         size === 'md' ? 'text-[10px] px-2.5 py-1.5' : 'text-[9px] px-2 py-1'
       }`}
     >
@@ -392,7 +392,7 @@ const RailToggle = ({ on, onToggle, icon: Icon, title, onCopy, offCopy }) => (
       </div>
       <div className="flex-1 min-w-0 user-text-box">
         <div className="flex items-center justify-between gap-2">
-          <p className={`text-xs font-black uppercase tracking-widest ${on ? 'text-emerald-700' : 'text-gray-400'}`}>
+          <p className={`text-xs font-black uppercase tracking-label ${on ? 'text-emerald-700' : 'text-gray-400'}`}>
             {title}
           </p>
           {on ? <ToggleRight size={24} className="text-emerald-500 shrink-0" /> : <ToggleLeft size={24} className="text-gray-300 shrink-0" />}
@@ -1158,25 +1158,25 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       <div className="text-[11px] text-gray-500 space-y-2 user-text-box">
         {pay.cashDone && (
           <p className="user-text">
-            <span className="font-black uppercase tracking-widest text-[9px] text-teal-600">Cash recorded</span><br />
+            <span className="font-black uppercase tracking-label text-[9px] text-teal-600">Cash recorded</span><br />
             {formatINR(pay.cashAmount)} · {formatStamp(pay.cashAt)}
             {pay.cashBy ? <> · by <span className="font-mono">{pay.cashBy}</span></> : null}
           </p>
         )}
         {pay.orderId && (
           <p className="user-text">
-            <span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Razorpay order</span><br />
+            <span className="font-black uppercase tracking-label text-[9px] text-gray-400">Razorpay order</span><br />
             <span className="font-mono">{pay.orderId}</span>
           </p>
         )}
         {reg.travellerNotes && (
-          <p className="user-text"><span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Traveller note</span><br />{reg.travellerNotes}</p>
+          <p className="user-text"><span className="font-black uppercase tracking-label text-[9px] text-gray-400">Traveller note</span><br />{reg.travellerNotes}</p>
         )}
         {reg.emergencyContact && (
-          <p className="user-text"><span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Emergency contact</span><br />{reg.emergencyContact}</p>
+          <p className="user-text"><span className="font-black uppercase tracking-label text-[9px] text-gray-400">Emergency contact</span><br />{reg.emergencyContact}</p>
         )}
         {!expanded && reg.staffNotes && (
-          <p className="user-text"><span className="font-black uppercase tracking-widest text-[9px] text-gray-400">Staff note</span><br />{reg.staffNotes}</p>
+          <p className="user-text"><span className="font-black uppercase tracking-label text-[9px] text-gray-400">Staff note</span><br />{reg.staffNotes}</p>
         )}
       </div>
       {expanded && (
@@ -1215,7 +1215,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       <div className="h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-saffron" size={40} />
-          <p className="text-gray-400 font-black uppercase tracking-[0.3em] text-[10px]">Loading Yatras…</p>
+          <p className="text-gray-400 font-black uppercase tracking-label text-[10px]">Loading Yatras…</p>
         </div>
       </div>
     )
@@ -1233,7 +1233,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         <div className="min-w-0">
           <button
             onClick={() => setActiveTab && setActiveTab('admin')}
-            className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-saffron transition-colors min-h-[44px]"
+            className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-label text-gray-400 hover:text-saffron transition-colors min-h-[44px]"
           >
             <ChevronLeft size={14} /> Command Center
           </button>
@@ -1241,7 +1241,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <h1 className="text-2xl sm:text-3xl font-bold font-poppins text-saffron-dark">Trips & Yatras</h1>
             <Bus className="text-saffron shrink-0" size={24} />
             {isAdmin && (
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-saffron/10 text-saffron text-[9px] font-black uppercase tracking-widest">
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-saffron/10 text-saffron text-[9px] font-black uppercase tracking-label">
                 <ShieldCheck size={11} /> Admin
               </span>
             )}
@@ -1254,7 +1254,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         <div className="flex flex-col sm:flex-row gap-3 shrink-0">
           <Button
             onClick={openCreate}
-            className="w-full sm:w-auto min-h-[44px] px-6 bg-gradient-to-r from-saffron to-gold shadow-lg font-bold rounded-2xl flex items-center justify-center gap-2"
+            className="w-full sm:w-auto min-h-[44px] px-6 bg-saffron shadow-lg font-bold rounded-2xl flex items-center justify-center gap-2"
           >
             <Plus size={18} /> New Trip
           </Button>
@@ -1273,8 +1273,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <button
               key={tab.key}
               onClick={() => setView(tab.key)}
-              className={`flex-1 sm:flex-none min-h-[44px] px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
-                active ? 'bg-gradient-to-r from-saffron to-gold text-white shadow-md' : 'text-gray-400 hover:text-saffron'
+              className={`flex-1 sm:flex-none min-h-[44px] px-5 rounded-xl text-xs font-black uppercase tracking-label transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                active ? 'bg-saffron text-white shadow-md' : 'text-gray-400 hover:text-saffron'
               }`}
             >
               <Icon size={15} /> {tab.label}
@@ -1305,7 +1305,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
           {sortedTrips.length === 0 ? (
             <Card className="p-10 text-center border-none shadow-sm bg-white">
               <Bus className="mx-auto text-saffron/30 mb-4" size={44} />
-              <p className="text-gray-400 italic text-sm mb-5">No trips yet — create the first yatra.</p>
+              <p className="text-gray-400 text-sm mb-5">No trips yet — create the first yatra.</p>
               <Button onClick={openCreate} className="mx-auto px-8 rounded-2xl font-bold">
                 <Plus size={18} /> New Trip
               </Button>
@@ -1318,11 +1318,11 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   const busy = tripBusy === trip.id
                   return (
                     <motion.div key={trip.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}>
-                      <Card hover={false} className="p-4 sm:p-5 border-none shadow-premium bg-white rounded-[1.5rem] sm:rounded-[2rem]">
+                      <Card hover={false} className="p-4 sm:p-5 border-none shadow-premium bg-white rounded-xl sm:rounded-xl">
                         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
 
                           {/* thumb */}
-                          <div className="w-full h-36 lg:w-28 lg:h-20 shrink-0 rounded-2xl overflow-hidden bg-gradient-to-br from-saffron/10 to-gold/10 flex items-center justify-center">
+                          <div className="w-full h-36 lg:w-28 lg:h-20 shrink-0 rounded-2xl overflow-hidden bg-saffron flex items-center justify-center">
                             {trip.coverImage ? (
                               <img src={trip.coverImage} alt={trip.title} className="w-full h-full object-cover" />
                             ) : (
@@ -1334,27 +1334,27 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                           <div className="flex-1 min-w-0 user-text-box">
                             <h3 className="font-bold text-gray-800 text-sm sm:text-base user-text">{trip.title || 'Untitled trip'}</h3>
                             <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                              <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border whitespace-nowrap ${tripStatusClass(trip.status)}`}>
+                              <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${tripStatusClass(trip.status)}`}>
                                 {trip.status || 'draft'}
                               </span>
-                              <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border whitespace-nowrap ${
+                              <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${
                                 trip.registrationOpen ? 'text-green-600 bg-green-50 border-green-200' : 'text-gray-400 bg-gray-50 border-gray-200'
                               }`}>
                                 {trip.registrationOpen ? 'Registrations open' : 'Registrations closed'}
                               </span>
                               {/* payment rails at a glance — absent field means online is on */}
                               {trip.onlinePaymentEnabled !== false && (
-                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border text-emerald-700 bg-emerald-50 border-emerald-200 inline-flex items-center gap-1 whitespace-nowrap">
+                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border text-emerald-700 bg-emerald-50 border-emerald-200 inline-flex items-center gap-1 whitespace-nowrap">
                                   <CreditCard size={10} /> Online
                                 </span>
                               )}
                               {trip.cashPaymentEnabled === true && (
-                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border text-teal-700 bg-teal-50 border-teal-200 inline-flex items-center gap-1 whitespace-nowrap">
+                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border text-teal-700 bg-teal-50 border-teal-200 inline-flex items-center gap-1 whitespace-nowrap">
                                   <Banknote size={10} /> Cash
                                 </span>
                               )}
                               {trip.onlinePaymentEnabled === false && trip.cashPaymentEnabled !== true && (
-                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border text-amber-700 bg-amber-50 border-amber-200 inline-flex items-center gap-1 whitespace-nowrap">
+                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border text-amber-700 bg-amber-50 border-amber-200 inline-flex items-center gap-1 whitespace-nowrap">
                                   <AlertTriangle size={10} /> No payment
                                 </span>
                               )}
@@ -1477,7 +1477,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
           </div>
 
           {/* filters */}
-          <Card hover={false} className="p-4 sm:p-5 border-none shadow-premium bg-white rounded-[1.5rem] sm:rounded-[2rem]">
+          <Card hover={false} className="p-4 sm:p-5 border-none shadow-premium bg-white rounded-xl sm:rounded-xl">
             <div className="space-y-3">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={16} />
@@ -1536,7 +1536,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                         type="button"
                         aria-pressed={active}
                         onClick={() => setFilterMethod(m.key)}
-                        className={`flex-1 min-w-0 min-h-[44px] px-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all ${
+                        className={`flex-1 min-w-0 min-h-[44px] px-2 rounded-lg text-[10px] font-black uppercase tracking-label flex items-center justify-center gap-1.5 transition-all ${
                           active ? 'bg-white text-saffron-dark shadow-sm' : 'text-gray-400 hover:text-saffron'
                         }`}
                       >
@@ -1551,7 +1551,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   variant="secondary"
                   onClick={exportRegistrations}
                   disabled={filteredRegs.length === 0}
-                  className="w-full sm:w-auto shrink-0 min-h-[44px] px-5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-40 flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto shrink-0 min-h-[44px] px-5 rounded-xl text-xs font-black uppercase tracking-label disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   <Download size={15} /> Export CSV
                 </Button>
@@ -1565,7 +1565,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   <button
                     type="button"
                     onClick={() => { setFilterTrip('all'); setFilterStatus('all'); setFilterMethod('all'); setSearch('') }}
-                    className="min-h-[44px] px-3 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-saffron hover:bg-cream/50 transition-colors shrink-0"
+                    className="min-h-[44px] px-3 rounded-lg text-[10px] font-black uppercase tracking-label text-gray-400 hover:text-saffron hover:bg-cream/50 transition-colors shrink-0"
                   >
                     Clear filters
                   </button>
@@ -1583,8 +1583,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
           {regsLoading && (registrations || []).length === 0 ? (
             <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-saffron" size={28} /></div>
           ) : filteredRegs.length === 0 ? (
-            <Card className="p-8 sm:p-12 text-center border-none shadow-sm bg-white rounded-[1.5rem] sm:rounded-[2rem]">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-saffron/10 to-gold/10 flex items-center justify-center mx-auto mb-4">
+            <Card className="p-8 sm:p-12 text-center border-none shadow-sm bg-white rounded-xl sm:rounded-xl">
+              <div className="w-14 h-14 rounded-2xl bg-saffron flex items-center justify-center mx-auto mb-4">
                 <Users className="text-saffron/50" size={26} />
               </div>
               <p className="font-bold text-gray-600 text-sm">
@@ -1599,7 +1599,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <button
                   type="button"
                   onClick={() => { setFilterTrip('all'); setFilterStatus('all'); setFilterMethod('all'); setSearch('') }}
-                  className="mt-5 min-h-[44px] px-6 rounded-2xl bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-widest hover:bg-saffron hover:text-white transition-colors"
+                  className="mt-5 min-h-[44px] px-6 rounded-2xl bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-label hover:bg-saffron hover:text-white transition-colors"
                 >
                   Clear filters
                 </button>
@@ -1631,7 +1631,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
 
                         <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                           <PayChip pay={pay} />
-                          <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border whitespace-nowrap ${regStatusClass(status)}`}>
+                          <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${regStatusClass(status)}`}>
                             {regStatusIcon(status)} {status}
                           </span>
                         </div>
@@ -1672,11 +1672,11 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             </div>
 
             {/* ---- md and up: the reconciliation table ---- */}
-            <Card hover={false} className="hidden md:block p-0 border-none shadow-premium bg-white rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden">
+            <Card hover={false} className="hidden md:block p-0 border-none shadow-premium bg-white rounded-xl sm:rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[960px]">
                   <thead>
-                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 bg-cream/20">
+                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-label border-b border-gray-100 bg-cream/20">
                       <th className="py-4 px-5 font-black">Devotee</th>
                       <th className="py-4 px-3 font-black">Trip</th>
                       <th className="py-4 px-3 font-black">Seats</th>
@@ -1738,7 +1738,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                               </div>
                             </td>
                             <td className="py-4 px-3">
-                              <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border whitespace-nowrap ${regStatusClass(status)}`}>
+                              <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${regStatusClass(status)}`}>
                                 {regStatusIcon(status)} {status}
                               </span>
                             </td>
@@ -1776,11 +1776,11 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={closeModal}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+              className="absolute inset-0 bg-gray-900/60"
             />
             <motion.div
               initial={{ scale: 0.95, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 30 }}
-              className="relative w-full max-w-3xl bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-premium-xl overflow-y-auto max-h-[90vh] border border-saffron/10"
+              className="relative w-full max-w-3xl bg-white rounded-xl sm:rounded-xl shadow-premium-xl overflow-y-auto max-h-[90vh] border border-saffron/10"
             >
               <button
                 onClick={closeModal}
@@ -1791,7 +1791,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               </button>
 
               <div className="p-5 sm:p-8 pb-0">
-                <div className="w-12 h-12 bg-gradient-to-br from-saffron to-gold rounded-2xl flex items-center justify-center mb-3 shadow-lg">
+                <div className="w-12 h-12 bg-saffron rounded-2xl flex items-center justify-center mb-3 shadow-lg">
                   <Sparkles className="text-white" size={22} />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 pr-12">
@@ -1812,8 +1812,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                         key={s.key}
                         type="button"
                         onClick={() => setSection(s.key)}
-                        className={`relative min-h-[44px] px-4 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap flex items-center gap-2 transition-all ${
-                          active ? 'bg-gradient-to-r from-saffron to-gold text-white shadow-md' : 'bg-cream/40 text-gray-400 hover:text-saffron'
+                        className={`relative min-h-[44px] px-4 rounded-xl text-[11px] font-black uppercase tracking-label whitespace-nowrap flex items-center gap-2 transition-all ${
+                          active ? 'bg-saffron text-white shadow-md' : 'bg-cream/40 text-gray-400 hover:text-saffron'
                         }`}
                       >
                         <Icon size={14} /> {s.label}
@@ -1857,7 +1857,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                           type="button"
                           aria-label="Regenerate slug from title"
                           onClick={() => { setSlugTouched(true); setField('slug', slugify(form.title)) }}
-                          className="min-h-[44px] px-4 rounded-xl bg-saffron/10 text-saffron text-[10px] font-black uppercase tracking-widest hover:bg-saffron hover:text-white transition-colors shrink-0"
+                          className="min-h-[44px] px-4 rounded-xl bg-saffron/10 text-saffron text-[10px] font-black uppercase tracking-label hover:bg-saffron hover:text-white transition-colors shrink-0"
                         >
                           Auto
                         </button>
@@ -2011,7 +2011,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                           type="button"
                           onClick={() => setField('registrationOpen', !form.registrationOpen)}
                           aria-label={form.registrationOpen ? 'Close registrations' : 'Open registrations'}
-                          className={`w-full min-h-[44px] px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-between transition-colors ${
+                          className={`w-full min-h-[44px] px-4 rounded-xl text-xs font-black uppercase tracking-label flex items-center justify-between transition-colors ${
                             form.registrationOpen ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'
                           }`}
                         >
@@ -2057,7 +2057,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                           <div className="flex-1 min-w-0 text-[11px] font-medium leading-relaxed user-text-box">
                             {form.registrationOpen ? (
                               <>
-                                <p className="font-black uppercase tracking-widest text-[10px] mb-1">
+                                <p className="font-black uppercase tracking-label text-[10px] mb-1">
                                   Both payment methods are off while registrations are open
                                 </p>
                                 <p>
@@ -2099,7 +2099,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                       {docBytes > DOC_WARN_BYTES ? <AlertTriangle size={16} className="shrink-0 mt-0.5" /> : <CheckCircle2 size={16} className="shrink-0 mt-0.5" />}
                       <div className="flex-1 min-w-0">
                         <p>Estimated document size: {formatBytes(docBytes)} of the 1 MB Firestore limit</p>
-                        <div className="w-full h-1.5 bg-white/70 rounded-full mt-2 overflow-hidden">
+                        <div className="w-full h-1.5 bg-white rounded-full mt-2 overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${
                               docBytes > DOC_BLOCK_BYTES ? 'bg-red-500' : docBytes > DOC_WARN_BYTES ? 'bg-amber-500' : 'bg-emerald-500'
@@ -2123,7 +2123,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
 
                     <Field label="Cover Image" hint="resized to 1200px wide" error={showErrors ? errors.media : ''}>
                       <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="w-full sm:w-52 h-32 rounded-2xl overflow-hidden bg-gradient-to-br from-saffron/10 to-gold/10 flex items-center justify-center shrink-0">
+                        <div className="w-full sm:w-52 h-32 rounded-2xl overflow-hidden bg-saffron flex items-center justify-center shrink-0">
                           {form.coverImage ? (
                             <img src={form.coverImage} alt="Trip cover" className="w-full h-full object-cover" />
                           ) : (
@@ -2135,7 +2135,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
                               {uploading === 'cover' ? <Loader2 className="animate-spin text-saffron" size={18} /> : <ImageIcon className="text-gray-400" size={18} />}
                             </div>
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-label">
                               {uploading === 'cover' ? 'Processing…' : form.coverImage ? 'Replace cover' : 'Choose a cover'}
                             </span>
                             <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
@@ -2144,7 +2144,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             <button
                               type="button"
                               onClick={() => setField('coverImage', '')}
-                              className="min-h-[44px] px-4 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-100 transition-colors"
+                              className="min-h-[44px] px-4 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-label rounded-xl hover:bg-red-100 transition-colors"
                             >
                               Remove cover
                             </button>
@@ -2173,7 +2173,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             {uploading === 'gallery'
                               ? <Loader2 className="animate-spin text-saffron" size={18} />
                               : <Plus className="text-saffron/50" size={20} />}
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Add</span>
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-label">Add</span>
                             <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
                           </label>
                         )}
@@ -2188,7 +2188,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     {(form.itinerary || []).length === 0 && (
                       <div className="p-8 text-center bg-cream/30 rounded-2xl border border-dashed border-saffron/20">
                         <ListOrdered className="mx-auto text-saffron/30 mb-3" size={30} />
-                        <p className="text-gray-400 italic text-xs">No days added yet — build the day-by-day plan here.</p>
+                        <p className="text-gray-400 text-xs">No days added yet — build the day-by-day plan here.</p>
                       </div>
                     )}
 
@@ -2249,7 +2249,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     <button
                       type="button"
                       onClick={addDay}
-                      className="w-full min-h-[44px] py-3 bg-saffron/10 text-saffron-dark text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-saffron hover:text-white transition-colors flex items-center justify-center gap-2"
+                      className="w-full min-h-[44px] py-3 bg-saffron/10 text-saffron-dark text-xs font-black uppercase tracking-label rounded-2xl hover:bg-saffron hover:text-white transition-colors flex items-center justify-center gap-2"
                     >
                       <Plus size={16} /> Add Day
                     </button>
@@ -2276,7 +2276,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 )}
 
                 {/* ---------- footer ---------- */}
-                <div className="sticky bottom-0 -mx-5 sm:-mx-8 px-5 sm:px-8 pt-4 pb-1 bg-white/95 backdrop-blur-sm border-t border-gray-100 space-y-3">
+                <div className="sticky bottom-0 -mx-5 sm:-mx-8 px-5 sm:px-8 pt-4 pb-1 bg-white border-t border-gray-100 space-y-3">
                   {showErrors && hasErrors && (
                     <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold flex items-start gap-2">
                       <AlertTriangle size={14} className="shrink-0 mt-0.5" />
@@ -2289,21 +2289,21 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     </div>
                   )}
                   <div className="flex flex-col sm:flex-row gap-3 items-center">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-300 flex-1 text-center sm:text-left">
+                    <p className="text-[10px] font-black uppercase tracking-label text-gray-300 flex-1 text-center sm:text-left">
                       {formatBytes(docBytes)} / 1 MB
                     </p>
                     <button
                       type="button"
                       onClick={closeModal}
                       disabled={saving}
-                      className="w-full sm:w-auto min-h-[44px] px-6 rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      className="w-full sm:w-auto min-h-[44px] px-6 rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-label hover:bg-gray-200 transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <Button
                       type="submit"
                       disabled={saving}
-                      className="w-full sm:w-auto py-3 px-8 bg-gradient-to-r from-saffron to-gold shadow-lg font-bold rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50"
+                      className="w-full sm:w-auto py-3 px-8 bg-saffron shadow-lg font-bold rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50"
                     >
                       {saving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
                       {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Trip'}
@@ -2323,11 +2323,11 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !deleting && setDeleteTarget(null)}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+              className="absolute inset-0 bg-gray-900/60"
             />
             <motion.div
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-premium-xl p-6 sm:p-8 overflow-y-auto max-h-[90vh] border border-red-100"
+              className="relative w-full max-w-md bg-white rounded-xl sm:rounded-xl shadow-premium-xl p-6 sm:p-8 overflow-y-auto max-h-[90vh] border border-red-100"
             >
               <button
                 onClick={() => !deleting && setDeleteTarget(null)}
@@ -2368,14 +2368,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <button
                   onClick={() => setDeleteTarget(null)}
                   disabled={deleting}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-label hover:bg-gray-200 transition-colors disabled:opacity-50"
                 >
                   Keep it
                 </button>
                 <button
                   onClick={confirmDelete}
                   disabled={deleting || deleteText.trim() !== (deleteTarget.slug || '')}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-red-500 text-white text-xs font-black uppercase tracking-widest hover:bg-red-600 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-red-500 text-white text-xs font-black uppercase tracking-label hover:bg-red-600 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                   Delete Trip
@@ -2393,11 +2393,11 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !cashSaving && setCashTarget(null)}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+              className="absolute inset-0 bg-gray-900/60"
             />
             <motion.div
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-premium-xl p-5 sm:p-8 overflow-y-auto max-h-[90vh] border border-teal-100 user-text-box"
+              className="relative w-full max-w-md bg-white rounded-xl sm:rounded-xl shadow-premium-xl p-5 sm:p-8 overflow-y-auto max-h-[90vh] border border-teal-100 user-text-box"
             >
               <button
                 onClick={() => !cashSaving && setCashTarget(null)}
@@ -2453,14 +2453,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <button
                   onClick={() => setCashTarget(null)}
                   disabled={cashSaving}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-label hover:bg-gray-200 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmRecordCash}
                   disabled={cashSaving || !(toNumber(cashDraft) > 0)}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-teal-600 text-white text-xs font-black uppercase tracking-widest hover:bg-teal-700 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-teal-600 text-white text-xs font-black uppercase tracking-label hover:bg-teal-700 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   {cashSaving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
                   Record {formatINR(toNumber(cashDraft))}
@@ -2478,11 +2478,11 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !cashSaving && setUndoTarget(null)}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+              className="absolute inset-0 bg-gray-900/60"
             />
             <motion.div
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[1.75rem] sm:rounded-[2.5rem] shadow-premium-xl p-5 sm:p-8 overflow-y-auto max-h-[90vh] border border-amber-100 user-text-box"
+              className="relative w-full max-w-md bg-white rounded-xl sm:rounded-xl shadow-premium-xl p-5 sm:p-8 overflow-y-auto max-h-[90vh] border border-amber-100 user-text-box"
             >
               <button
                 onClick={() => !cashSaving && setUndoTarget(null)}
@@ -2513,14 +2513,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <button
                   onClick={() => setUndoTarget(null)}
                   disabled={cashSaving}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-label hover:bg-gray-200 transition-colors disabled:opacity-50"
                 >
                   Keep it
                 </button>
                 <button
                   onClick={confirmUndoCash}
                   disabled={cashSaving}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-amber-500 text-white text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-amber-500 text-white text-xs font-black uppercase tracking-label hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {cashSaving ? <Loader2 size={15} className="animate-spin" /> : <Undo2 size={15} />}
                   Undo record

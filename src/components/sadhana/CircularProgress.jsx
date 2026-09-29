@@ -23,13 +23,13 @@ const CircularProgress = ({ current, total, label }) => {
           animate={{ strokeDashoffset: circumference * (1 - percentage) }}
           transition={{ duration: 1.5, ease: "easeOut" }}
           strokeLinecap="round"
-          className="text-saffron drop-shadow-[0_0_8px_rgba(255,153,51,0.4)]" 
+          className="text-saffron" 
         />
       </svg>
       {label && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-4xl font-black text-saffron-dark leading-none">{Math.round(percentage * 100)}%</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-2">{label}</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-label mt-2">{label}</span>
         </div>
       )}
     </div>

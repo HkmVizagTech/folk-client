@@ -283,7 +283,7 @@ const Hostels = () => {
         {isStaff && (
           <Button
             onClick={openCreateListingModal}
-            className="w-full sm:w-auto min-h-[44px] px-6 bg-gradient-to-r from-saffron to-gold shadow-lg font-bold rounded-2xl flex items-center justify-center gap-2"
+            className="w-full sm:w-auto min-h-[44px] px-6 bg-saffron shadow-lg font-bold rounded-2xl flex items-center justify-center gap-2"
           >
             <Plus size={18} /> New Listing
           </Button>
@@ -301,7 +301,7 @@ const Hostels = () => {
 
         {activeListings.length === 0 ? (
           <Card className="p-10 text-center border-none shadow-sm bg-white">
-            <p className="text-gray-400 italic text-sm">No hostel listings available right now. Please check back soon.</p>
+            <p className="text-gray-400 text-sm">No hostel listings available right now. Please check back soon.</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -314,8 +314,8 @@ const Hostels = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                 >
-                  <Card className="p-0 border-none shadow-premium-xl rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden flex flex-col h-full bg-white">
-                    <div className="relative h-44 bg-gradient-to-br from-saffron/10 to-gold/10 overflow-hidden">
+                  <Card className="p-0 border-none shadow-premium-xl rounded-xl sm:rounded-xl overflow-hidden flex flex-col h-full bg-white">
+                    <div className="relative h-44 bg-saffron overflow-hidden">
                       {listing.img ? (
                         <img src={listing.img} alt={listing.name} className="w-full h-full object-cover" />
                       ) : (
@@ -323,11 +323,11 @@ const Hostels = () => {
                           <BedDouble size={48} className="text-saffron/30" />
                         </div>
                       )}
-                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-gray-700 shadow-md flex items-center gap-1.5">
+                      <div className="absolute top-4 right-4 bg-white px-3 py-1.5 rounded-xl text-[10px] font-black text-gray-700 shadow-md flex items-center gap-1.5">
                         <Users size={12} className="text-saffron" /> {listing.capacity || 1}
                       </div>
                       {isStaff && listing.active === false && (
-                        <div className="absolute top-4 left-4 bg-gray-900/80 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                        <div className="absolute top-4 left-4 bg-gray-900/80 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-label">
                           Hidden
                         </div>
                       )}
@@ -397,7 +397,7 @@ const Hostels = () => {
         </h2>
         {(myBookings || []).length === 0 ? (
           <Card className="p-8 text-center border-none shadow-sm bg-white">
-            <p className="text-gray-400 italic text-sm">You haven&apos;t requested a hostel stay yet.</p>
+            <p className="text-gray-400 text-sm">You haven&apos;t requested a hostel stay yet.</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -407,14 +407,14 @@ const Hostels = () => {
                   <Card className="p-5 border-none shadow-sm bg-white">
                     <div className="flex justify-between items-start gap-2 mb-2">
                       <h4 className="font-bold text-gray-800 text-sm truncate">{b.listingName}</h4>
-                      <span className={`shrink-0 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border whitespace-nowrap flex items-center gap-1 ${getStatusColor(b.status)}`}>
+                      <span className={`shrink-0 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-label border whitespace-nowrap flex items-center gap-1 ${getStatusColor(b.status)}`}>
                         {getStatusIcon(b.status)} {b.status}
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 font-medium">{b.checkIn} &rarr; {b.checkOut}</p>
                     <p className="text-xs text-gray-400 font-medium mt-1">{b.guestCount} guest{b.guestCount > 1 ? 's' : ''}</p>
                     {b.staffNotes && (
-                      <p className="text-xs text-gray-500 mt-2 italic bg-cream/50 rounded-lg p-2">&quot;{b.staffNotes}&quot;</p>
+                      <p className="text-xs text-gray-500 mt-2 bg-cream/50 rounded-lg p-2">&quot;{b.staffNotes}&quot;</p>
                     )}
                     {(b.status || '').toLowerCase() === 'pending' && (
                       <button
@@ -442,7 +442,7 @@ const Hostels = () => {
             </div>
             Manage Bookings
             {pendingBookings.length > 0 && (
-              <span className="text-[10px] font-black px-2 py-1 rounded-md bg-saffron text-white uppercase tracking-widest">
+              <span className="text-[10px] font-black px-2 py-1 rounded-md bg-saffron text-white uppercase tracking-label">
                 {pendingBookings.length} pending
               </span>
             )}
@@ -452,7 +452,7 @@ const Hostels = () => {
             <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-saffron" size={28} /></div>
           ) : (allBookings || []).length === 0 ? (
             <Card className="p-8 text-center border-none shadow-sm bg-white">
-              <p className="text-gray-400 italic text-sm">No bookings yet.</p>
+              <p className="text-gray-400 text-sm">No bookings yet.</p>
             </Card>
           ) : (
             <div className="space-y-3">
@@ -461,14 +461,14 @@ const Hostels = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-bold text-gray-800 text-sm">{b.listingName}</h4>
-                      <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border flex items-center gap-1 ${getStatusColor(b.status)}`}>
+                      <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-label border flex items-center gap-1 ${getStatusColor(b.status)}`}>
                         {getStatusIcon(b.status)} {b.status}
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 font-medium mt-1">
                       {b.userName || 'Devotee'} &middot; {b.checkIn} &rarr; {b.checkOut} &middot; {b.guestCount} guest{b.guestCount > 1 ? 's' : ''}
                     </p>
-                    {b.notes && <p className="text-xs text-gray-500 mt-1 italic">&quot;{b.notes}&quot;</p>}
+                    {b.notes && <p className="text-xs text-gray-500 mt-1">&quot;{b.notes}&quot;</p>}
                   </div>
                   {(b.status || '').toLowerCase() === 'pending' && (
                     <div className="flex gap-2 shrink-0">
@@ -502,11 +502,11 @@ const Hostels = () => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={closeBookingModal}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+              className="absolute inset-0 bg-gray-900/60"
             />
             <motion.div
               initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}
-              className="relative w-full max-w-lg bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-premium-xl p-6 sm:p-10 overflow-y-auto max-h-[90vh] border border-saffron/10"
+              className="relative w-full max-w-lg bg-white rounded-xl sm:rounded-xl shadow-premium-xl p-6 sm:p-10 overflow-y-auto max-h-[90vh] border border-saffron/10"
             >
               <button
                 onClick={closeBookingModal}
@@ -517,7 +517,7 @@ const Hostels = () => {
               </button>
 
               <div className="mb-8">
-                <div className="w-14 h-14 bg-gradient-to-br from-saffron to-gold rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+                <div className="w-14 h-14 bg-saffron rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                   <BedDouble className="text-white" size={26} />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900">Book: {bookingListing.name}</h2>
@@ -527,7 +527,7 @@ const Hostels = () => {
               <form onSubmit={handleBookingSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Check-in</label>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Check-in</label>
                     <input
                       required
                       type="date"
@@ -537,7 +537,7 @@ const Hostels = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Check-out</label>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Check-out</label>
                     <input
                       required
                       type="date"
@@ -549,7 +549,7 @@ const Hostels = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Number of Guests</label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Number of Guests</label>
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
@@ -572,7 +572,7 @@ const Hostels = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Notes (optional)</label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Notes (optional)</label>
                   <textarea
                     rows={3}
                     value={bookingForm.notes}
@@ -584,7 +584,7 @@ const Hostels = () => {
 
                 <Button
                   disabled={submittingBooking}
-                  className="w-full py-4 bg-gradient-to-r from-saffron to-gold shadow-lg font-bold rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full py-4 bg-saffron shadow-lg font-bold rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   {submittingBooking ? <Loader2 className="animate-spin" /> : <Send size={20} />}
                   {submittingBooking ? 'Submitting...' : 'Submit Booking Request'}
@@ -602,11 +602,11 @@ const Hostels = () => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={closeListingModal}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl"
+              className="absolute inset-0 bg-gray-900/60"
             />
             <motion.div
               initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}
-              className="relative w-full max-w-lg bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-premium-xl p-6 sm:p-10 overflow-y-auto max-h-[90vh] border border-saffron/10"
+              className="relative w-full max-w-lg bg-white rounded-xl sm:rounded-xl shadow-premium-xl p-6 sm:p-10 overflow-y-auto max-h-[90vh] border border-saffron/10"
             >
               <button
                 onClick={closeListingModal}
@@ -617,7 +617,7 @@ const Hostels = () => {
               </button>
 
               <div className="mb-8">
-                <div className="w-14 h-14 bg-gradient-to-br from-saffron to-gold rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+                <div className="w-14 h-14 bg-saffron rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                   <Sparkles className="text-white" size={26} />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900">{editingListingId ? 'Edit Listing' : 'New Hostel Listing'}</h2>
@@ -626,7 +626,7 @@ const Hostels = () => {
 
               <form onSubmit={handleListingSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Name</label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Name</label>
                   <input
                     required
                     type="text"
@@ -638,7 +638,7 @@ const Hostels = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Description</label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Description</label>
                   <textarea
                     rows={3}
                     value={listingForm.description}
@@ -650,7 +650,7 @@ const Hostels = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Capacity (beds)</label>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Capacity (beds)</label>
                     <input
                       required
                       type="number"
@@ -661,7 +661,7 @@ const Hostels = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Amenities (comma-separated)</label>
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Amenities (comma-separated)</label>
                     <input
                       type="text"
                       value={listingForm.amenities}
@@ -673,12 +673,12 @@ const Hostels = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Photo</label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Photo</label>
                   <label className="flex items-center gap-4 cursor-pointer w-full p-5 bg-cream/30 border-2 border-dashed border-saffron/20 rounded-2xl hover:bg-cream/50 transition-all overflow-hidden">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
                       <ImageIcon className="text-gray-400" size={20} />
                     </div>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest truncate">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-label truncate">
                       {listingForm.img ? 'Image selected' : 'Choose an image'}
                     </span>
                     <input type="file" accept="image/*" onChange={handleListingImageUpload} className="hidden" />
@@ -687,7 +687,7 @@ const Hostels = () => {
 
                 <Button
                   disabled={savingListing}
-                  className="w-full py-4 bg-gradient-to-r from-saffron to-gold shadow-lg font-bold rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full py-4 bg-saffron shadow-lg font-bold rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   {savingListing ? <Loader2 className="animate-spin" /> : <Plus size={20} />}
                   {savingListing ? 'Saving...' : editingListingId ? 'Save Changes' : 'Create Listing'}

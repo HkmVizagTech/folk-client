@@ -92,7 +92,7 @@ const isCompletedTrip = (trip, today) => {
  * directly, where the app shell (navbar) is not mounted.
  * ------------------------------------------------------------------ */
 const PublicTopBar = ({ onLoginClick }) => (
-  <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-saffron/10">
+  <header className="sticky top-0 z-40 bg-white/85 border-b border-saffron/10">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="h-16 sm:h-[70px] flex items-center justify-between gap-3">
         <a href="/" className="min-w-0 flex items-center shrink-0" aria-label="FOLK Vizag — home">
@@ -133,7 +133,7 @@ const TripCard = ({ trip, seatsLeft, onOpen, index }) => {
           open()
         }
       }}
-      className="group cursor-pointer h-full flex flex-col bg-white rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden shadow-premium hover:shadow-premium-xl border border-saffron/5 transition-all duration-300 hover:-translate-y-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
+      className="group cursor-pointer h-full flex flex-col bg-white rounded-xl sm:rounded-xl overflow-hidden shadow-premium hover:shadow-premium-xl border border-saffron/5 transition-all duration-300 hover:-translate-y-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
     >
       {/* Cover */}
       <div className="relative h-40 xs:h-44 sm:h-48 overflow-hidden">
@@ -157,7 +157,7 @@ const TripCard = ({ trip, seatsLeft, onOpen, index }) => {
             {statusLabel(status)}
           </span>
           {trip.registrationOpen === false && status !== 'completed' && status !== 'cancelled' && (
-            <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.14em] bg-white/90 text-gray-700 shadow-lg">
+            <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.14em] bg-white text-gray-700 shadow-lg">
               Registration closed
             </span>
           )}
@@ -236,10 +236,10 @@ const TripCard = ({ trip, seatsLeft, onOpen, index }) => {
 /* ------------------------------------------------------------------ */
 
 const EmptyState = ({ icon, title, body, action }) => (
-  <div className="py-14 sm:py-20 px-5 sm:px-6 text-center bg-white/70 rounded-[1.75rem] sm:rounded-[2rem] border border-dashed border-saffron/25 user-text-box">
+  <div className="py-14 sm:py-20 px-5 sm:px-6 text-center bg-white rounded-xl sm:rounded-xl border border-dashed border-saffron/25 user-text-box">
     <div className="relative w-16 h-16 mx-auto mb-5">
       <span className="absolute inset-0 rounded-3xl bg-saffron/10 blur-xl" aria-hidden="true" />
-      <span className="relative w-16 h-16 rounded-3xl bg-gradient-to-br from-saffron/15 to-gold/10 text-saffron flex items-center justify-center ring-1 ring-saffron/15">
+      <span className="relative w-16 h-16 rounded-3xl bg-saffron text-saffron flex items-center justify-center ring-1 ring-saffron/15">
         {icon}
       </span>
     </div>
@@ -252,7 +252,7 @@ const EmptyState = ({ icon, title, body, action }) => (
 /** Card-shaped placeholder — reads as the grid filling in, not as a stall. */
 const TripCardSkeleton = ({ index = 0 }) => (
   <div
-    className="h-full flex flex-col bg-white rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden shadow-premium border border-saffron/5 animate-pulse"
+    className="h-full flex flex-col bg-white rounded-xl sm:rounded-xl overflow-hidden shadow-premium border border-saffron/5 animate-pulse"
     style={{ animationDelay: `${index * 90}ms` }}
     aria-hidden="true"
   >
@@ -357,13 +357,13 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
   const content = (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 sm:space-y-10 pb-12">
       {/* ---------------- Hero header ---------------- */}
-      <section className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.75rem] bg-[#0B0A09] text-white">
+      <section className="relative overflow-hidden rounded-xl sm:rounded-xl bg-[#0B0A09] text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(255,153,51,0.35),transparent_58%),radial-gradient(circle_at_88%_85%,rgba(255,215,0,0.2),transparent_55%)]" aria-hidden="true" />
 
         <div className="relative z-10 px-5 sm:px-10 lg:px-14 py-9 sm:py-14 lg:py-16">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-7 sm:gap-8">
             <div className="max-w-2xl min-w-0">
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold uppercase tracking-[0.2em] text-white/85">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-label text-white/85">
                 <span className="w-2 h-2 rounded-full bg-saffron shadow-[0_0_12px_3px_rgba(255,153,51,0.7)]" />
                 Trips &amp; Yatras
               </span>
@@ -400,7 +400,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
               <button
                 type="button"
                 onClick={() => setActiveTab && setActiveTab('trips-admin')}
-                className="shrink-0 min-h-[48px] px-7 rounded-2xl bg-white text-gray-900 font-black text-[11px] uppercase tracking-[0.16em] hover:bg-saffron hover:text-white transition-colors inline-flex items-center justify-center gap-2 shadow-xl"
+                className="shrink-0 min-h-[48px] px-7 rounded-2xl bg-white text-gray-900 font-black text-[11px] uppercase tracking-label hover:bg-saffron hover:text-white transition-colors inline-flex items-center justify-center gap-2 shadow-xl"
               >
                 <Settings size={16} /> Manage Trips
               </button>
@@ -428,7 +428,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
               {tab === t.id && (
                 <motion.span
                   layoutId="tripsTabPill"
-                  className="absolute inset-0 rounded-xl bg-gradient-to-r from-saffron to-gold-dark shadow-lg shadow-saffron/25"
+                  className="absolute inset-0 rounded-xl bg-saffron shadow-lg"
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}
@@ -501,7 +501,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
               <button
                 type="button"
                 onClick={() => { setSearch(''); setLocationFilter('all') }}
-                className="mt-6 min-h-[44px] px-6 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.16em] text-[10px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
+                className="mt-6 min-h-[44px] px-6 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-label text-[10px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
               >
                 <X size={14} /> Clear filters
               </button>
@@ -516,7 +516,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
               <button
                 type="button"
                 onClick={() => setTab('completed')}
-                className="mt-6 min-h-[44px] px-6 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.16em] text-[10px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
+                className="mt-6 min-h-[44px] px-6 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-label text-[10px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
               >
                 Look back at past yatras <ArrowRight size={14} />
               </button>
@@ -531,7 +531,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
               <button
                 type="button"
                 onClick={() => setTab('upcoming')}
-                className="mt-6 min-h-[44px] px-6 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.16em] text-[10px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
+                className="mt-6 min-h-[44px] px-6 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-label text-[10px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
               >
                 See what&apos;s coming up <ArrowRight size={14} />
               </button>
@@ -555,11 +555,11 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
       )}
 
       {/* ---------------- Custom yatra CTA ---------------- */}
-      <section className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-white shadow-premium border border-saffron/10">
-        <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-saffron/10 blur-3xl" aria-hidden="true" />
+      <section className="relative overflow-hidden rounded-xl sm:rounded-xl bg-white shadow-premium border border-saffron/10">
+        <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-saffron/10 hidden" aria-hidden="true" />
         <div className="relative z-10 p-5 sm:p-10 flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 justify-between">
           <div className="flex items-start sm:items-center gap-4 min-w-0">
-            <div className="w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br from-saffron to-gold text-white flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 shrink-0 rounded-2xl bg-saffron text-white flex items-center justify-center shadow-lg">
               <Sparkles size={22} />
             </div>
             <div className="min-w-0">
@@ -573,7 +573,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
             href="https://wa.me/919154881444"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center justify-center gap-2 min-h-[48px] px-7 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.16em] text-[10px] hover:bg-saffron transition-colors"
+            className="shrink-0 inline-flex items-center justify-center gap-2 min-h-[48px] px-7 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-label text-[10px] hover:bg-saffron transition-colors"
           >
             <Ticket size={15} /> Plan with us
           </a>

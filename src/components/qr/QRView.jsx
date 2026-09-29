@@ -46,9 +46,9 @@ const QRView = ({ value, name = 'Devotee', size = 200 }) => {
     <div className="flex flex-col items-center gap-6">
       <div 
         ref={qrRef}
-        className="p-6 bg-white rounded-[2.5rem] shadow-premium border border-saffron/10 relative group"
+        className="p-6 bg-white rounded-xl shadow-premium border border-saffron/10 relative group"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-saffron/5 to-gold/5 rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        <div className="absolute inset-0 bg-saffron rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
         <QRCodeSVG 
           value={value} 
           size={size}
@@ -67,7 +67,7 @@ const QRView = ({ value, name = 'Devotee', size = 200 }) => {
 
       <div className="text-center">
         <h3 className="font-cinzel font-black text-xl text-gray-900 uppercase tracking-tight">{name}</h3>
-        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Permanent Pass</p>
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-label mt-1">Permanent Pass</p>
       </div>
 
       <motion.button

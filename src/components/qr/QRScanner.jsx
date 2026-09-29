@@ -56,7 +56,7 @@ const QRScanner = ({ onScan, onClose, mode = 'attendance' }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-gray-900/90 backdrop-blur-md"
+        className="absolute inset-0 bg-gray-900/90"
         onClick={onClose}
       />
       
@@ -64,12 +64,12 @@ const QRScanner = ({ onScan, onClose, mode = 'attendance' }) => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-full max-w-md bg-white rounded-[2rem] sm:rounded-[3rem] shadow-premium-xl overflow-x-hidden overflow-y-auto max-h-[90vh]"
+        className="relative w-full max-w-md bg-white rounded-xl sm:rounded-xl shadow-premium-xl overflow-x-hidden overflow-y-auto max-h-[90vh]"
       >
         <div className="p-5 sm:p-8 border-b border-gray-100 flex items-center justify-between gap-3 bg-white sticky top-0 z-10">
           <div className="min-w-0">
-            <span className="text-[10px] font-black text-saffron uppercase tracking-[0.3em] block mb-1">Scanner Active</span>
-            <h3 className="text-lg sm:text-xl font-black text-gray-900 uppercase tracking-tight italic truncate">
+            <span className="text-[10px] font-black text-saffron uppercase tracking-label block mb-1">Scanner Active</span>
+            <h3 className="text-lg sm:text-xl font-black text-gray-900 uppercase tracking-tight truncate">
               {mode === 'prasadam' ? 'Prasadam Mode' : 'Attendance Mode'}
             </h3>
           </div>
@@ -90,14 +90,14 @@ const QRScanner = ({ onScan, onClose, mode = 'attendance' }) => {
                 <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-saffron shrink-0">
                    <Camera size={20} />
                 </div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-label leading-relaxed">
                    Align QR code within the frame <br/> to auto-trigger scan
                 </p>
              </div>
 
              <button
                onClick={() => window.location.reload()}
-               className="w-full py-4 min-h-[44px] text-[10px] font-black text-gray-400 hover:text-saffron uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all"
+               className="w-full py-4 min-h-[44px] text-[10px] font-black text-gray-400 hover:text-saffron uppercase tracking-label flex items-center justify-center gap-2 transition-all"
              >
                 <RefreshCw size={14} /> Reset Camera
              </button>

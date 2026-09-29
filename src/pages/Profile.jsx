@@ -149,12 +149,12 @@ const Profile = () => {
   const renderDetailItem = (icon, label, value, name, type = "text", options = null) => {
     const Icon = icon;
     return (
-      <div className="flex items-center gap-4 p-4 bg-white/50 rounded-2xl border border-saffron/5 hover:border-saffron/20 transition-all group">
+      <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-saffron/5 hover:border-saffron/20 transition-all group">
         <div className="w-10 h-10 rounded-xl bg-saffron/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
           <Icon className="text-saffron" size={20} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-label mb-1">{label}</p>
           {isEditing ? (
             options ? (
               <select
@@ -176,7 +176,7 @@ const Profile = () => {
             )
           ) : (
             <p className="text-gray-800 font-bold truncate">
-              {value || <span className="text-gray-300 italic font-normal">Not specified</span>}
+              {value || <span className="text-gray-300 font-normal">Not specified</span>}
             </p>
           )}
         </div>
@@ -216,7 +216,7 @@ const Profile = () => {
       </AnimatePresence>
 
       {/* Top Section / Header */}
-      <div className="relative rounded-[2.5rem] overflow-hidden shadow-premium-xl bg-white mb-8 group">
+      <div className="relative rounded-xl overflow-hidden shadow-premium-xl bg-white mb-8 group">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-saffron/10 to-saffron/20" />
         <div className="relative p-8 md:p-12 flex flex-col items-center">
           
@@ -260,12 +260,12 @@ const Profile = () => {
               {formData.name || 'Your Name'}
             </h1>
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-              <span className="px-3 py-1 bg-white/80 rounded-full text-[10px] font-black text-gray-500 shadow-sm border border-gray-100 uppercase tracking-widest">
+              <span className="px-3 py-1 bg-white rounded-full text-[10px] font-black text-gray-500 shadow-sm border border-gray-100 uppercase tracking-label">
                 ID: {user?.qrToken?.substring(0, 8).toUpperCase() || 'NEW-USER'}
               </span>
               <span className={cn(
-                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                user?.role === 'admin' ? "bg-red-500 text-white" : "bg-saffron text-white shadow-saffron/20"
+                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-label",
+                user?.role === 'admin' ? "bg-red-500 text-white" : "bg-saffron text-white"
               )}>
                 {user?.role || 'Devotee'}
               </span>
@@ -280,7 +280,7 @@ const Profile = () => {
               aria-label={isEditing ? 'Save profile' : 'Edit profile'}
               className={cn(
                 "w-11 h-11 sm:w-12 sm:h-12 rounded-2xl shadow-lg border flex items-center justify-center transition-all group",
-                isEditing ? "bg-saffron text-white border-saffron shadow-saffron/20" : "bg-white text-saffron border-saffron/10 hover:bg-saffron hover:text-white"
+                isEditing ? "bg-saffron text-white border-saffron" : "bg-white text-saffron border-saffron/10 hover:bg-saffron hover:text-white"
               )}
             >
               {loading ? <Loader2 size={24} className="animate-spin" /> : (isEditing ? <Save size={24} /> : <Edit2 size={24} />)}
@@ -308,7 +308,7 @@ const Profile = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 p-1.5 bg-white/50 backdrop-blur-md rounded-2xl border border-saffron/10 mb-8 sticky top-24 z-30 shadow-sm">
+      <div className="flex gap-2 p-1.5 bg-white rounded-2xl border border-saffron/10 mb-8 sticky top-24 z-30 shadow-sm">
         {[
           { id: 'profile', icon: <User size={18} />, label: 'Profile' },
           { id: 'attendance', icon: <Calendar size={18} />, label: 'Attendance' },
@@ -321,7 +321,7 @@ const Profile = () => {
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-1 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all",
               activeSubTab === tab.id
-                ? "bg-saffron text-white shadow-lg shadow-saffron/20"
+                ? "bg-saffron text-white shadow-lg"
                 : "text-gray-400 hover:text-saffron hover:bg-saffron/5"
             )}
           >
@@ -342,7 +342,7 @@ const Profile = () => {
           >
             <div className="md:col-span-2 flex items-center gap-2 mb-2 px-2">
               <Info className="text-saffron" size={16} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Personal Details</h3>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Personal Details</h3>
             </div>
             
             {renderDetailItem(Mail, "Email Address", formData.email, "email", "email")}
@@ -354,7 +354,7 @@ const Profile = () => {
             
             <div className="md:col-span-2 flex items-center gap-2 mt-6 mb-2 px-2 border-t border-saffron/5 pt-6">
               <MapPin className="text-saffron" size={16} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Location Info</h3>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Location Info</h3>
             </div>
             
             {renderDetailItem(Globe, "Country", formData.country, "country")}
@@ -364,7 +364,7 @@ const Profile = () => {
 
             <div className="md:col-span-2 flex items-center gap-2 mt-6 mb-2 px-2 border-t border-saffron/5 pt-6">
               <Plus className="text-saffron" size={16} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Family Details</h3>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Family Details</h3>
             </div>
 
             {renderDetailItem(User, "Father's Name", formData.fatherName, "fatherName")}
@@ -379,11 +379,11 @@ const Profile = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="bg-white/50 backdrop-blur-sm rounded-[3rem] p-6 sm:p-10 border border-saffron/10"
+            className="bg-white rounded-xl p-6 sm:p-10 border border-saffron/10"
           >
             <div className="flex items-center gap-3 mb-8">
               <Calendar className="text-saffron" size={20} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Attendance History</h3>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Attendance History</h3>
             </div>
             {attendanceLoading ? (
               <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-saffron" size={32} /></div>
@@ -400,7 +400,7 @@ const Profile = () => {
                 ))}
               </div>
             ) : (
-              <div className="py-16 text-center text-gray-400 italic">No attendance records yet.</div>
+              <div className="py-16 text-center text-gray-400">No attendance records yet.</div>
             )}
           </motion.div>
         )}
@@ -411,11 +411,11 @@ const Profile = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="bg-white/50 backdrop-blur-sm rounded-[3rem] p-6 sm:p-10 border border-saffron/10"
+            className="bg-white rounded-xl p-6 sm:p-10 border border-saffron/10"
           >
             <div className="flex items-center gap-3 mb-8">
               <CreditCard className="text-saffron" size={20} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Payment History</h3>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Payment History</h3>
             </div>
             {paymentsLoading ? (
               <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-saffron" size={32} /></div>
@@ -441,14 +441,14 @@ const Profile = () => {
                 ))}
               </div>
             ) : (
-              <div className="py-16 text-center text-gray-400 italic">No payment records yet.</div>
+              <div className="py-16 text-center text-gray-400">No payment records yet.</div>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Profile Completion Indicator */}
-      <div className="mt-12 p-6 sm:p-10 bg-gradient-to-br from-saffron/5 to-gold/10 rounded-[2rem] sm:rounded-[3rem] border border-saffron/10 relative overflow-hidden group">
+      <div className="mt-12 p-6 sm:p-10 bg-saffron rounded-xl sm:rounded-xl border border-saffron/10 relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-8 text-saffron opacity-[0.03] group-hover:scale-110 transition-transform">
           <Award size={160} />
         </div>
@@ -464,7 +464,7 @@ const Profile = () => {
                 initial={{ width: 0 }}
                 animate={{ width: `${completionPercent}%` }}
                 transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-saffron to-gold"
+                className="h-full bg-saffron"
               />
             </div>
             <span className="text-2xl sm:text-3xl font-black text-saffron-dark drop-shadow-sm leading-none">{completionPercent}%</span>

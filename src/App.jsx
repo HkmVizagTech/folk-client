@@ -6,6 +6,7 @@ import AdminLogin from './pages/AdminLogin'
 import AdminAccessDenied from './pages/AdminAccessDenied'
 import Events from './pages/Events'
 import SadhanaTracker from './pages/SadhanaTracker'
+import MemberHome from './pages/MemberHome'
 import Accommodation from './pages/Accommodation'
 import Hostels from './pages/Hostels'
 import Attendance from './pages/Attendance'
@@ -35,6 +36,7 @@ const TAB_TO_PATH = {
   devotees: '/devotees',
   events: '/events',
   dashboard: '/',
+  sadhana: '/sadhana',
   accommodation: '/accommodation',
   hostels: '/hostels',
   attendance: '/attendance',
@@ -208,6 +210,8 @@ function App() {
       case 'events': 
         return <Events />
       case 'dashboard': 
+        return <MemberHome setActiveTab={setActiveTab} />
+      case 'sadhana':
         return <SadhanaTracker />
       case 'accommodation':
         return <Accommodation />

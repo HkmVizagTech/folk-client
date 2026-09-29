@@ -1,103 +1,88 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { 
-  LayoutDashboard, 
-  User, 
-  Calendar, 
-  TrendingUp, 
-  Home, 
-  CheckSquare, 
-  X, 
-  Menu,
-  ChevronRight,
-  Shield,
-  Heart
-} from 'lucide-react'
-import { cn } from '../ui/Card'
-import { useAuth } from '../../hooks/useAuth'
+import React from 'react';
+import { LogOut } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { visibleGroups, roleLabel } from './navConfig';
 
-const NavItem = ({ icon, label, active, isOpen, onClick }) => (
-  <motion.div 
-    whileHover={{ x: 5 }}
-    onClick={onClick}
-    className={cn(
-      "flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all",
-      active ? 'bg-gradient-to-r from-saffron/10 to-gold/10 text-saffron-dark ring-1 ring-saffron/20' : 'text-gray-500 hover:text-saffron hover:bg-saffron/5'
-    )}
-  >
-    <div className={cn(active ? 'text-saffron' : 'text-gray-400')}>
-      {React.cloneElement(icon, { size: 24 })}
-    </div>
-    {isOpen && (
-      <motion.span 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-medium whitespace-nowrap"
-      >
-        {label}
-      </motion.span>
-    )}
-    {active && isOpen && <ChevronRight className="ml-auto text-saffron" size={16} />}
-  </motion.div>
-)
+const initials = (name = '') =>
+  name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'F';
 
-const Sidebar = ({ isOpen, setIsOpen, activeTab, setActiveTab }) => {
-  const { user } = useAuth();
-  
-  const allItems = [
-    { id: 'admin', icon: <Shield />, label: "Command Center", roles: ['admin', 'folks_head'] },
-    { id: 'devotees', icon: <User />, label: "Devotees", roles: ['admin', 'folks_head'] },
-    { id: 'events', icon: <Calendar />, label: "Event Management", roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'seva', icon: <Heart />, label: "Seva Management", roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'dashboard', icon: <TrendingUp />, label: "Sadhana Tracker", roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'profile', icon: <User />, label: "My Profile", roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'accommodation', icon: <Home />, label: "Accommodation", roles: ['admin', 'folks_head', 'devotee'] },
-    { id: 'attendance', icon: <CheckSquare />, label: "Attendance", roles: ['admin', 'folks_head'] },
-  ]
-
-  const menuItems = allItems.filter(item => item.roles.includes(user?.role));
+/** Desktop (lg+) navigation: fixed dark rail, grouped by purpose. */
+const Sidebar = ({ activeTab, setActiveTab }) => {
+  const { user, logout } = useAuth();
+  const groups = visibleGroups(user?.role);
+  const name = user?.name || user?.displayName || 'Member';
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: isOpen ? 260 : 80 }}
-      className="fixed left-0 top-0 h-full bg-white border-r border-saffron/10 z-50 shadow-premium"
-    >
-      {/* Clips only the collapsing text/labels — the floating toggle button below
-          intentionally sits half outside this box, so it must NOT be inside an
-          overflow-hidden ancestor or it gets clipped and becomes unclickable. */}
-      <div className="h-full overflow-hidden">
-<div className="p-6 flex items-center justify-center overflow-hidden">
-        <img 
-          src="/folk_logo_blue.png" 
-          alt="Logo" 
-          className="h-14 w-auto object-contain drop-shadow-[0_0_5px_rgba(255,153,51,0.2)]" 
-        />
-      </div>
-
-        <nav className="mt-8 px-4 space-y-2">
-          {menuItems.map((item) => (
-            <NavItem
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              active={activeTab === item.id}
-              isOpen={isOpen}
-              onClick={() => setActiveTab(item.id)}
-            />
-          ))}
-        </nav>
-      </div>
-
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-ink text-white z-40">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-        className="absolute top-8 right-0 translate-x-1/2 w-9 h-9 bg-saffron text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10"
+        type="button"
+        onClick={() => setActiveTab('dashboard')}
+        className="h-[72px] px-6 flex items-center gap-3 border-b border-white/10 shrink-0 text-left"
+        aria-label="FOLK Vizag home"
       >
-        {isOpen ? <X size={16} /> : <Menu size={16} />}
+        <img src="/folk_logo_white.png" alt="" className="h-10 w-auto" />
+        <span className="leading-tight">
+          <span className="block font-display text-[13px] font-bold">FOLK Vizag</span>
+          <span className="block text-[12px] text-white/55">Youth Empowerment Club</span>
+        </span>
       </button>
-    </motion.aside>
-  )
-}
 
-export default Sidebar
+      <nav className="flex-1 overflow-y-auto scrollbar-hide py-5 px-3 space-y-6" aria-label="App">
+        {groups.map((g) => (
+          <div key={g.title}>
+            <p className="px-3 mb-1.5 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-white/40">{g.title}</p>
+            <ul className="space-y-0.5">
+              {g.items.map(({ id, label, icon: Icon }) => {
+                const active = activeTab === id || (id === 'trips' && activeTab === 'trip-detail');
+                return (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(id)}
+                      aria-current={active ? 'page' : undefined}
+                      className={`w-full flex items-center gap-3 px-3 h-10 rounded-md text-[15px] transition-colors ${
+                        active ? 'bg-saffron text-white font-semibold' : 'text-white/75 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      <Icon size={18} aria-hidden="true" />
+                      {label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      <div className="border-t border-white/10 p-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('profile')}
+          className="flex-1 min-w-0 flex items-center gap-3 p-2 rounded-md hover:bg-white/5 text-left"
+        >
+          <span className="w-9 h-9 shrink-0 rounded-full bg-navy text-white font-display text-sm font-bold inline-flex items-center justify-center overflow-hidden">
+            {user?.photo && !String(user.photo).includes('dicebear')
+              ? <img src={user.photo} alt="" className="w-full h-full object-cover" />
+              : initials(name)}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold truncate">{name}</span>
+            <span className="block text-[12px] text-white/55">{roleLabel(user?.role)}</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={logout}
+          className="w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-md text-white/60 hover:text-white hover:bg-white/5"
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <LogOut size={18} />
+        </button>
+      </div>
+    </aside>
+  );
+};
+
+export default Sidebar;

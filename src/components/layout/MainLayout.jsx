@@ -1,35 +1,20 @@
-import React from 'react'
-import Navbar from './Navbar'
-import BottomNav from './BottomNav'
-import FloatingIcons from '../ui/FloatingIcons'
+import React from 'react';
+import Navbar from './Navbar';
+import Sidebar from './Sidebar';
+import BottomNav from './BottomNav';
 
-const MainLayout = ({ children, activeTab, setActiveTab }) => {
-  return (
-    <div className="min-h-screen bg-cream selection:bg-saffron/30 selection:text-saffron-dark">
-      <div className="tilak-bg opacity-30 pointer-events-none" />
-      <FloatingIcons />
-
-      {/* Main Content Area */}
-      <main className="transition-all duration-300 min-h-screen flex flex-col pb-32 md:pb-0">
-        <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-
-        {/* The navbar is position:fixed (so it can never scroll away), which
-            takes it out of the document flow - this spacer reserves the room
-            it would otherwise have occupied. Heights must match the navbar's
-            un-scrolled height (h-16 sm:h-20). */}
-        <div className="h-16 sm:h-20 shrink-0" aria-hidden="true" />
-
-        <div className="flex-1 p-4 sm:p-6 md:p-10 max-w-[1600px] mx-auto w-full relative z-10 transition-all">
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {children}
-          </div>
-        </div>
+const MainLayout = ({ children, activeTab, setActiveTab }) => (
+  <div className="min-h-screen bg-paper">
+    <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="lg:pl-64 min-h-screen flex flex-col">
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      {/* pb clears the phone tab bar (h-16 + iOS safe area). */}
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 pb-28 lg:pb-10">
+        {children}
       </main>
-
-      {/* Mobile Bottom Navigation */}
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
-  )
-}
+    <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+  </div>
+);
 
-export default MainLayout
+export default MainLayout;

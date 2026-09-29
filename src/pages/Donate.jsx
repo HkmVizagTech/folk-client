@@ -32,11 +32,11 @@ const Donate = () => {
     <div className="min-h-screen bg-cream">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-4 max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-widest">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-label">
             <Gift size={14} /> Donations
           </span>
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tighter uppercase italic leading-[0.95]">
-            Give with <span className="bg-gradient-to-r from-saffron to-gold bg-clip-text text-transparent">devotion</span>
+          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight uppercase leading-[0.95]">
+            Give with <span className="bg-saffron bg-clip-text text-transparent">devotion</span>
           </h1>
           <p className="text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
             Every contribution keeps the temple programs, prasadam distribution and Gita education
@@ -58,10 +58,10 @@ const Donate = () => {
                 <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-105 transition-transform`}>
                   {c.icon}
                 </div>
-                <h3 className="font-black text-gray-900 uppercase italic tracking-tight text-sm">{c.title}</h3>
+                <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm">{c.title}</h3>
                 <p className="text-xs text-gray-400 font-medium mt-2 leading-relaxed">{c.desc}</p>
                 {selected === c.id && (
-                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 inline-flex items-center gap-1 text-[10px] font-black text-saffron uppercase tracking-widest">
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 inline-flex items-center gap-1 text-[10px] font-black text-saffron uppercase tracking-label">
                     <Check size={12} /> Selected
                   </motion.span>
                 )}
@@ -75,7 +75,7 @@ const Donate = () => {
             <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${cause.gradient} flex items-center justify-center text-white mb-5 shadow-lg`}>
               {cause.icon}
             </div>
-            <h3 className="font-black text-gray-900 uppercase italic tracking-tight">{cause.title}</h3>
+            <h3 className="font-black text-gray-900 uppercase tracking-tight">{cause.title}</h3>
             <p className="text-sm text-gray-400 font-medium mt-1 mb-6">{cause.desc}</p>
 
             <div className="grid grid-cols-3 gap-3 mb-4">
@@ -85,7 +85,7 @@ const Donate = () => {
                   onClick={() => setAmount(String(p))}
                   className={`py-3 rounded-2xl font-black text-sm transition-all ${
                     amount === String(p)
-                      ? 'bg-saffron text-white shadow-lg shadow-saffron/25 scale-[1.03]'
+                      ? 'bg-saffron text-white shadow-lg scale-[1.03]'
                       : 'bg-gray-50 text-gray-500 hover:bg-saffron/10 hover:text-saffron-dark border border-gray-100'
                   }`}
                 >
@@ -109,7 +109,7 @@ const Donate = () => {
             <button
               onClick={handleDonate}
               disabled={paying || !amount || Number(amount) <= 0}
-              className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-saffron to-gold text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-saffron/25 hover:scale-[1.02] hover:shadow-2xl transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-saffron text-white font-black uppercase tracking-label text-xs shadow-xl hover:scale-[1.02] hover:shadow-2xl transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
             >
               {paying ? <><Loader2 size={16} className="animate-spin" /> Opening payment...</> : <><Gift size={16} /> Donate ₹{Number(amount || 0).toLocaleString('en-IN')}</>}
             </button>

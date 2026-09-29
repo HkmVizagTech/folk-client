@@ -1,307 +1,150 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { LogOut, User, Bell, Award, Shield, Calendar, X, TrendingUp, Home, CheckSquare, Heart, Building2, Sparkles, Bus, Image, BookOpen, Phone, Gift } from 'lucide-react'
-import { useAuth } from '../../hooks/useAuth'
-import { useFirestore } from '../../hooks/useFirestore'
-import { orderBy, limit } from 'firebase/firestore'
-import { motion, AnimatePresence } from 'framer-motion'
-import { formatDistanceToNow } from 'date-fns'
-import { cn } from '../ui/Card'
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Bell, CalendarDays, X, LogOut } from 'lucide-react';
+import { orderBy, limit } from 'firebase/firestore';
+import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '../../hooks/useAuth';
+import { useFirestore } from '../../hooks/useFirestore';
+import { findNavItem } from './navConfig';
 
-const toDate = (value) => {
-  if (value?.toDate) return value.toDate();
-  return value ? new Date(value) : new Date();
-};
-
+const toDate = (value) => (value?.toDate ? value.toDate() : value ? new Date(value) : new Date());
 const timeAgo = (value) => {
-  try {
-    return formatDistanceToNow(toDate(value), { addSuffix: true });
-  } catch {
-    return 'Just now';
-  }
+  try { return formatDistanceToNow(toDate(value), { addSuffix: true }); } catch { return 'Just now'; }
 };
 
-// Same destinations as the old Sidebar, plus the new Hostels entry.
-// role-aware labels preserved: staff see "Event Management"/"Seva Management",
-// devotees see the shorter "Events"/"Seva".
-const NAV_ITEMS = [
-  { id: 'admin', icon: <Shield />, label: 'Command Center', roles: ['admin', 'folks_head'] },
-  { id: 'devotees', icon: <User />, label: 'Devotees', roles: ['admin', 'folks_head'] },
-  { id: 'events', icon: <Calendar />, label: 'Event Management', devoteeLabel: 'Events', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'seva', icon: <Heart />, label: 'Seva Management', devoteeLabel: 'Seva', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'dashboard', icon: <TrendingUp />, label: 'Sadhana Tracker', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'hostels', icon: <Building2 />, label: 'Hostels', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'accommodation', icon: <Home />, label: 'Accommodation', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'attendance', icon: <CheckSquare />, label: 'Attendance', roles: ['admin', 'folks_head'] },
-  { id: 'profile', icon: <User />, label: 'My Profile', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'about', icon: <Sparkles />, label: 'About Us', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'trips', icon: <Bus />, label: 'Trips', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'gallery', icon: <Image />, label: 'Gallery', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'calendar', icon: <BookOpen />, label: 'Calendar', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'donate', icon: <Gift />, label: 'Donate', roles: ['admin', 'folks_head', 'devotee'] },
-  { id: 'contact', icon: <Phone />, label: 'Contact', roles: ['admin', 'folks_head', 'devotee'] },
-]
+const TITLES = { 'trip-detail': 'Yatra', 'admin-setup': 'Site admin' };
 
-const NavLink = ({ icon, label, active, onClick }) => (
-  <motion.button
-    type="button"
-    whileHover={{ y: -1 }}
-    onClick={onClick}
-    aria-current={active ? 'page' : undefined}
-    aria-label={label}
-    className={cn(
-      'flex items-center gap-2 shrink-0 px-3 py-2.5 min-h-[44px] rounded-xl cursor-pointer transition-all whitespace-nowrap font-medium text-sm',
-      active
-        ? 'bg-gradient-to-r from-saffron/10 to-gold/10 text-saffron-dark ring-1 ring-saffron/20'
-        : 'text-gray-500 hover:text-saffron hover:bg-saffron/5'
-    )}
-  >
-    <span className={cn(active ? 'text-saffron' : 'text-gray-400')}>
-      {React.cloneElement(icon, { size: 18 })}
+const SEEN_KEY = 'notif_seen_at';
+const readSeen = () => { try { return Number(localStorage.getItem(SEEN_KEY)) || 0; } catch { return 0; } };
+
+const NotificationRow = ({ n, onOpen }) => (
+  <button type="button" onClick={onOpen} className="w-full text-left p-4 border-b border-line last:border-0 hover:bg-paper flex gap-3">
+    <span className="w-8 h-8 rounded-full bg-navy-50 text-navy inline-flex items-center justify-center shrink-0">
+      <CalendarDays size={15} />
     </span>
-    <span className="hidden lg:inline">{label}</span>
-  </motion.button>
-)
+    <span className="min-w-0">
+      <span className="block text-[15px] font-semibold text-ink user-text">{n.title}</span>
+      {n.message && <span className="block text-[14px] text-ink-muted mt-0.5 user-text">{n.message}</span>}
+      <span className="block text-[12px] text-ink-muted/80 mt-1">{timeAgo(n.createdAt)}</span>
+    </span>
+  </button>
+);
 
-const Navbar = ({ activeTab, setActiveTab }) => {
-  const { user, logout } = useAuth()
-  const [showNotifs, setShowNotifs] = useState(false)
-  const [showAllNotifs, setShowAllNotifs] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const notifRef = useRef(null)
-
-  const menuItems = NAV_ITEMS.filter(item => item.roles.includes(user?.role));
-
-  const notifQuery = React.useMemo(() => [
-    orderBy('createdAt', 'desc'),
-    limit(10)
-  ], [])
-
-  const allNotifsQuery = React.useMemo(() => [orderBy('createdAt', 'desc')], [])
-
-  const { data: notifications } = useFirestore('notifications', notifQuery)
-  const { data: allNotifications } = useFirestore('notifications', allNotifsQuery)
-
+/** Mounted only while open, so the full history is fetched only on demand. */
+const AllNotifications = ({ onClose, onOpen }) => {
+  const q = useMemo(() => [orderBy('createdAt', 'desc'), limit(100)], []);
+  const { data, loading } = useFirestore('notifications', q);
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (notifRef.current && !notifRef.current.contains(event.target)) {
-        setShowNotifs(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  // The bar is `fixed`, not `sticky`, so it can never scroll away - sticky
-  // silently breaks whenever an ancestor (html/body included) becomes a
-  // scroll container. Past ~60px we shrink it and float it as a rounded
-  // pill, the same behaviour as harekrishnavizag.org / folkexclusive.com.
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
-    <header
-      className={cn(
-        'fixed z-40 flex items-center justify-between gap-4 bg-white/95 backdrop-blur-md transition-all duration-300',
-        scrolled
-          ? 'top-2 left-2 right-2 md:left-6 md:right-6 h-14 sm:h-16 px-3 sm:px-6 rounded-2xl border border-saffron/10 shadow-premium-xl'
-          : 'top-0 left-0 right-0 h-16 sm:h-20 px-4 sm:px-8 border-b border-saffron/10 shadow-sm'
-      )}
-    >
-      <div className="flex items-center gap-4 shrink-0 md:flex-1 md:justify-start">
-        <div className="flex items-center drop-shadow-sm hover:drop-shadow-md transition-all duration-300">
-          <img
-            src="/folk_logo_blue.png"
-            alt="Folkvizag Logo"
-            className={cn(
-              'w-auto object-contain hover:scale-[1.02] transition-all duration-300 cursor-pointer drop-shadow-md',
-              scrolled ? 'h-8 sm:h-11' : 'h-9 sm:h-14'
-            )}
-          />
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-label="All activity">
+      <div className="absolute inset-0 bg-ink/60" onClick={onClose} />
+      <div className="relative w-full sm:max-w-lg bg-white sm:rounded-xl rounded-t-xl flex flex-col max-h-[85vh]">
+        <div className="px-5 h-14 border-b border-line flex justify-between items-center">
+          <h2 className="font-display font-bold">All activity</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-10 h-10 inline-flex items-center justify-center rounded-md hover:bg-paper"><X size={18} /></button>
+        </div>
+        <div className="overflow-y-auto">
+          {loading ? <p className="p-10 text-center text-ink-muted">Loading…</p>
+            : data.length ? data.map((n) => <NotificationRow key={n.id} n={n} onOpen={onOpen} />)
+            : <p className="p-10 text-center text-ink-muted">No activity yet</p>}
         </div>
       </div>
+    </div>
+  );
+};
 
-      {/* Desktop horizontal nav — replaces the old left Sidebar. Hidden on
-          mobile since BottomNav already covers navigation there. */}
-      <nav
-        aria-label="Primary"
-        className="hidden md:flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-hide"
-      >
-        {menuItems.map((item) => (
-          <NavLink
-            key={item.id}
-            icon={item.icon}
-            label={user?.role === 'devotee' && item.devoteeLabel ? item.devoteeLabel : item.label}
-            active={activeTab === item.id}
-            onClick={() => setActiveTab(item.id)}
-          />
-        ))}
-      </nav>
+/** Sticky white bar above every app screen: page title + notifications. */
+const Navbar = ({ activeTab, setActiveTab }) => {
+  const { logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [seenAt, setSeenAt] = useState(readSeen);
+  const ref = useRef(null);
 
-      <div className={cn('flex items-center gap-2 sm:gap-6 shrink-0', 'md:flex-1 md:justify-end')}>
-        <div className="flex items-center gap-1 sm:gap-6">
-          
-          {/* Realtime Notification Bell */}
-          <div className="relative" ref={notifRef}>
+  const recentQ = useMemo(() => [orderBy('createdAt', 'desc'), limit(10)], []);
+  const { data: recent } = useFirestore('notifications', recentQ);
+  const unread = recent.filter((n) => toDate(n.createdAt).getTime() > seenAt).length;
+
+  useEffect(() => {
+    const onDown = (e) => ref.current && !ref.current.contains(e.target) && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, []);
+
+  const toggle = () => {
+    setOpen((v) => !v);
+    // Opening the panel marks everything in it as seen.
+    const now = Date.now();
+    try { localStorage.setItem(SEEN_KEY, String(now)); } catch { /* private mode */ }
+    setSeenAt(now);
+  };
+
+  const goEvents = () => { setOpen(false); setShowAll(false); setActiveTab('events'); };
+  const title = TITLES[activeTab] || findNavItem(activeTab)?.label || 'FOLK Vizag';
+
+  return (
+    <header className="sticky top-0 z-30 bg-white border-b border-line">
+      <div className="h-14 sm:h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <img src="/folk_logo_blue.png" alt="FOLK Vizag" className="h-9 w-auto lg:hidden" />
+          <h1 className="font-display text-lg sm:text-xl font-bold truncate">{title}</h1>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <div className="relative" ref={ref}>
             <button
-              onClick={() => setShowNotifs(!showNotifs)}
-              aria-label="Notifications"
-              className="p-2.5 min-w-[44px] min-h-[44px] text-gray-400 hover:text-saffron hover:bg-saffron/5 rounded-xl transition-all relative group flex items-center justify-center"
+              type="button"
+              onClick={toggle}
+              aria-label={unread ? `Notifications, ${unread} new` : 'Notifications'}
+              aria-expanded={open}
+              className="relative w-11 h-11 inline-flex items-center justify-center rounded-md text-ink-muted hover:bg-paper hover:text-ink"
             >
-              <Bell size={22} className={showNotifs ? 'text-saffron' : ''} />
-              {notifications?.length > 0 && (
-                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white group-hover:scale-110 transition-transform animate-pulse" />
+              <Bell size={21} />
+              {unread > 0 && (
+                <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-saffron text-white text-[11px] font-bold inline-flex items-center justify-center">
+                  {unread > 9 ? '9+' : unread}
+                </span>
               )}
             </button>
-            <AnimatePresence>
-              {showNotifs && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-[320px] sm:w-80 bg-white rounded-3xl shadow-premium-xl border border-gray-100 overflow-hidden z-50 origin-top-right"
+            {open && (
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm bg-white rounded-xl border border-line shadow-premium-xl overflow-hidden z-50">
+                <div className="px-4 h-12 border-b border-line flex items-center justify-between">
+                  <h2 className="font-display text-[15px] font-bold">Notifications</h2>
+                </div>
+                <div className="max-h-[360px] overflow-y-auto">
+                  {recent.length
+                    ? recent.map((n) => <NotificationRow key={n.id} n={n} onOpen={goEvents} />)
+                    : <p className="p-8 text-center text-ink-muted">You&apos;re all caught up</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); setShowAll(true); }}
+                  className="w-full h-11 border-t border-line font-display text-[13px] font-bold uppercase tracking-label text-saffron hover:bg-paper"
                 >
-                  <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                    <h3 className="font-bold text-gray-800">Notifications</h3>
-                    <span className="text-[10px] font-bold bg-saffron/10 text-saffron px-2 py-1 rounded-md">{notifications?.length || 0} New</span>
-                  </div>
-                  <div className="max-h-[350px] overflow-y-auto scrollbar-hide">
-                    {notifications?.length > 0 ? notifications.map((notif) => (
-                      <div 
-                        key={notif.id} 
-                        onClick={() => { setActiveTab('events'); setShowNotifs(false); }}
-                        className="p-4 border-b border-gray-50 hover:bg-saffron/5 transition-colors cursor-pointer group"
-                      >
-                        <div className="flex gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                            <Calendar size={14} className="text-blue-500" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-gray-800 group-hover:text-saffron transition-colors">{notif.title}</p>
-                            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{notif.message}</p>
-                            <p className="text-[10px] text-gray-400 mt-2 font-medium">{timeAgo(notif.createdAt)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )) : (
-                      <div className="p-8 text-center text-gray-400 text-sm">No new notifications</div>
-                    )}
-                  </div>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => { setShowNotifs(false); setShowAllNotifs(true); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowNotifs(false); setShowAllNotifs(true); } }}
-                    className="p-3 text-center border-t border-gray-50 bg-gray-50/50 hover:bg-gray-100 cursor-pointer transition-colors text-xs font-bold text-saffron"
-                  >
-                    View All Activity
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  See all activity
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="h-10 w-[1px] bg-gray-100 hidden sm:block" />
-
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <div className="flex items-center justify-end gap-1.5 mb-0.5">
-                <p className="text-sm font-bold text-gray-800 leading-none max-w-[150px] truncate">
-                  {user?.name || user?.displayName || 'Devotee'}
-                </p>
-                {user?.role === 'admin' && (
-                  <div className="px-2 py-0.5 bg-saffron/10 rounded flex items-center gap-1">
-                    <Shield size={10} className="text-saffron" />
-                    <span className="text-[10px] font-black text-saffron uppercase">Admin</span>
-                  </div>
-                )}
-              </div>
-              {user?.role === 'folks_head' && (
-                <p className="text-[10px] text-gold-dark font-bold uppercase tracking-widest hidden sm:block">Folks Head</p>
-              )}
-              {user?.role === 'devotee' && (
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest hidden sm:block">Devotee</p>
-              )}
-              {!user?.role && (
-                <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest">Unassigned</p>
-              )}
-            </div>
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-saffron to-gold p-0.5 shadow-lg group cursor-pointer">
-              <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center overflow-hidden">
-                <User className="text-saffron transition-transform group-hover:scale-110" size={20} />
-              </div>
-            </div>
-          </div>
-          
           <button
+            type="button"
             onClick={logout}
-            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50/50 rounded-xl transition-all"
-            title="Sign Out"
             aria-label="Sign out"
+            title="Sign out"
+            className="lg:hidden w-11 h-11 inline-flex items-center justify-center rounded-md text-ink-muted hover:bg-paper hover:text-ink"
           >
-            <LogOut size={22} />
+            <LogOut size={20} />
           </button>
         </div>
       </div>
 
-      {/* All Notifications Modal */}
-      <AnimatePresence>
-        {showAllNotifs && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAllNotifs(false)}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl shadow-premium-xl border border-gray-100 overflow-hidden flex flex-col max-h-[80vh]"
-            >
-              <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                <h3 className="font-bold text-gray-800">All Activity</h3>
-                <button
-                  onClick={() => setShowAllNotifs(false)}
-                  aria-label="Close"
-                  className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="overflow-y-auto scrollbar-hide">
-                {allNotifications?.length > 0 ? allNotifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    onClick={() => { setActiveTab('events'); setShowAllNotifs(false); }}
-                    className="p-4 border-b border-gray-50 hover:bg-saffron/5 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                        <Calendar size={14} className="text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-800 group-hover:text-saffron transition-colors">{notif.title}</p>
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{notif.message}</p>
-                        <p className="text-[10px] text-gray-400 mt-2 font-medium">{timeAgo(notif.createdAt)}</p>
-                      </div>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="p-12 text-center text-gray-400 text-sm">No notifications yet</div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {showAll && <AllNotifications onClose={() => setShowAll(false)} onOpen={goEvents} />}
     </header>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;
