@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { MessageCircle, Phone, NotebookPen, Cake, AlertTriangle, Flame, CalendarCheck, Users, History } from 'lucide-react';
-import { collection, doc, orderBy, limit, where, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, doc, orderBy, limit, where, serverTimestamp, writeBatch } from '../lib/pgstore';
 import { useAuth } from '../hooks/useAuth';
 import { useMembers } from '../hooks/useMembers';
 import { useFirestore } from '../hooks/useFirestore';

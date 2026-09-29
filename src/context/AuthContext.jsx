@@ -11,7 +11,7 @@ import {
   sendPasswordResetEmail,
   signOut
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from '../lib/pgstore';
 import { getSafeProfileImage } from '../lib/imageUtils';
 import { callApi } from '../lib/api';
 import { ROOT_ADMIN_UID } from '../config';

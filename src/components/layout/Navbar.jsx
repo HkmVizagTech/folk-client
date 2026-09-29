@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, CalendarDays, X, LogOut } from 'lucide-react';
-import { orderBy, limit } from 'firebase/firestore';
+import { orderBy, limit } from '../../lib/pgstore';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';

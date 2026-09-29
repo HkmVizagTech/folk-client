@@ -6,7 +6,7 @@ import {
   CheckCircle2, XCircle, AlertTriangle, Ban, Clock3, Sparkles, Info, Camera,
   Map as MapIcon, Bus, Banknote, Building2
 } from 'lucide-react'
-import { collection, addDoc, updateDoc, doc, serverTimestamp, where } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, doc, serverTimestamp, where } from '../lib/pgstore'
 import { db, auth } from '../lib/firebase'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'

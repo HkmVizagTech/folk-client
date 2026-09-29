@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import QRScanner from './QRScanner';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
+import { collection, query, where, getDocs, serverTimestamp, doc, runTransaction } from '../../lib/pgstore';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useAuth } from '../../hooks/useAuth';
 

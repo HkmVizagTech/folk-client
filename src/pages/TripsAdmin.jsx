@@ -14,7 +14,7 @@ import { useAuth } from '../hooks/useAuth'
 import { auth, db } from '../lib/firebase'
 import {
   collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp
-} from 'firebase/firestore'
+} from '../lib/pgstore'
 
 /* ------------------------------------------------------------------ *
  *  Constants & small helpers

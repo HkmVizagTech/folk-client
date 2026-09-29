@@ -13,7 +13,7 @@ import {
   Home
 } from 'lucide-react'
 import { db } from '../lib/firebase'
-import { collection, query, where, getDocs, serverTimestamp, doc, runTransaction } from 'firebase/firestore'
+import { collection, query, where, getDocs, serverTimestamp, doc, runTransaction } from '../lib/pgstore'
 import Card from '../components/ui/Card'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'

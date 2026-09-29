@@ -4,7 +4,7 @@ import {
   MapPin, Calendar, Clock, Users, Bus, Ticket, ArrowRight, Search, Filter,
   Sparkles, Compass, Settings, X, Image as ImageIcon
 } from 'lucide-react'
-import { where } from 'firebase/firestore'
+import { where } from '../lib/pgstore'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
 

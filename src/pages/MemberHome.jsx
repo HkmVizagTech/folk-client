@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { where } from 'firebase/firestore';
+import { where } from '../lib/pgstore';
 import {
   ArrowRight, CalendarDays, MapPin, QrCode, Compass, Flame, Trophy, MessageCircle, Phone, UserRound, CheckCircle2,
 } from 'lucide-react';

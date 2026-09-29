@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Download, Send, Copy, Users, UserPlus, Flame, CalendarCheck, UserX, Cake } from 'lucide-react';
-import { orderBy, where, Timestamp } from 'firebase/firestore';
+import { orderBy, where, Timestamp } from '../lib/pgstore';
 import { useAuth } from '../hooks/useAuth';
 import { useMembers } from '../hooks/useMembers';
 import { useFirestore } from '../hooks/useFirestore';

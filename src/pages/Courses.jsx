@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { GraduationCap, Plus, CheckCircle2, Users, Pencil, Minus } from 'lucide-react';
-import { collection, addDoc, doc, setDoc, updateDoc, where, serverTimestamp, increment } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, updateDoc, where, serverTimestamp, increment } from '../lib/pgstore';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { db } from '../lib/firebase';

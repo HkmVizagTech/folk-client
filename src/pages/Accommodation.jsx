@@ -7,7 +7,7 @@ import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
 import { db } from '../lib/firebase'
 import { callApi } from '../lib/api'
-import { collection, addDoc, serverTimestamp, where, query, orderBy } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, where, query, orderBy } from '../lib/pgstore'
 import { Html5Qrcode } from 'html5-qrcode'
 
 const Accommodation = () => {

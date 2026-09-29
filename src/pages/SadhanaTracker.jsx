@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flame, Trophy, CalendarCheck, Minus, Plus, CheckCircle2, Lock, Soup, MapPinCheck } from 'lucide-react';
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, runTransaction, serverTimestamp } from '../lib/pgstore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { useAuth } from '../hooks/useAuth';
 import { db } from '../lib/firebase';

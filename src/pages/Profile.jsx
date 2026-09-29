@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, Pencil, Save, X, CalendarCheck, CreditCard, UserRound, Download } from 'lucide-react';
-import { doc, setDoc, serverTimestamp, where } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, where } from '../lib/pgstore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../hooks/useAuth';
@@ -40,7 +40,7 @@ const SECTIONS = [
   ] },
 ];
 
-const initials = (n = '') => n.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || '?';
+const initials = (n) => String(n || '').trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || '?';
 const isRealPhoto = (src) => src && !/dicebear|ui-avatars/.test(src);
 
 const Profile = () => {

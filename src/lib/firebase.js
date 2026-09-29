@@ -1,13 +1,12 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
-import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 import { getAnalytics } from "firebase/analytics";
 import { getStorage } from "firebase/storage";
 
-// Development only: http://localhost:3001/?emulator=1 talks to the local
-// Firebase emulators (Firestore :8080, Auth :9099) with the fake "demo-folk"
-// project instead of production. Remembered for the browser tab. Vite
+// Development only: http://localhost:3001/?emulator=1 signs in against the
+// local Firebase Auth emulator (:9099, fake "demo-folk" project) instead of
+// production; pair it with a local server (VITE_BACKEND_URL). Remembered for the browser tab. Vite
 // compiles this away in production builds (import.meta.env.DEV is false).
 const USE_EMULATOR = (() => {
   if (!import.meta.env.DEV || typeof window === 'undefined') return false;
@@ -38,14 +37,12 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
 
-// Use long polling to avoid WebChannel assertion crashes with Vite HMR on localhost
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-});
+// Data lives in Postgres behind the FOLK server now (see ./pgstore.js); `db`
+// is kept so existing collection(db, ...) / doc(db, ...) calls read the same.
+export const db = { type: 'folk-postgres' };
 
 if (USE_EMULATOR) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, '127.0.0.1', 8080);
   console.info('[firebase] Using local emulators (demo-folk).');
 }
 

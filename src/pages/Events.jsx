@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { CalendarDays, MapPin, Plus, Users, CheckCircle2, XCircle, ImagePlus, Ticket } from 'lucide-react';
-import { collection, addDoc, serverTimestamp, doc, where, increment, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, where, increment, writeBatch } from '../lib/pgstore';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '../hooks/useAuth';
 import { auth, db } from '../lib/firebase';

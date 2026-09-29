@@ -9,7 +9,7 @@ export default defineConfig({
   // copies of @firebase/app ("Component auth has not been registered yet").
   optimizeDeps: {
     include: [
-      'firebase/app', 'firebase/auth', 'firebase/firestore',
+      'firebase/app', 'firebase/auth',
       'firebase/functions', 'firebase/analytics', 'firebase/storage',
     ],
   },
@@ -23,7 +23,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
-          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/functions', 'firebase/analytics', 'firebase/storage'],
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/functions', 'firebase/analytics', 'firebase/storage'],
           'ui-vendor': ['framer-motion', 'recharts', 'lucide-react'],
         },
       },

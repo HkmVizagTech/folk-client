@@ -3,7 +3,7 @@ import {
   QrCode, CalendarPlus, UserPlus, Send, Users, AlertTriangle, BedDouble, Building2, Compass, HandHeart,
   Inbox, MessageCircle, Check, ArrowRight, ShieldCheck, Server, Database,
 } from 'lucide-react';
-import { doc, orderBy, limit, where, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, orderBy, limit, where, updateDoc, serverTimestamp } from '../lib/pgstore';
 import { useAuth } from '../hooks/useAuth';
 import { useMembers } from '../hooks/useMembers';
 import { useFirestore } from '../hooks/useFirestore';

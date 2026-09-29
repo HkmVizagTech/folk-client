@@ -9,7 +9,7 @@ import Button from '../components/ui/Button'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
 import { auth, db } from '../lib/firebase'
-import { collection, addDoc, updateDoc, doc, serverTimestamp, where, orderBy } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, doc, serverTimestamp, where, orderBy } from '../lib/pgstore'
 
 const emptyListingForm = {
   name: '',

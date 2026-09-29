@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MessageCircle, Phone, MapPin, Instagram, Send, CheckCircle2 } from 'lucide-react';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from '../lib/pgstore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { SITE, whatsappLink } from '../content/site';

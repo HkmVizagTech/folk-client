@@ -19,7 +19,7 @@ import { callApi } from '../lib/api';
 import { 
   collection, doc, setDoc, getDoc, getDocs, addDoc,
   query, where, orderBy, serverTimestamp, increment, runTransaction 
-} from 'firebase/firestore';
+} from '../lib/pgstore';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 
