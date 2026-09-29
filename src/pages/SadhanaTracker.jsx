@@ -209,7 +209,7 @@ const SadhanaTracker = () => {
       <div className="grid gap-5 lg:grid-cols-5">
         {/* Today */}
         <form onSubmit={save} className="card p-5 sm:p-6 lg:col-span-2 flex flex-col">
-          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Today · {formatDay(new Date())}</h2>
+          <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Today · {formatDay(new Date())}</h2>
 
           <label className="mt-5 block">
             <span className="block text-[15px] font-semibold">Rounds chanted</span>
@@ -271,7 +271,7 @@ const SadhanaTracker = () => {
 
         {/* Last 14 days */}
         <section className="card p-5 sm:p-6 lg:col-span-3">
-          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Last 14 days</h2>
+          <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Last 14 days</h2>
           <div className="mt-4 h-64" role="img" aria-label={`Rounds per day over the last 14 days; on target ${daysDone} of 14 days`}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
@@ -301,7 +301,7 @@ const SadhanaTracker = () => {
 
       <div className="grid gap-5 md:grid-cols-2">
         <section className="card p-5 sm:p-6">
-          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Programs attended</h2>
+          <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Programs attended</h2>
           {attendance.length ? (
             <ul className="mt-3 divide-y divide-line">
               {attendance.map((a) => (
@@ -314,7 +314,7 @@ const SadhanaTracker = () => {
           ) : <p className="mt-3 text-ink-muted">Your check-ins at programs will show up here.</p>}
         </section>
         <section className="card p-5 sm:p-6">
-          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Prasadam</h2>
+          <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Prasadam</h2>
           {prasadam.length ? (
             <ul className="mt-3 divide-y divide-line">
               {prasadam.map((p) => (

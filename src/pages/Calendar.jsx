@@ -69,7 +69,7 @@ const Calendar = () => {
               <button type="button" onClick={() => move(1)} aria-label="Next month" className="w-10 h-10 inline-flex items-center justify-center rounded-md border border-line hover:bg-paper"><ChevronRight size={18} /></button>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-7 text-center text-[12px] font-display font-bold uppercase tracking-label text-ink-muted">
+          <div className="mt-4 grid grid-cols-7 text-center text-[12px] font-sans font-bold uppercase tracking-label text-ink-muted">
             {WEEKDAYS.map((d) => <div key={d} className="py-2">{d}</div>)}
           </div>
           <div className="grid grid-cols-7 gap-1">
@@ -79,7 +79,7 @@ const Calendar = () => {
               const isSel = k === selected;
               return (
                 <button key={k} type="button" onClick={() => setSelected(k)} aria-pressed={isSel} aria-label={`${k}${list.length ? `, ${list.length} event${list.length > 1 ? 's' : ''}` : ''}`}
-                  className={`aspect-square rounded-md flex flex-col items-center justify-center gap-1 text-[15px] ${isSel ? 'bg-ink text-white' : k === todayKey ? 'bg-saffron-50 text-saffron-dark font-bold' : 'hover:bg-paper'}`}>
+                  className={`aspect-square rounded-md flex flex-col items-center justify-center gap-1 text-[15px] ${isSel ? 'bg-navy text-white' : k === todayKey ? 'bg-saffron-50 text-saffron-dark font-bold' : 'hover:bg-paper'}`}>
                   {Number(k.slice(8))}
                   <span className={`h-1.5 w-1.5 rounded-full ${list.length ? (isSel ? 'bg-marigold' : 'bg-saffron') : 'bg-transparent'}`} />
                 </button>
@@ -89,7 +89,7 @@ const Calendar = () => {
         </section>
 
         <section className="card p-5 sm:p-6">
-          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">
+          <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">
             {new Date(`${selected}T12:00:00+05:30`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })}
           </h2>
           {dayEvents.length ? (

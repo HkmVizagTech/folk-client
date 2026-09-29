@@ -159,11 +159,11 @@ const Reports = () => {
 
           <div className="grid gap-5 lg:grid-cols-2">
             <section className="card p-5 sm:p-6">
-              <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Members by stage</h2>
+              <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Members by stage</h2>
               <ul className="mt-4 space-y-3">{stats.byStage.map((s) => <Bar key={s.label} label={s.label} value={s.value} max={maxStage} />)}</ul>
             </section>
             <section className="card p-5 sm:p-6">
-              <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Check-ins by program</h2>
+              <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Check-ins by program</h2>
               {stats.programs.length
                 ? <ul className="mt-4 space-y-3">{stats.programs.map(([k, v]) => <Bar key={k} label={k} value={v} max={maxProgram} />)}</ul>
                 : <p className="mt-4 text-ink-muted">No check-ins in this period.</p>}
@@ -172,10 +172,10 @@ const Reports = () => {
 
           {isAdmin && stats.guides.length > 0 && (
             <section className="card overflow-hidden">
-              <h2 className="px-5 sm:px-6 pt-5 font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">FOLK guides</h2>
+              <h2 className="px-5 sm:px-6 pt-5 font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">FOLK guides</h2>
               <div className="overflow-x-auto">
                 <table className="mt-3 w-full text-left text-[15px]">
-                  <thead className="bg-paper text-[13px] font-display font-bold uppercase tracking-label text-ink-muted">
+                  <thead className="bg-paper text-[13px] font-sans font-bold uppercase tracking-label text-ink-muted">
                     <tr><th className="px-5 py-2.5">Guide</th><th className="px-3 py-2.5 text-right">Members</th><th className="px-3 py-2.5 text-right">Quiet 7+ days</th><th className="px-5 py-2.5 text-right">Follow-ups</th></tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -190,7 +190,7 @@ const Reports = () => {
 
           {stats.birthdays.length > 0 && (
             <section className="card p-5 sm:p-6">
-              <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Birthdays this month</h2>
+              <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Birthdays this month</h2>
               <ul className="mt-3 flex flex-wrap gap-2">
                 {stats.birthdays.map((m) => (
                   <li key={m.id} className="inline-flex items-center gap-2 h-9 px-3 rounded-full border border-line text-[14px]">

@@ -202,7 +202,7 @@ const Devotees = () => {
       ) : (
         <div className="card overflow-hidden">
           <table className="hidden md:table w-full text-left">
-            <thead className="bg-paper text-[13px] font-display font-bold uppercase tracking-label text-ink-muted">
+            <thead className="bg-paper text-[13px] font-sans font-bold uppercase tracking-label text-ink-muted">
               <tr>
                 <th className="w-10 px-4 py-3"><input type="checkbox" aria-label="Select all" checked={allSelected} onChange={toggleAll} className="w-4 h-4 accent-navy" /></th>
                 <th className="px-3 py-3">Member</th>

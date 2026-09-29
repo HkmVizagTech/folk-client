@@ -122,7 +122,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
                 <button
                   type="button"
                   onClick={() => { setOpen(false); setShowAll(true); }}
-                  className="w-full h-11 border-t border-line font-display text-[13px] font-bold uppercase tracking-label text-saffron hover:bg-paper"
+                  className="w-full h-11 border-t border-line font-sans text-[13px] font-bold uppercase tracking-label text-saffron hover:bg-paper"
                 >
                   See all activity
                 </button>

@@ -202,24 +202,24 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-paper lg:grid lg:grid-cols-2">
       {/* Left: brand panel (desktop) / slim header (mobile) */}
-      <aside className="bg-ink text-white px-6 py-6 lg:px-14 lg:py-12 flex lg:flex-col justify-between gap-6">
+      <aside className="bg-paper-dark text-ink px-6 py-6 lg:px-14 lg:py-12 flex lg:flex-col justify-between gap-6 border-b lg:border-b-0 lg:border-r border-line">
         <a href="/" className="flex items-center gap-3" aria-label="FOLK Vizag home">
-          <img src="/folk_logo_white.png" alt="" className="h-10 lg:h-14 w-auto" />
+          <img src="/folk_logo_blue.png" alt="" className="h-11 lg:h-16 w-auto" />
           <span className="leading-tight">
-            <span className="block font-display text-[13px] lg:text-[15px] font-bold">FOLK Vizag</span>
-            <span className="block text-[12px] lg:text-[13px] text-white/60">Youth Empowerment Club</span>
+            <span className="block font-display text-[16px] lg:text-[18px] font-semibold text-navy">FOLK Vizag</span>
+            <span className="block text-[12px] lg:text-[13px] text-ink-muted">Youth Empowerment Club</span>
           </span>
         </a>
         <div className="hidden lg:block max-w-md">
-          <p className="kicker text-marigold">Members</p>
-          <h1 className="display-lg mt-3 text-white">Your FOLK, in one place.</h1>
-          <ul className="mt-8 space-y-3 text-white/75 text-[16px]">
+          <p className="kicker">Members</p>
+          <h1 className="display-lg mt-2 text-navy">Your FOLK, in one place.</h1>
+          <ul className="mt-8 space-y-3 text-ink-muted text-[16px]">
             {['RSVP to programs and check in with your QR', 'Book yatras and pay online', 'Track your chanting and sadhana', 'Stay in touch with your FOLK guide'].map((t) => (
               <li key={t} className="flex gap-3"><CheckCircle2 size={19} className="mt-0.5 text-saffron shrink-0" aria-hidden="true" />{t}</li>
             ))}
           </ul>
         </div>
-        <p className="hidden lg:block text-[13px] text-white/45">Hare Krishna Movement, Visakhapatnam</p>
+        <p className="hidden lg:block text-[13px] text-ink-muted">Hare Krishna Movement, Visakhapatnam</p>
       </aside>
 
       {/* Right: form */}

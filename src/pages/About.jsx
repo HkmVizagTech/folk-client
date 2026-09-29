@@ -30,11 +30,11 @@ const About = () => {
               city. Anyone is welcome: you don&apos;t need any background, only curiosity.
             </p>
           </div>
-          <figure className="lg:col-span-2 bg-ink text-white rounded-xl p-6">
-            <blockquote className="font-display text-xl font-bold leading-snug">
+          <figure className="lg:col-span-2 bg-paper-dark border border-line rounded-t-[6rem] rounded-b-2xl px-6 pt-12 pb-6 text-center">
+            <blockquote className="font-display text-xl italic font-medium leading-snug text-navy">
               &ldquo;Whatever action a great man performs, common men follow.&rdquo;
             </blockquote>
-            <figcaption className="mt-3 font-display text-sm font-bold uppercase tracking-label text-marigold">Bhagavad-gita 3.21</figcaption>
+            <figcaption className="mt-3 text-sm font-semibold uppercase tracking-label text-saffron-dark">Bhagavad-gita 3.21</figcaption>
           </figure>
         </div>
       </section>

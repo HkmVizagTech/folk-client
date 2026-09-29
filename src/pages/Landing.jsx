@@ -6,6 +6,7 @@ import {
 import { useFirestore } from '../hooks/useFirestore';
 import { SiteHeader, SiteFooter } from '../components/site/SiteChrome';
 import { SITE, PROGRAMS, PHOTOS, whatsappLink } from '../content/site';
+import Ornament from '../components/site/Ornament';
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                              */
@@ -59,8 +60,9 @@ const Section = ({ id, className = '', children }) => (
 
 const Heading = ({ kicker, title, body, light = false, center = false }) => (
   <div className={`max-w-3xl ${center ? 'mx-auto text-center' : ''}`}>
-    {kicker && <p className={`kicker ${light ? 'text-marigold' : ''}`}>{kicker}</p>}
-    <h2 className={`display-lg mt-3 ${light ? 'text-white' : 'text-ink'}`}>{title}</h2>
+    {kicker && <p className={`kicker ${light ? 'text-marigold-light' : ''}`}>{kicker}</p>}
+    <h2 className={`display-lg mt-2 ${light ? 'text-white' : 'text-navy'}`}>{title}</h2>
+    <Ornament center={center} className="mt-3" />
     {body && (
       <p className={`mt-4 text-[17px] leading-relaxed ${light ? 'text-white/75' : 'text-ink-muted'}`}>{body}</p>
     )}
@@ -112,21 +114,16 @@ const Landing = ({ onLoginClick }) => {
       <SiteHeader onLoginClick={onLoginClick} />
 
       {/* ============================ HERO ============================ */}
-      <section className="relative bg-ink text-white overflow-hidden">
-        {PHOTOS.hero && (
-          <>
-            <img src={PHOTOS.hero} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/30" aria-hidden="true" />
-          </>
-        )}
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-28 grid gap-12 lg:grid-cols-12 lg:items-end">
+      <section className="relative bg-paper text-ink overflow-hidden">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 lg:py-24 grid gap-12 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-7">
-            <p className="kicker text-marigold">{SITE.fullName} · {SITE.parent}</p>
-            <h1 className="display-xl mt-5 text-white">
+            <p className="kicker">{SITE.fullName} · {SITE.parent}</p>
+            <h1 className="display-xl mt-4 text-navy">
               Understand yourself.<br />
-              <span className="text-saffron">Live with purpose.</span>
+              <span className="text-saffron-dark italic">Live with purpose.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/75">
+            <Ornament className="mt-5" />
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-muted">
               FOLK Vizag is a youth club for students and young professionals: weekly programs,
               retreats, yatras and a residency, guided by the teachings of the Bhagavad-gita.
             </p>
@@ -134,24 +131,31 @@ const Landing = ({ onLoginClick }) => {
               <button type="button" onClick={onLoginClick} className="btn-primary">
                 Join FOLK <ArrowRight size={17} />
               </button>
-              <a href="#events" className="btn-outline-light">See what&apos;s on</a>
+              <a href="#events" className="btn-outline">See what&apos;s on</a>
             </div>
           </div>
 
-          {!next && (
-            <figure className="lg:col-span-5 lg:justify-self-end w-full max-w-md border-l-4 border-saffron pl-6 py-2">
-              <blockquote className="font-display text-2xl sm:text-[1.7rem] font-bold leading-snug text-white">
+          {PHOTOS.hero && !next && (
+            <div className="lg:col-span-5 lg:justify-self-end w-full max-w-md rounded-t-[12rem] overflow-hidden border-[6px] border-white shadow-premium-xl ring-1 ring-marigold/40">
+              <img src={PHOTOS.hero} alt="FOLK Vizag program" className="w-full aspect-[4/5] object-cover" />
+            </div>
+          )}
+
+          {!next && !PHOTOS.hero && (
+            <figure className="lg:col-span-5 lg:justify-self-end w-full max-w-md rounded-t-[12rem] bg-white border border-line ring-4 ring-paper-dark px-8 pt-20 pb-10 text-center shadow-premium">
+              <Ornament center />
+              <blockquote className="mt-5 font-display text-2xl sm:text-[1.65rem] font-medium italic leading-snug text-navy">
                 &ldquo;One must deliver himself with the help of his mind, and not degrade himself.&rdquo;
               </blockquote>
-              <figcaption className="mt-4 font-display text-sm font-bold uppercase tracking-label text-marigold">
+              <figcaption className="mt-5 text-sm font-semibold uppercase tracking-label text-saffron-dark">
                 Bhagavad-gita 6.5
               </figcaption>
             </figure>
           )}
 
           {next && (
-            <aside className="lg:col-span-5 lg:justify-self-end w-full max-w-md bg-white text-ink rounded-xl overflow-hidden">
-              <div className="bg-saffron text-white px-5 py-2.5 font-display text-xs font-bold uppercase tracking-label">
+            <aside className="lg:col-span-5 lg:justify-self-end w-full max-w-md bg-white text-ink rounded-2xl overflow-hidden border border-line shadow-premium-xl">
+              <div className="bg-saffron text-white px-5 py-2.5 font-sans text-xs font-bold uppercase tracking-label">
                 Next program
               </div>
               <div className="p-5 flex gap-4">
@@ -177,12 +181,12 @@ const Landing = ({ onLoginClick }) => {
       </section>
 
       {/* ======================== FACTS BAND ========================= */}
-      <div className="bg-marigold">
+      <div className="bg-[#F6E9CC] border-y border-[#EAD7AE]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 grid gap-6 sm:grid-cols-3">
           {facts.map((f) => (
             <div key={f.label} className="flex items-baseline gap-3">
-              <span className="font-display text-4xl font-extrabold text-ink">{f.value}</span>
-              <span className="font-display text-sm font-bold uppercase tracking-label text-ink/80">{f.label}</span>
+              <span className="font-display text-4xl font-semibold text-navy">{f.value}</span>
+              <span className="text-[15px] font-semibold text-ink-muted">{f.label}</span>
             </div>
           ))}
         </div>
@@ -203,9 +207,9 @@ const Landing = ({ onLoginClick }) => {
               ['03', 'Belong', 'A FOLK guide who knows you, and friends to serve and travel with.'],
             ].map(([n, t, b]) => (
               <li key={n} className="card p-6 flex gap-5">
-                <span className="font-display text-2xl font-extrabold text-saffron">{n}</span>
+                <span className="font-display text-2xl font-semibold text-saffron-dark">{n}</span>
                 <div>
-                  <h3 className="font-display text-lg font-bold uppercase">{t}</h3>
+                  <h3 className="font-display text-lg font-semibold text-navy">{t}</h3>
                   <p className="mt-1 text-ink-muted leading-relaxed">{b}</p>
                 </div>
               </li>
@@ -217,7 +221,7 @@ const Landing = ({ onLoginClick }) => {
       {/* ========================= PROGRAMS ========================== */}
       <Section id="programs" className="py-20 sm:py-24">
         <Heading kicker="Get involved" title="Programs" body="Start with one. Most people begin at a weekly program and find the rest from there." />
-        <div className="mt-12 grid gap-px bg-line border border-line rounded-xl overflow-hidden sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-px bg-line border border-line rounded-2xl overflow-hidden sm:grid-cols-2 lg:grid-cols-3">
           {PROGRAMS.map((p) => {
             const Icon = PROGRAM_ICONS[p.key] || Users;
             return (
@@ -225,14 +229,14 @@ const Landing = ({ onLoginClick }) => {
                 key={p.key}
                 href={p.href || '#'}
                 onClick={handleProgram(p)}
-                className="group bg-white p-7 sm:p-8 flex flex-col hover:bg-ink transition-colors"
+                className="group bg-white p-7 sm:p-8 flex flex-col hover:bg-saffron-50 transition-colors"
               >
-                <span className="w-12 h-12 rounded-md bg-navy text-white inline-flex items-center justify-center group-hover:bg-saffron transition-colors">
+                <span className="w-12 h-12 rounded-full bg-saffron-50 text-saffron-dark ring-1 ring-saffron/20 inline-flex items-center justify-center group-hover:bg-saffron group-hover:text-white transition-colors">
                   <Icon size={24} aria-hidden="true" />
                 </span>
-                <h3 className="mt-6 font-display text-xl font-extrabold uppercase group-hover:text-white">{p.title}</h3>
-                <p className="mt-2 text-ink-muted leading-relaxed group-hover:text-white/70">{p.body}</p>
-                <span className="mt-6 inline-flex items-center gap-1.5 font-display text-[13px] font-bold uppercase tracking-label text-saffron">
+                <h3 className="mt-5 font-display text-xl font-semibold text-navy">{p.title}</h3>
+                <p className="mt-2 text-ink-muted leading-relaxed">{p.body}</p>
+                <span className="mt-6 inline-flex items-center gap-1.5 text-[14px] font-semibold text-saffron-dark">
                   {p.login ? 'Sign in to join' : 'Learn more'} <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
                 </span>
               </a>
@@ -273,12 +277,12 @@ const Landing = ({ onLoginClick }) => {
               return (
                 <li key={e.id} className="py-5 grid grid-cols-[4.5rem_1fr] sm:grid-cols-[5.5rem_1fr_auto] gap-x-5 gap-y-2 items-center">
                   <div className="text-center">
-                    <div className="font-display text-3xl sm:text-4xl font-extrabold leading-none">{d.day}</div>
+                    <div className="font-display text-3xl sm:text-4xl font-semibold text-navy leading-none">{d.day}</div>
                     <div className="mt-1 font-display text-xs font-bold text-saffron">{d.month}</div>
                   </div>
                   <div className="min-w-0">
-                    {e.category && <p className="font-display text-[11px] font-bold uppercase tracking-label text-navy-500">{e.category}</p>}
-                    <h3 className="font-display text-lg sm:text-xl font-bold leading-snug user-text">{e.title}</h3>
+                    {e.category && <p className="font-sans text-[11px] font-bold uppercase tracking-label text-navy-500">{e.category}</p>}
+                    <h3 className="font-display text-lg sm:text-xl font-semibold text-navy leading-snug user-text">{e.title}</h3>
                     <p className="mt-1 text-[15px] text-ink-muted flex flex-wrap gap-x-4 gap-y-1">
                       <span className="inline-flex items-center gap-1.5"><CalendarDays size={15} aria-hidden="true" /> {d.weekday}, {d.time}</span>
                       {e.location && <span className="inline-flex items-center gap-1.5 user-text"><MapPin size={15} aria-hidden="true" /> {e.location}</span>}
@@ -287,7 +291,7 @@ const Landing = ({ onLoginClick }) => {
                   <button
                     type="button"
                     onClick={onLoginClick}
-                    className="col-start-2 sm:col-start-auto justify-self-start sm:justify-self-end font-display text-[13px] font-bold uppercase tracking-label text-saffron hover:text-saffron-dark inline-flex items-center gap-1.5"
+                    className="col-start-2 sm:col-start-auto justify-self-start sm:justify-self-end text-[15px] font-semibold text-saffron-dark hover:text-saffron inline-flex items-center gap-1.5"
                   >
                     I&apos;m coming <ArrowRight size={15} />
                   </button>
@@ -300,28 +304,28 @@ const Landing = ({ onLoginClick }) => {
 
       {/* ========================== YATRAS ============================ */}
       {openTrips.length > 0 && (
-        <Section id="yatras" className="py-20 sm:py-24 bg-navy text-white">
+        <Section id="yatras" className="py-20 sm:py-24 bg-paper-dark">
           <div className="flex flex-wrap items-end justify-between gap-6">
-            <Heading light kicker="Travel together" title="Yatras" body="Pilgrimages with the FOLK group, planned end to end. Book your seat online." />
-            <a href="/trips" className="btn-outline-light">All yatras</a>
+            <Heading kicker="Travel together" title="Yatras" body="Pilgrimages with the FOLK group, planned end to end. Book your seat online." />
+            <a href="/trips" className="btn-outline">All yatras</a>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {openTrips.slice(0, 3).map((t) => (
-              <a key={t.id} href={`/trip/${encodeURIComponent(t.slug || '')}`} className="group bg-white text-ink rounded-xl overflow-hidden flex flex-col">
-                <div className="aspect-[16/10] bg-navy-800 overflow-hidden">
+              <a key={t.id} href={`/trip/${encodeURIComponent(t.slug || '')}`} className="group bg-white text-ink rounded-2xl overflow-hidden flex flex-col border border-line hover:shadow-premium-xl transition-shadow">
+                <div className="aspect-[16/10] bg-saffron-50 overflow-hidden">
                   {t.coverImage ? (
                     <img src={t.coverImage} alt="" loading="lazy" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white/40"><Compass size={40} /></div>
+                    <div className="w-full h-full flex items-center justify-center text-saffron/50"><Compass size={40} /></div>
                   )}
                 </div>
                 <div className="p-5 flex flex-col flex-1">
-                  <p className="font-display text-[12px] font-bold uppercase tracking-label text-saffron">{tripDates(t.startDate, t.endDate)}</p>
-                  <h3 className="mt-1.5 font-display text-xl font-extrabold uppercase leading-tight user-text">{t.title}</h3>
+                  <p className="font-sans text-[12px] font-bold uppercase tracking-label text-saffron">{tripDates(t.startDate, t.endDate)}</p>
+                  <h3 className="mt-1.5 font-display text-xl font-semibold text-navy leading-tight user-text">{t.title}</h3>
                   {t.location && <p className="mt-1.5 text-ink-muted flex items-center gap-1.5 user-text"><MapPin size={15} className="shrink-0" /> {t.location}</p>}
                   <div className="mt-auto pt-5 flex items-center justify-between">
                     <span className="font-display font-bold">{Number(t.price) > 0 ? `${inr(t.price)} / person` : 'By seva'}</span>
-                    <span className="font-display text-[13px] font-bold uppercase tracking-label text-saffron inline-flex items-center gap-1">Details <ArrowRight size={15} /></span>
+                    <span className="text-[14px] font-semibold text-saffron-dark inline-flex items-center gap-1">Details <ArrowRight size={15} /></span>
                   </div>
                 </div>
               </a>
@@ -333,10 +337,10 @@ const Landing = ({ onLoginClick }) => {
       {/* ========================= RESIDENCY ========================= */}
       <Section id="residency" className="py-20 sm:py-24">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-          <div className={`rounded-xl overflow-hidden bg-navy min-h-[280px] ${PHOTOS.residency ? '' : 'flex items-center justify-center'}`}>
+          <div className={`rounded-t-[10rem] rounded-b-2xl overflow-hidden bg-saffron-50 border border-line min-h-[300px] ${PHOTOS.residency ? '' : 'flex items-center justify-center'}`}>
             {PHOTOS.residency
               ? <img src={PHOTOS.residency} alt="FOLK residency" className="w-full h-full object-cover" />
-              : <Home size={64} className="text-white/30" aria-hidden="true" />}
+              : <Home size={64} className="text-saffron/40" aria-hidden="true" />}
           </div>
           <div>
             <Heading
@@ -382,8 +386,8 @@ const Landing = ({ onLoginClick }) => {
             ['Come to a program', 'Pick a weekly program or event and RSVP from the app.'],
           ].map(([t, b], i) => (
             <li key={t} className="text-center px-4">
-              <span className="mx-auto w-14 h-14 rounded-full bg-saffron text-white font-display text-xl font-extrabold inline-flex items-center justify-center">{i + 1}</span>
-              <h3 className="mt-5 font-display text-lg font-bold uppercase">{t}</h3>
+              <span className="mx-auto w-14 h-14 rounded-full bg-saffron-50 text-saffron-dark ring-2 ring-marigold/50 font-display text-xl font-semibold inline-flex items-center justify-center">{i + 1}</span>
+              <h3 className="mt-5 font-display text-xl font-semibold text-navy">{t}</h3>
               <p className="mt-2 text-ink-muted leading-relaxed">{b}</p>
             </li>
           ))}
@@ -394,30 +398,30 @@ const Landing = ({ onLoginClick }) => {
       </Section>
 
       {/* ========================= CONTACT =========================== */}
-      <Section id="contact" className="py-20 sm:py-24 bg-ink text-white">
+      <Section id="contact" className="py-20 sm:py-24 bg-white">
         <div className="grid gap-12 lg:grid-cols-2">
-          <Heading light kicker="Contact" title="Talk to us" body="Questions about programs, the residency or a yatra? Message the FOLK team and a coordinator will reply." />
+          <Heading kicker="Contact" title="Talk to us" body="Questions about programs, the residency or a yatra? Message the FOLK team and a coordinator will reply." />
           <ul className="grid gap-4 self-center">
             {wa && (
               <li>
-                <a href={wa} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
+                <a href={wa} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-5 rounded-2xl bg-paper hover:bg-saffron-50 border border-line">
                   <MessageCircle className="text-saffron shrink-0" aria-hidden="true" />
-                  <span><span className="block font-display font-bold">WhatsApp</span><span className="text-white/70">{SITE.contact.phone}</span></span>
+                  <span><span className="block font-display font-semibold text-navy">WhatsApp</span><span className="text-ink-muted">{SITE.contact.phone}</span></span>
                 </a>
               </li>
             )}
             {SITE.contact.phone && (
               <li>
-                <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} className="flex items-center gap-4 p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
+                <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} className="flex items-center gap-4 p-5 rounded-2xl bg-paper hover:bg-saffron-50 border border-line">
                   <Phone className="text-saffron shrink-0" aria-hidden="true" />
-                  <span><span className="block font-display font-bold">Call</span><span className="text-white/70">{SITE.contact.phone}</span></span>
+                  <span><span className="block font-display font-semibold text-navy">Call</span><span className="text-ink-muted">{SITE.contact.phone}</span></span>
                 </a>
               </li>
             )}
             {SITE.contact.address && (
-              <li className="flex items-center gap-4 p-5 rounded-xl bg-white/5 border border-white/10">
+              <li className="flex items-center gap-4 p-5 rounded-2xl bg-paper border border-line">
                 <MapPin className="text-saffron shrink-0" aria-hidden="true" />
-                <span><span className="block font-display font-bold">Visit</span><span className="text-white/70">{SITE.contact.address}</span></span>
+                <span><span className="block font-display font-semibold text-navy">Visit</span><span className="text-ink-muted">{SITE.contact.address}</span></span>
               </li>
             )}
           </ul>

@@ -169,7 +169,7 @@ const MyMembers = () => {
 
       {birthdays.length > 0 && (
         <section className="card p-4 sm:p-5">
-          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Birthdays</h2>
+          <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Birthdays</h2>
           <ul className="mt-3 flex flex-wrap gap-2">
             {birthdays.map((b) => (
               <li key={b.id}>
@@ -242,7 +242,7 @@ const MyMembers = () => {
             <div className="flex flex-wrap gap-2">
               {CHANNELS.map((c) => (
                 <button key={c} type="button" onClick={() => setForm((f) => ({ ...f, channel: c }))} aria-pressed={form.channel === c}
-                  className={`h-9 px-3 rounded-full border text-[14px] font-semibold ${form.channel === c ? 'bg-ink text-white border-ink' : 'border-line hover:bg-paper'}`}>{c}</button>
+                  className={`h-9 px-3 rounded-full border text-[14px] font-semibold ${form.channel === c ? 'bg-navy text-white border-ink' : 'border-line hover:bg-paper'}`}>{c}</button>
               ))}
             </div>
           </Field>

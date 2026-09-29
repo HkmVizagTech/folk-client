@@ -137,7 +137,7 @@ const Profile = () => {
   return (
     <div className="space-y-6">
       {toast && (
-        <div role={toast.tone === 'err' ? 'alert' : 'status'} className={`fixed z-[210] left-1/2 -translate-x-1/2 bottom-24 lg:bottom-8 rounded-md px-4 py-3 text-[15px] shadow-premium-xl ${toast.tone === 'err' ? 'bg-red-600 text-white' : 'bg-ink text-white'}`}>
+        <div role={toast.tone === 'err' ? 'alert' : 'status'} className={`fixed z-[210] left-1/2 -translate-x-1/2 bottom-24 lg:bottom-8 rounded-md px-4 py-3 text-[15px] shadow-premium-xl ${toast.tone === 'err' ? 'bg-red-600 text-white' : 'bg-navy text-white'}`}>
           {toast.message}
         </div>
       )}
@@ -156,11 +156,11 @@ const Profile = () => {
             <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={onPhoto} />
           </div>
           <h1 className="mt-4 font-display text-2xl font-bold user-text">{form.name || 'Member'}</h1>
-          <p className="mt-1 inline-flex items-center gap-2 h-7 px-3 rounded-full bg-navy-50 text-navy-700 font-display text-[12px] font-bold uppercase tracking-label">{stageLabel(stage)}</p>
+          <p className="mt-1 inline-flex items-center gap-2 h-7 px-3 rounded-full bg-navy-50 text-navy-700 font-sans text-[12px] font-bold uppercase tracking-label">{stageLabel(stage)}</p>
           {memberSince && <p className="mt-2 text-[14px] text-ink-muted">Member since {memberSince.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</p>}
 
           <div className="mt-6 w-full border-t border-line pt-6">
-            <p className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Check-in QR</p>
+            <p className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Check-in QR</p>
             {user?.qrToken ? (
               <>
                 <div ref={qrRef} className="mt-4 inline-block p-3 bg-white border border-line rounded-lg">
@@ -204,7 +204,7 @@ const Profile = () => {
                 <div className="space-y-7">
                   {SECTIONS.map((s) => (
                     <fieldset key={s.title}>
-                      <legend className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">{s.title}</legend>
+                      <legend className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">{s.title}</legend>
                       <div className="mt-3 grid gap-4 sm:grid-cols-2">
                         {s.fields.map(([k, label, type, opts]) => (
                           editing ? (

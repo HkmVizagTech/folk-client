@@ -19,9 +19,9 @@ const waLink = (phone) => {
 const Card = ({ title, action, onAction, children, className = '' }) => (
   <section className={`card p-5 sm:p-6 flex flex-col ${className}`}>
     <div className="flex items-center justify-between gap-3">
-      <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">{title}</h2>
+      <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">{title}</h2>
       {action && (
-        <button type="button" onClick={onAction} className="font-display text-[12px] font-bold uppercase tracking-label text-saffron hover:text-saffron-dark inline-flex items-center gap-1">
+        <button type="button" onClick={onAction} className="font-sans text-[12px] font-bold uppercase tracking-label text-saffron hover:text-saffron-dark inline-flex items-center gap-1">
           {action} <ArrowRight size={14} />
         </button>
       )}
@@ -66,9 +66,9 @@ const MemberHome = ({ setActiveTab }) => {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-ink-muted">{greeting()},</p>
-          <h1 className="display-lg mt-1">Hare Krishna, {firstName(user)}</h1>
+          <h1 className="display-lg mt-1 text-navy">Hare Krishna, {firstName(user)}</h1>
         </div>
-        <span className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full bg-navy-50 text-navy-700 font-display text-[12px] font-bold uppercase tracking-label">
+        <span className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full bg-navy-50 text-navy-700 font-sans text-[12px] font-bold uppercase tracking-label">
           <span className="w-2 h-2 rounded-full bg-navy-700" /> {stageLabel(stage)} member
         </span>
       </div>
@@ -167,11 +167,11 @@ const MemberHome = ({ setActiveTab }) => {
 
         {/* Check-in QR */}
         <Card title="Check-in">
-          <button type="button" onClick={() => setActiveTab('profile')} className="flex-1 flex items-center gap-4 rounded-lg bg-ink text-white p-5 text-left hover:bg-navy transition-colors">
-            <QrCode size={40} aria-hidden="true" />
+          <button type="button" onClick={() => setActiveTab('profile')} className="flex-1 flex items-center gap-4 rounded-xl bg-saffron-50 text-ink border border-saffron/20 p-5 text-left hover:bg-saffron-100 transition-colors">
+            <QrCode size={40} className="text-saffron-dark" aria-hidden="true" />
             <span>
               <span className="block font-display font-bold">Show my QR</span>
-              <span className="block text-[14px] text-white/70">Staff scan it at programs</span>
+              <span className="block text-[14px] text-ink-muted">Staff scan it at programs</span>
             </span>
           </button>
         </Card>
@@ -186,7 +186,7 @@ const MemberHome = ({ setActiveTab }) => {
                     <Compass size={20} className="text-navy-500 shrink-0" aria-hidden="true" />
                     <span className="font-semibold truncate">{t.tripTitle || 'Yatra'}</span>
                   </span>
-                  <span className="shrink-0 text-[13px] font-display font-bold uppercase tracking-label text-ink-muted">
+                  <span className="shrink-0 text-[13px] font-sans font-bold uppercase tracking-label text-ink-muted">
                     {t.seats || 1} seat{(t.seats || 1) === 1 ? '' : 's'} · {t.status || 'pending'}
                   </span>
                 </li>

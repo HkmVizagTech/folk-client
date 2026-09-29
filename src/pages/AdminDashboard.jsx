@@ -24,8 +24,8 @@ const Stat = ({ icon: Icon, value, label, onClick, tone = 'bg-navy-50 text-navy-
 const Panel = ({ title, action, onAction, children, className = '' }) => (
   <section className={`card p-5 sm:p-6 ${className}`}>
     <div className="flex items-center justify-between gap-3">
-      <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">{title}</h2>
-      {action && <button type="button" onClick={onAction} className="font-display text-[12px] font-bold uppercase tracking-label text-saffron hover:text-saffron-dark inline-flex items-center gap-1">{action} <ArrowRight size={14} /></button>}
+      <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">{title}</h2>
+      {action && <button type="button" onClick={onAction} className="font-sans text-[12px] font-bold uppercase tracking-label text-saffron hover:text-saffron-dark inline-flex items-center gap-1">{action} <ArrowRight size={14} /></button>}
     </div>
     <div className="mt-4">{children}</div>
   </section>
@@ -182,7 +182,7 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
         </Panel>
 
         <section id="inbox" className="card p-5 sm:p-6 xl:col-span-2 scroll-mt-24">
-          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Messages from members</h2>
+          <h2 className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Messages from members</h2>
           {inbox.length === 0 ? <p className="mt-4 text-ink-muted">No messages yet. Members write in from the Contact page.</p> : (
             <ul className="mt-4 divide-y divide-line">
               {inbox.map((msg) => (

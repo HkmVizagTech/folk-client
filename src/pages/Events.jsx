@@ -160,7 +160,7 @@ const Events = () => {
               role="tab"
               aria-selected={category === c}
               onClick={() => setCategory(c)}
-              className={`shrink-0 h-9 px-3.5 rounded-full border text-[14px] font-semibold ${category === c ? 'bg-ink text-white border-ink' : 'bg-white border-line text-ink hover:bg-paper'}`}
+              className={`shrink-0 h-9 px-3.5 rounded-full border text-[14px] font-semibold ${category === c ? 'bg-navy text-white border-ink' : 'bg-white border-line text-ink hover:bg-paper'}`}
             >
               {c}
             </button>
@@ -197,7 +197,7 @@ const Events = () => {
               <li key={e.id} className="card overflow-hidden flex flex-col">
                 {/* Event images are usually posters with the date and venue in
                     the artwork, so they're shown whole (contain), not cropped. */}
-                <div className="relative aspect-[4/3] bg-navy-900 overflow-hidden">
+                <div className="relative aspect-[4/3] bg-paper-dark overflow-hidden">
                   {img ? <img src={img} alt={`${e.title} poster`} loading="lazy" className="absolute inset-0 w-full h-full object-contain" /> : (
                     <div className="absolute inset-0 flex items-center justify-center"><CalendarDays size={40} className="text-white/30" /></div>
                   )}
@@ -227,7 +227,7 @@ const Events = () => {
                       )}
                       <div className="grid grid-cols-2 gap-2">
                         <button type="button" disabled={busy[e.id]} onClick={() => rsvp(e, true)} aria-pressed={going}
-                          className={`btn normal-case tracking-normal text-[14px] ${going ? 'bg-green-600 text-white' : 'bg-ink text-white hover:bg-navy'}`}>
+                          className={`btn normal-case tracking-normal text-[14px] ${going ? 'bg-green-600 text-white' : 'bg-navy text-white hover:bg-navy'}`}>
                           <CheckCircle2 size={17} /> {going ? 'Going' : "I'm going"}
                         </button>
                         <button type="button" disabled={busy[e.id]} onClick={() => rsvp(e, false)} aria-pressed={declined}

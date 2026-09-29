@@ -1,22 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Telugu:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Telugu:wght@400;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --ink: #101217;
-  --navy: #032B7C;
-  --saffron: #E4702A;
-  --saffron-dark: #C25A1B;
-  --marigold: #F2B705;
-  --paper: #F7F4EE;
-  --line: #E3DDD1;
+  --ink: #2B1F17;
+  --maroon: #7A1F2B;
+  --saffron: #E8731C;
+  --saffron-dark: #C45A0E;
+  --gold: #D9A63A;
+  --paper: #FBF6EC;
+  --line: #EADFCB;
   /* legacy names still referenced inline */
-  --gold: #F2B705;
-  --gold-dark: #C99400;
-  --cream: #F7F4EE;
-  --celestial: #23479C;
+  --navy: #7A1F2B;
+  --marigold: #D9A63A;
+  --gold-dark: #A87A1C;
+  --cream: #FBF6EC;
+  --celestial: #9C3A30;
 }
 
 @layer base {
@@ -35,7 +36,7 @@
   }
 
   ::selection {
-    background: rgba(228, 112, 42, 0.25);
+    background: rgba(232, 115, 28, 0.22);
   }
 
   /* Telugu text (names, notes) falls back to a font that actually has it. */
@@ -59,15 +60,15 @@
 @layer components {
   /* Kept for existing screens; now plain, quiet elevation. */
   .shadow-premium {
-    box-shadow: 0 1px 3px rgba(16, 18, 23, 0.08), 0 1px 2px rgba(16, 18, 23, 0.05);
+    box-shadow: 0 1px 3px rgba(43, 31, 23, 0.08), 0 1px 2px rgba(43, 31, 23, 0.05);
   }
 
   .shadow-premium-xl {
-    box-shadow: 0 8px 24px -8px rgba(16, 18, 23, 0.18);
+    box-shadow: 0 8px 24px -8px rgba(43, 31, 23, 0.18);
   }
 
   .shadow-premium-2xl {
-    box-shadow: 0 16px 40px -16px rgba(16, 18, 23, 0.25);
+    box-shadow: 0 16px 40px -16px rgba(43, 31, 23, 0.25);
   }
 
   .glass-card {
@@ -75,7 +76,7 @@
   }
 
   .btn-gradient {
-    @apply bg-saffron hover:bg-saffron-dark text-white font-display font-bold uppercase tracking-label text-sm py-3 px-8 rounded-md transition-colors disabled:opacity-50;
+    @apply bg-saffron hover:bg-saffron-dark text-white font-semibold text-[15px] py-3 px-8 rounded-full transition-colors disabled:opacity-50;
   }
 
   /* Decorative backgrounds removed from the design. Left as no-ops so old
@@ -92,38 +93,46 @@
 
   /* Small uppercase label above a heading (folknet-style section kicker). */
   .kicker {
-    @apply font-display text-xs font-bold uppercase text-saffron;
-    letter-spacing: 0.14em;
+    @apply font-sans text-[13px] font-semibold uppercase text-saffron-dark;
+    letter-spacing: 0.12em;
+  }
+
+  /* Thin gold rule with a lotus in the middle, under section headings. */
+  .ornament {
+    @apply flex items-center gap-3 text-marigold;
+  }
+  .ornament::before, .ornament::after {
+    content: "";
+    @apply h-px w-12 bg-marigold/60;
   }
 
   .display-xl {
-    @apply font-display font-extrabold uppercase leading-[1.02];
-    font-size: clamp(2.4rem, 6vw, 4.75rem);
-    letter-spacing: -0.015em;
-  }
-
-  .display-lg {
-    @apply font-display font-extrabold uppercase leading-[1.05];
-    font-size: clamp(1.9rem, 4vw, 3.1rem);
+    @apply font-display font-semibold leading-[1.12] text-navy;
+    font-size: clamp(2.3rem, 5.2vw, 4rem);
     letter-spacing: -0.01em;
   }
 
+  .display-lg {
+    @apply font-display font-semibold leading-[1.15] text-navy;
+    font-size: clamp(1.75rem, 3.4vw, 2.6rem);
+    letter-spacing: -0.005em;
+  }
+
   .display-md {
-    @apply font-display font-bold leading-tight;
-    font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+    @apply font-display font-semibold leading-snug text-navy;
+    font-size: clamp(1.3rem, 2vw, 1.6rem);
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-md font-display font-bold uppercase text-[13px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-    letter-spacing: 0.08em;
+    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-full font-sans font-semibold text-[15px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary { @apply btn bg-saffron text-white hover:bg-saffron-dark; }
-  .btn-dark { @apply btn bg-ink text-white hover:bg-navy; }
+  .btn-dark { @apply btn bg-navy text-white hover:bg-navy-800; }
   .btn-outline-light { @apply btn border-2 border-white/80 text-white hover:bg-white hover:text-ink; }
-  .btn-outline { @apply btn border-2 border-ink text-ink hover:bg-ink hover:text-white; }
+  .btn-outline { @apply btn border-2 border-navy text-navy hover:bg-navy hover:text-white; }
 
   .card {
-    @apply bg-white border border-line rounded-xl;
+    @apply bg-white border border-line rounded-2xl;
   }
 
   .scrollbar-hide::-webkit-scrollbar {

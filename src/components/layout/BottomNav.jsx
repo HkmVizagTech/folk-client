@@ -73,7 +73,7 @@ const BottomNav = ({ activeTab, setActiveTab }) => {
             <div className="p-4 space-y-5">
               {visibleGroups(user?.role).map((g) => (
                 <section key={g.title}>
-                  <h3 className="px-1 mb-2 font-display text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted">{g.title}</h3>
+                  <h3 className="px-1 mb-2 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted">{g.title}</h3>
                   <div className="grid grid-cols-3 gap-2">
                     {g.items.map(({ id, label, icon: Icon }) => (
                       <button

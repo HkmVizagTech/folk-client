@@ -60,7 +60,7 @@ const Gallery = () => {
           {items.map((it, i) => (
             <li key={`${it.src.slice(-40)}-${i}`}>
               <button type="button" onClick={() => setOpen(i)} className="group block w-full text-left">
-                <span className="block aspect-square rounded-lg overflow-hidden bg-navy-900">
+                <span className="block aspect-square rounded-lg overflow-hidden bg-paper-dark">
                   <img src={it.src} alt={it.caption} loading="lazy" className={`w-full h-full ${it.kind === 'poster' ? 'object-contain' : 'object-cover'} group-hover:opacity-90`} />
                 </span>
                 <span className="mt-1.5 block text-[14px] font-semibold truncate">{it.caption}</span>
