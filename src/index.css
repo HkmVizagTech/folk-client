@@ -124,7 +124,10 @@
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-full font-sans font-semibold text-[15px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-full font-sans font-semibold text-[15px] transition disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn:not(:disabled):active {
+    transform: scale(0.98);
   }
   .btn-primary { @apply btn bg-saffron text-white hover:bg-saffron-dark; }
   .btn-dark { @apply btn bg-navy text-white hover:bg-navy-800; }
@@ -132,7 +135,31 @@
   .btn-outline { @apply btn border-2 border-navy text-navy hover:bg-navy hover:text-white; }
 
   .card {
-    @apply bg-white border border-line rounded-2xl;
+    @apply bg-white border border-line rounded-2xl shadow-card;
+  }
+
+  /* Opt-in: cards in lists/grids lift a touch on hover (mouse only). */
+  @media (hover: hover) {
+    .card-hover {
+      transition: transform 200ms ease, box-shadow 200ms ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px -14px rgba(43, 31, 23, 0.28);
+    }
+  }
+
+  /* The devotional hero panel: deep maroon with a warm temple-lamp glow. */
+  .hero-devotional {
+    background:
+      radial-gradient(110% 90% at 88% -10%, rgba(217, 166, 58, 0.32), transparent 55%),
+      radial-gradient(90% 120% at -10% 110%, rgba(232, 115, 28, 0.22), transparent 55%),
+      linear-gradient(135deg, #5F1822 0%, #7A1F2B 55%, #8A2C25 100%);
+  }
+
+  /* Small rounded label chip. */
+  .chip {
+    @apply inline-flex items-center gap-1.5 h-7 px-3 rounded-full font-sans text-[12px] font-bold uppercase tracking-label;
   }
 
   .scrollbar-hide::-webkit-scrollbar {

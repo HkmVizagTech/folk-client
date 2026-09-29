@@ -89,7 +89,9 @@ const Navbar = ({ activeTab, setActiveTab }) => {
     <header className="sticky top-0 z-30 bg-white border-b border-line">
       <div className="h-14 sm:h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <img src="/folk_logo_blue.png" alt="FOLK Vizag" className="h-9 w-auto lg:hidden" />
+          <button type="button" onClick={() => setActiveTab('dashboard')} aria-label="Go to home" className="lg:hidden shrink-0 -ml-1 p-1 rounded-md hover:bg-paper">
+            <img src="/folk_logo_blue.png" alt="FOLK Vizag" className="h-9 w-auto" />
+          </button>
           <h1 className="font-display text-lg sm:text-xl font-bold truncate">{title}</h1>
         </div>
 

@@ -7,6 +7,7 @@ import { auth, db } from '../lib/firebase';
 import { useFirestore } from '../hooks/useFirestore';
 import { toDate, formatDay, formatTime } from '../lib/dates';
 import Modal, { Field, inputClass, textareaClass } from '../components/ui/Modal';
+import { Lotus } from '../components/site/Ornament';
 
 const CATEGORIES = ['Weekly Program', 'Retreats', 'Kirtans', 'Festivals', 'Yatras', 'Seminars', 'Other'];
 const EMPTY_FORM = { title: '', date: '', location: '', category: 'Weekly Program', description: '', img: '' };
@@ -160,7 +161,7 @@ const Events = () => {
               role="tab"
               aria-selected={category === c}
               onClick={() => setCategory(c)}
-              className={`shrink-0 h-9 px-3.5 rounded-full border text-[14px] font-semibold ${category === c ? 'bg-navy text-white border-ink' : 'bg-white border-line text-ink hover:bg-paper'}`}
+              className={`shrink-0 h-9 px-3.5 rounded-full border text-[14px] font-semibold transition-colors ${category === c ? 'bg-navy text-white border-navy' : 'bg-white border-line text-ink hover:bg-paper hover:border-marigold/60'}`}
             >
               {c}
             </button>
@@ -181,7 +182,7 @@ const Events = () => {
         </div>
       ) : events.length === 0 ? (
         <div className="card p-10 text-center">
-          <CalendarDays size={36} className="mx-auto text-ink-muted" />
+          <div className="ornament justify-center text-marigold"><Lotus /></div>
           <h2 className="mt-4 font-display text-lg font-bold">{when === 'upcoming' ? 'No upcoming events' : 'No past events'}</h2>
           <p className="mt-1 text-ink-muted">{when === 'upcoming' ? 'New programs are announced here and on WhatsApp.' : 'Past events will be listed here.'}</p>
         </div>
@@ -194,20 +195,20 @@ const Events = () => {
             const img = realImage(e.img);
             const past = when === 'past';
             return (
-              <li key={e.id} className="card overflow-hidden flex flex-col">
+              <li key={e.id} className="card card-hover overflow-hidden flex flex-col">
                 {/* Event images are usually posters with the date and venue in
                     the artwork, so they're shown whole (contain), not cropped. */}
                 <div className="relative aspect-[4/3] bg-paper-dark overflow-hidden">
                   {img ? <img src={img} alt={`${e.title} poster`} loading="lazy" className="absolute inset-0 w-full h-full object-contain" /> : (
-                    <div className="absolute inset-0 flex items-center justify-center"><CalendarDays size={40} className="text-white/30" /></div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-paper to-paper-dark"><Lotus className="text-marigold" style={{ width: 72, height: 36 }} /></div>
                   )}
                   {e._d && (
-                    <div className="absolute top-3 left-3 bg-white rounded-md px-2.5 py-1.5 text-center leading-none">
+                    <div className="absolute top-3 left-3 bg-white rounded-xl px-2.5 py-1.5 text-center leading-none shadow-premium">
                       <div className="font-display text-xl font-extrabold">{e._d.toLocaleDateString('en-IN', { day: '2-digit', timeZone: 'Asia/Kolkata' })}</div>
-                      <div className="mt-0.5 font-display text-[11px] font-bold text-saffron">{e._d.toLocaleDateString('en-IN', { month: 'short', timeZone: 'Asia/Kolkata' }).toUpperCase()}</div>
+                      <div className="mt-0.5 font-sans text-[11px] font-bold tracking-label text-saffron-dark">{e._d.toLocaleDateString('en-IN', { month: 'short', timeZone: 'Asia/Kolkata' }).toUpperCase()}</div>
                     </div>
                   )}
-                  {e.category && <span className="absolute top-3 right-3 bg-ink/80 text-white rounded-full px-2.5 py-1 text-[12px] font-semibold">{e.category}</span>}
+                  {e.category && <span className="absolute top-3 right-3 bg-navy-800/90 text-white rounded-full px-2.5 py-1 text-[12px] font-semibold">{e.category}</span>}
                 </div>
                 <div className="p-5 flex-1 flex flex-col">
                   <h2 className="font-display text-lg font-bold leading-snug user-text">{e.title}</h2>

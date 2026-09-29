@@ -5,6 +5,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useAuth } from '../hooks/useAuth';
 import { db } from '../lib/firebase';
 import { todayIST, yesterdayIST, dateKeyIST, toDate, formatDay } from '../lib/dates';
+import { MAHA_MANTRA } from '../content/wisdom';
+import ProgressRing from '../components/ui/ProgressRing';
 import { ROUNDS_TARGET } from '../content/journey';
 
 const TARGET_OPTIONS = [4, 8, 12, 16, 20, 24, 32, 64];
@@ -198,6 +200,7 @@ const SadhanaTracker = () => {
       <div>
         <h1 className="display-lg">Sadhana</h1>
         <p className="mt-1 text-ink-muted">Log your chanting every day. Small, steady steps build a strong practice.</p>
+        <p className="mt-3 font-display italic text-[15px] leading-relaxed text-navy-700/80 user-text">{MAHA_MANTRA}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -253,10 +256,23 @@ const SadhanaTracker = () => {
             )}
           </div>
 
-          <div className="mt-6 h-3 rounded-full bg-paper overflow-hidden" aria-hidden="true">
-            <div className={`h-full rounded-full ${pct >= 100 ? 'bg-green-600' : 'bg-saffron'}`} style={{ width: `${pct}%` }} />
+          <div className="mt-6 flex items-center gap-4 rounded-xl bg-paper/70 p-3">
+            <ProgressRing
+              value={Number(rounds) || 0}
+              max={effectiveTarget}
+              size={80}
+              stroke={8}
+              barClass={pct >= 100 ? 'text-green-600' : 'text-saffron'}
+              label={`${pct}% of today's target`}
+            >
+              <span className="font-display text-lg font-extrabold leading-none">{pct}%</span>
+            </ProgressRing>
+            <p className="flex-1 text-[14px] text-ink-muted">
+              {pct >= 100
+                ? 'Today\u2019s target reached. Jaya!'
+                : `${Math.max(0, effectiveTarget - (Number(rounds) || 0))} round${effectiveTarget - (Number(rounds) || 0) === 1 ? '' : 's'} to go for today\u2019s target.`}
+            </p>
           </div>
-          <p className="mt-2 text-[14px] text-ink-muted">{pct}% of today&apos;s target</p>
 
           {notice && (
             <p role={notice.tone === 'err' ? 'alert' : 'status'} className={`mt-4 flex gap-2 rounded-md px-3 py-2.5 text-[15px] ${notice.tone === 'err' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-800'}`}>
@@ -275,18 +291,18 @@ const SadhanaTracker = () => {
           <div className="mt-4 h-64" role="img" aria-label={`Rounds per day over the last 14 days; on target ${daysDone} of 14 days`}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="#E3DDD1" />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fill: '#5B6170', fontSize: 12 }} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: '#5B6170', fontSize: 12 }} domain={[0, (max) => Math.max(max, effectiveTarget)]} />
+                <CartesianGrid vertical={false} stroke="#EADFCB" />
+                <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fill: '#6E5E52', fontSize: 12 }} />
+                <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: '#6E5E52', fontSize: 12 }} domain={[0, (max) => Math.max(max, effectiveTarget)]} />
                 <Tooltip
-                  cursor={{ fill: 'rgba(16,18,23,0.04)' }}
+                  cursor={{ fill: 'rgba(43,31,23,0.05)' }}
                   formatter={(v) => [`${v} rounds`, '']}
                   labelFormatter={(_, p) => (p?.[0]?.payload?.key ? formatDay(new Date(`${p[0].payload.key}T12:00:00+05:30`)) : '')}
-                  contentStyle={{ borderRadius: 8, border: '1px solid #E3DDD1' }}
+                  contentStyle={{ borderRadius: 12, border: '1px solid #EADFCB', fontFamily: '"Source Sans 3", sans-serif' }}
                 />
-                <ReferenceLine y={effectiveTarget} stroke="#032B7C" strokeDasharray="4 4" />
+                <ReferenceLine y={effectiveTarget} stroke="#7A1F2B" strokeDasharray="4 4" />
                 <Bar dataKey="rounds" radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false}>
-                  {chart.map((c) => <Cell key={c.key} fill={c.done ? '#16A34A' : c.rounds > 0 ? '#E4702A' : '#E3DDD1'} />)}
+                  {chart.map((c) => <Cell key={c.key} fill={c.done ? '#16A34A' : c.rounds > 0 ? '#E8731C' : '#EADFCB'} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

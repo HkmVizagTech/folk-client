@@ -29,18 +29,19 @@ const BottomNav = ({ activeTab, setActiveTab }) => {
       type="button"
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 h-full ${active ? 'text-saffron' : 'text-ink-muted'}`}
+      className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 h-full ${active ? 'text-saffron-dark' : 'text-ink-muted'}`}
     >
-      <Icon size={22} strokeWidth={active ? 2.4 : 2} aria-hidden="true" />
+      <span className={`inline-flex items-center justify-center h-8 w-14 rounded-full transition-colors ${active ? 'bg-saffron-100' : ''}`}>
+        <Icon size={21} strokeWidth={active ? 2.3 : 2} aria-hidden="true" />
+      </span>
       <span className={`text-[11px] leading-none truncate max-w-full ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
-      <span className={`h-0.5 w-6 rounded-full ${active ? 'bg-saffron' : 'bg-transparent'}`} />
     </button>
   );
 
   return (
     <>
       <nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-[90] bg-white border-t border-line"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-[90] bg-white/95 backdrop-blur border-t border-line shadow-[0_-6px_20px_-12px_rgba(43,31,23,0.25)]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label="App"
       >
@@ -80,8 +81,8 @@ const BottomNav = ({ activeTab, setActiveTab }) => {
                         key={id}
                         type="button"
                         onClick={() => go(id)}
-                        className={`flex flex-col items-center justify-center gap-2 h-20 rounded-lg border text-center px-1 ${
-                          activeTab === id ? 'border-saffron bg-saffron-50 text-saffron-dark' : 'border-line text-ink hover:bg-paper'
+                        className={`flex flex-col items-center justify-center gap-2 h-20 rounded-xl border text-center px-1 transition-colors ${
+                          activeTab === id ? 'border-saffron bg-saffron-50 text-saffron-dark' : 'border-line text-ink hover:bg-paper hover:border-marigold/60'
                         }`}
                       >
                         <Icon size={22} aria-hidden="true" />
