@@ -22,10 +22,19 @@ const Donate = () => {
 
   const presets = selected === 'gitadaan' ? [301, 501, 1101, 5101] : [501, 1101, 2101, 5101]
 
+  const [result, setResult] = useState(null) // { tone, text }
+
   const handleDonate = async () => {
     setPaying(true)
-    await handlePayment(user, amount, `${cause.title} donation`)
-    setPaying(false)
+    setResult(null)
+    try {
+      const outcome = await handlePayment(user, amount, `${cause.title} donation`)
+      if (outcome === 'paid') setResult({ tone: 'ok', text: `Thank you! Your donation of ₹${Number(amount).toLocaleString('en-IN')} is received. Hare Krishna.` })
+    } catch (error) {
+      setResult({ tone: 'err', text: error.message || 'The payment could not be completed. Please try again.' })
+    } finally {
+      setPaying(false)
+    }
   }
 
   return (
@@ -108,14 +117,18 @@ const Donate = () => {
 
             <button
               onClick={handleDonate}
-              disabled={paying || !amount || Number(amount) <= 0}
-              className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-saffron text-white font-black uppercase tracking-label text-xs shadow-xl hover:scale-[1.02] hover:shadow-2xl transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+              disabled={paying || !amount || Number(amount) < 1}
+              className="btn-primary w-full"
             >
               {paying ? <><Loader2 size={16} className="animate-spin" /> Opening payment...</> : <><Gift size={16} /> Donate ₹{Number(amount || 0).toLocaleString('en-IN')}</>}
             </button>
 
-            <p className="text-[10px] text-gray-300 font-medium text-center mt-4">
-              Secure payments powered by Razorpay · UPI, cards & net-banking · 80G receipts available
+            {result && (
+              <p role={result.tone === 'err' ? 'alert' : 'status'} className={`mt-4 rounded-xl px-4 py-3 text-[15px] ${result.tone === 'err' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-800'}`}>{result.text}</p>
+            )}
+
+            <p className="text-[13px] text-ink-muted text-center mt-4">
+              Secure payments by Razorpay · UPI, cards and net-banking
             </p>
           </Card>
         </motion.div>

@@ -11,8 +11,7 @@ import { db, auth } from '../lib/firebase'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
 import { callApi } from '../lib/api'
-import { initializeRazorpay } from '../lib/razorpay'
-import { CONFIG } from '../config'
+import { getPaymentConfig, openCheckout } from '../lib/razorpay'
 
 /* ------------------------------------------------------------------ *
  * Local helpers (kept in-file — Trips.jsx / TripDetail.jsx are the only
@@ -88,9 +87,23 @@ const waNumber = (phone) => {
   return digits.replace(/^0+/, '')
 }
 
-const razorpayConfigured = () => {
-  const key = CONFIG.RAZORPAY_KEY
-  return !!key && !key.includes('your_key_here') && key.trim().length > 8
+// Remembers "this person tapped Register, then had to sign in" so the form
+// opens again by itself once they're back.
+const RESUME_KEY = 'folk_resume_trip'
+const markResume = (slug) => { try { sessionStorage.setItem(RESUME_KEY, slug || '') } catch { /* private mode */ } }
+const takeResume = (slug) => {
+  try {
+    if (slug && sessionStorage.getItem(RESUME_KEY) === slug) { sessionStorage.removeItem(RESUME_KEY); return true }
+  } catch { /* private mode */ }
+  return false
+}
+
+const GENDERS = ['Male', 'Female']
+const blankTraveller = () => ({ name: '', age: '', gender: '' })
+const friendlyError = (error) => {
+  const msg = String(error?.message || '')
+  if (!msg || /failed to fetch|networkerror|load failed/i.test(msg)) return 'We could not reach the payment server. Check your connection and try again.'
+  return msg
 }
 
 /* ------------------------------------------------------------------ */
@@ -249,7 +262,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
   const isSettled = isCashRegistration ? isCashCollected : isPaid
 
   /* ---------------- Registration modal ---------------- */
-  const emptyForm = { seats: 1, travellerNotes: '', emergencyContact: '', phone: '', email: '' }
+  const emptyForm = { seats: 1, travellers: [blankTraveller()], pickup: '', travellerNotes: '', emergencyContact: '', phone: '', email: '' }
+  const [payCfg, setPayCfg] = useState(null)
+  useEffect(() => { let alive = true; getPaymentConfig().then((c) => alive && setPayCfg(c)); return () => { alive = false } }, [])
+  const razorpayReady = !!payCfg?.enabled
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(null) // 'pay' | 'cash' | 'later' | null
@@ -263,13 +279,15 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
   const advance = Number(trip?.advanceAmount) || 0
   const seats = Math.min(20, Math.max(1, parseInt(form.seats, 10) || 1))
   const total = price * seats
-  const payNow = advance > 0 ? Math.min(advance * seats, total || advance * seats) : total
+  // Same formula as the server's createOrder, so the button and the charge agree.
+  const payNowFor = (n) => { const t = price * n; return advance > 0 ? Math.min(advance * n, t || advance * n) : t }
+  const payNow = payNowFor(seats)
   const balance = Math.max(0, total - payNow)
 
   /* ---------------- Payment methods offered for this trip ---------------- */
   // Online additionally needs a real Razorpay key and something to charge:
   // a ₹0 "by seva" yatra has no checkout to open.
-  const onlineAvailable = isOnlineEnabled(trip) && razorpayConfigured() && total > 0
+  const onlineAvailable = isOnlineEnabled(trip) && razorpayReady && total > 0
   // A ₹0 "by seva" yatra has nothing to collect either way, so cash is not
   // offered there — the trip falls through to a plain pending request.
   const cashAvailable = isCashEnabled(trip) && total > 0
@@ -287,6 +305,8 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
     if (!modalOpen) return
     setForm({
       seats: 1,
+      travellers: [{ name: user?.fullName || user?.name || auth.currentUser?.displayName || '', age: '', gender: user?.gender || '' }],
+      pickup: '',
       travellerNotes: '',
       emergencyContact: '',
       phone: user?.phone || user?.mobile || auth.currentUser?.phoneNumber || '',
@@ -315,8 +335,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
   const adjustSeats = (delta) => {
     setForm((prev) => {
-      const next = (parseInt(prev.seats, 10) || 1) + delta
-      return { ...prev, seats: Math.min(maxSelectableSeats, Math.max(1, next)) }
+      const next = Math.min(maxSelectableSeats, Math.max(1, (parseInt(prev.seats, 10) || 1) + delta))
+      const travellers = [...(prev.travellers || [])].slice(0, next)
+      while (travellers.length < next) travellers.push(blankTraveller())
+      return { ...prev, seats: next, travellers }
     })
   }
 
@@ -336,6 +358,12 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
       userPhone: (form.phone || '').trim(),
       userEmail: (form.email || '').trim(),
       seats,
+      travellers: (form.travellers || []).slice(0, seats).map((t) => ({
+        name: String(t.name || '').trim().slice(0, 80),
+        age: parseInt(t.age, 10) || null,
+        gender: t.gender || '',
+      })),
+      pickup: (form.pickup || '').trim().slice(0, 120),
       travellerNotes: (form.travellerNotes || '').trim(),
       emergencyContact: (form.emergencyContact || '').trim(),
       amountDue: total,
@@ -357,6 +385,20 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
     }
     if (seatsLeft !== null && seats > seatsLeft) {
       setFormError(`Only ${seatsLeft} seat${seatsLeft === 1 ? '' : 's'} left on this yatra.`)
+      return
+    }
+    const travellers = (form.travellers || []).slice(0, seats)
+    const missing = travellers.findIndex((t) => !String(t.name || '').trim() || !(parseInt(t.age, 10) > 0 && parseInt(t.age, 10) < 110))
+    if (travellers.length < seats || missing !== -1) {
+      setFormError(`Please add the name and age of traveller ${missing === -1 ? travellers.length + 1 : missing + 1}.`)
+      return
+    }
+    if (!/\d{10}/.test(String(form.phone || '').replace(/\D/g, ''))) {
+      setFormError('Please enter a valid mobile number so the yatra team can reach you.')
+      return
+    }
+    if (!String(form.emergencyContact || '').trim()) {
+      setFormError('Please add an emergency contact (name and phone).')
       return
     }
     setFormError('')
@@ -399,47 +441,15 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
       // current server also sets it itself; writing it again is harmless.)
       await updateDoc(regRef, { paymentOrderId: order.id, updatedAt: serverTimestamp() })
 
-      const loaded = await initializeRazorpay()
-      if (!loaded || !window.Razorpay) throw new Error('Razorpay checkout could not load. Check your connection and try again.')
-
-      const rzp = new window.Razorpay({
-        key: CONFIG.RAZORPAY_KEY,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'FOLK Vizag',
-        description: `${trip.title || 'Yatra'} — ${seats} seat${seats === 1 ? '' : 's'}`,
-        order_id: order.id,
-        image: '/folk_logo_blue.png',
-        handler: function () {
-          // Nothing is written to Firestore here: the server webhook is the
-          // single source of truth for whether the money actually arrived.
-          setNotice({
-            tone: 'success',
-            text: 'Payment submitted. Once our server confirms it, this page will show your seat as paid.',
-          })
-        },
-        prefill: {
-          name: user.fullName || user.name || auth.currentUser?.displayName || '',
-          email: (form.email || '').trim(),
-          contact: (form.phone || '').trim(),
-        },
-        theme: { color: '#E4702A' },
-        modal: {
-          ondismiss: function () {
-            setSubmitting(null)
-          },
-        },
-      })
-
       setModalOpen(false)
-      rzp.open()
+      await runCheckout(order, seats)
     } catch (error) {
       console.error('Trip registration error:', error)
       if (regRef) {
         setModalOpen(false)
         setNotice({
           tone: 'warn',
-          text: `Your seat is reserved, but the payment could not start: ${error.message} You can pay from this page later.`,
+          text: `Your seat is reserved, but the payment could not start. ${friendlyError(error)} You can tap "Pay now" on this page any time.`,
         })
       } else {
         setFormError(error.message || 'Something went wrong. Please try again.')
@@ -448,6 +458,46 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
       setSubmitting(null)
     }
   }
+
+  /** Opens Razorpay; the server confirms the payment and the seat. */
+  const runCheckout = async (order, seatCount) => {
+    const outcome = await openCheckout({
+      order,
+      description: `${trip.title || 'Yatra'} · ${seatCount} seat${seatCount === 1 ? '' : 's'}`,
+      prefill: {
+        name: user.fullName || user.name || auth.currentUser?.displayName || '',
+        email: (form.email || user.email || '').trim(),
+        contact: (form.phone || user.phone || '').trim(),
+      },
+      onVerifying: () => setNotice({ tone: 'info', text: 'Confirming your payment…' }),
+    })
+    if (outcome === 'paid') {
+      setNotice({ tone: 'success', text: 'Payment received and your seat is confirmed. Hare Krishna! You will get trip updates from the yatra team.' })
+    } else {
+      setNotice({ tone: 'warn', text: 'Payment not completed. Your seat is held as pending; tap "Pay now" to finish.' })
+    }
+  }
+
+  const [payingExisting, setPayingExisting] = useState(false)
+  const payExisting = async () => {
+    if (!myRegistration || payingExisting) return
+    setPayingExisting(true)
+    setNotice(null)
+    try {
+      const order = await callApi('createOrder', { tripRegistrationId: myRegistration.id })
+      if (!order?.id) throw new Error('The payment order could not be created. Please try again.')
+      await runCheckout(order, parseInt(myRegistration.seats, 10) || 1)
+    } catch (error) {
+      setNotice({ tone: 'warn', text: friendlyError(error) })
+    } finally {
+      setPayingExisting(false)
+    }
+  }
+
+  // Back from sign-in after tapping Register: open the form straight away.
+  useEffect(() => {
+    if (user && trip && !blockedReason && !myRegistration && takeResume(trip.slug || slug)) setModalOpen(true)
+  }, [user, trip, blockedReason, myRegistration, slug])
 
   const handleCancel = async () => {
     if (!myRegistration || cancelling) return
@@ -655,7 +705,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <>
               <button
                 type="button"
-                onClick={() => onLoginClick && onLoginClick()}
+                onClick={() => { markResume(trip?.slug || slug); onLoginClick && onLoginClick() }}
                 className="w-full min-h-[52px] rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
               >
                 <Ticket size={16} /> Sign in to register
@@ -713,7 +763,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                         : myRegistration.paymentOrderId
                           ? 'We have not seen a confirmed payment for this booking yet.'
                           : onlineAvailable
-                            ? 'No online payment started — staff will collect it, or you can pay online.'
+                            ? 'Pay online now to confirm your seat.'
                             : 'The yatra team will confirm your seat and arrange payment with you.')}
                   </p>
                   {isCashRegistration && !isCashCollected && trip.contactPhone && (
@@ -729,13 +779,17 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {(myRegistration.status || '').toLowerCase() === 'pending' && (
                 <>
-                  {!isSettled && price > 0 && !blockedReason && (
+                  {/* Unpaid online booking: finish paying for THIS registration
+                      (the old button only offered to book more seats). */}
+                  {!isSettled && !isCashRegistration && onlineAvailable && (
                     <button
                       type="button"
-                      onClick={() => setModalOpen(true)}
-                      className="w-full min-h-[48px] rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.14em] text-[11px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
+                      onClick={payExisting}
+                      disabled={payingExisting}
+                      className="btn-primary w-full"
                     >
-                      <CreditCard size={16} className="shrink-0" /> Book more seats
+                      {payingExisting ? <Loader2 size={16} className="animate-spin shrink-0" /> : <CreditCard size={16} className="shrink-0" />}
+                      {payingExisting ? 'Opening payment…' : `Pay ${inr(payNowFor(parseInt(myRegistration.seats, 10) || 1))} now`}
                     </button>
                   )}
                   <button
@@ -769,7 +823,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 className="w-full min-h-[52px] rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
               >
                 <Ticket size={16} className="shrink-0" />
-                {noPaymentAvailable ? 'Request a seat' : cashAvailable && !onlineAvailable ? 'Register & pay cash' : 'Reserve my seat'}
+                {noPaymentAvailable ? 'Request a seat' : cashAvailable && !onlineAvailable ? 'Register & pay cash' : 'Book & pay online'}
               </button>
               <p className="text-[11px] text-gray-400 font-medium text-center leading-relaxed">
                 {noPaymentAvailable
@@ -780,7 +834,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                       ? 'Pay online now, or in cash at the FOLK office.'
                       : cashAvailable
                         ? 'Reserve now and pay in cash at the FOLK office.'
-                        : 'Pay online, or reserve now and settle with the team.'}
+                        : 'Add traveller details and pay by UPI, card or net-banking.'}
               </p>
             </>
           )}
@@ -1190,7 +1244,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             </div>
             <button
               type="button"
-              onClick={() => (user ? setModalOpen(true) : onLoginClick && onLoginClick())}
+              onClick={() => (user ? setModalOpen(true) : (markResume(trip?.slug || slug), onLoginClick && onLoginClick()))}
               className="flex-1 min-w-0 min-h-[48px] px-3 rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.12em] text-[10px] xs:text-[11px] shadow-lg inline-flex items-center justify-center gap-2"
             >
               <Ticket size={16} className="shrink-0" />
@@ -1201,7 +1255,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     ? 'Request a seat'
                     : cashAvailable && !onlineAvailable
                       ? 'Register & pay cash'
-                      : 'Reserve seat'}
+                      : 'Book & pay'}
               </span>
             </button>
           </div>
@@ -1237,7 +1291,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   <Ticket className="text-white" size={24} />
                 </div>
                 <h2 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">
-                  {noPaymentAvailable ? 'Request a seat' : 'Reserve your seat'}
+                  {noPaymentAvailable ? 'Request a seat' : onlineAvailable ? 'Book your seat' : 'Reserve your seat'}
                 </h2>
                 <p className="text-gray-400 text-[13px] sm:text-sm font-medium mt-1.5 user-text">{trip.title}</p>
               </div>
@@ -1276,6 +1330,65 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     <p className="text-[11px] text-gray-400 font-semibold ml-1">{seatsLeft} seat{seatsLeft === 1 ? '' : 's'} left · up to 20 per registration</p>
                   )}
                 </div>
+
+                {/* One row per traveller: the yatra team needs names and ages for tickets and rooms. */}
+                <fieldset className="space-y-3">
+                  <legend className="text-[13px] font-semibold text-ink mb-1">Traveller details</legend>
+                  {(form.travellers || []).slice(0, seats).map((t, i) => (
+                    <div key={i} className="rounded-xl border border-line bg-paper/60 p-3 grid grid-cols-[1fr_5rem] sm:grid-cols-[1fr_5rem_8rem] gap-2">
+                      <label className="col-span-2 sm:col-span-1 min-w-0">
+                        <span className="block text-[12px] text-ink-muted mb-1">{i === 0 ? 'Traveller 1 (you)' : `Traveller ${i + 1}`} · full name</span>
+                        <input
+                          type="text"
+                          required
+                          value={t.name}
+                          onChange={(e) => setForm((f) => ({ ...f, travellers: f.travellers.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) }))}
+                          placeholder="As on ID card"
+                          className="w-full min-h-[44px] px-3 rounded-lg border border-line bg-white outline-none focus:border-saffron text-[15px]"
+                        />
+                      </label>
+                      <label className="min-w-0">
+                        <span className="block text-[12px] text-ink-muted mb-1">Age</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={109}
+                          required
+                          value={t.age}
+                          onChange={(e) => setForm((f) => ({ ...f, travellers: f.travellers.map((x, j) => (j === i ? { ...x, age: e.target.value } : x)) }))}
+                          className="w-full min-h-[44px] px-3 rounded-lg border border-line bg-white outline-none focus:border-saffron text-[15px]"
+                        />
+                      </label>
+                      <label className="min-w-0">
+                        <span className="block text-[12px] text-ink-muted mb-1">Gender</span>
+                        <select
+                          value={t.gender}
+                          onChange={(e) => setForm((f) => ({ ...f, travellers: f.travellers.map((x, j) => (j === i ? { ...x, gender: e.target.value } : x)) }))}
+                          className="w-full min-h-[44px] px-2 rounded-lg border border-line bg-white outline-none focus:border-saffron text-[15px]"
+                        >
+                          <option value="">—</option>
+                          {GENDERS.map((g) => <option key={g}>{g}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                  ))}
+                </fieldset>
+
+                {trip.meetingPoint ? (
+                  <p className="text-[14px] text-ink-muted">Meeting point: <span className="font-semibold text-ink">{trip.meetingPoint}</span></p>
+                ) : (
+                  <label className="block">
+                    <span className="block text-[13px] font-semibold text-ink mb-1">Boarding / pick-up point (optional)</span>
+                    <input
+                      type="text"
+                      value={form.pickup}
+                      onChange={(e) => setForm((f) => ({ ...f, pickup: e.target.value }))}
+                      placeholder="e.g. RTC Complex, MVP Colony"
+                      className="w-full min-h-[48px] px-4 rounded-xl border border-line bg-white outline-none focus:border-saffron text-[15px]"
+                    />
+                  </label>
+                )}
 
                 {/* ---- Payment method: only a real choice gets a chooser ---- */}
                 {bothAvailable && (
@@ -1376,7 +1489,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     rows={3}
                     value={form.travellerNotes}
                     onChange={(e) => setForm({ ...form, travellerNotes: e.target.value })}
-                    placeholder="Names of co-travellers, dietary needs, boarding point…"
+                    placeholder="Dietary needs, health notes, anything the team should know…"
                     className="w-full min-w-0 bg-cream/30 border border-saffron/10 rounded-2xl px-4 py-3 outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px] resize-none"
                   />
                 </div>
@@ -1435,7 +1548,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     <p className={`text-xs font-semibold leading-relaxed user-text ${total > 0 ? 'text-amber-800' : 'text-gray-600'}`}>
                       {total === 0
                         ? 'There is nothing to pay for this yatra. '
-                        : isOnlineEnabled(trip) && !razorpayConfigured()
+                        : isOnlineEnabled(trip) && !razorpayReady
                           ? 'Online payment isn’t switched on for this site yet. '
                           : 'No payment method is open for this yatra right now. '}
                       Your registration is saved as
@@ -1479,26 +1592,12 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     </span>
                   </button>
 
-                  {/* "Pay later" stays available whenever online checkout is the
-                      primary route — it is the pre-existing escape hatch. It is
-                      redundant (and confusing) once cash is the chosen method. */}
-                  {submitMode === 'pay' && (
-                    <button
-                      type="button"
-                      disabled={!!submitting}
-                      onClick={() => handleRegister('later')}
-                      className="w-full min-h-[48px] px-4 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.14em] text-[10px] hover:bg-gray-800 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                    >
-                      {submitting === 'later' ? <Loader2 size={16} className="animate-spin shrink-0" /> : <Clock3 size={16} className="shrink-0" />}
-                      {submitting === 'later' ? 'Reserving…' : 'Register, pay later'}
-                    </button>
-                  )}
-
-                  <p className="text-[11px] text-gray-400 font-medium text-center leading-relaxed">
-                    Your seat stays <span className="font-bold">pending</span> until the team confirms it.
-                    {effectiveMethod === 'cash' && !noPaymentAvailable
-                      ? ' Cash is recorded by the yatra team, never by this page.'
-                      : ' Payments are verified by our server, never by this page.'}
+                  <p className="text-[13px] text-ink-muted text-center leading-relaxed">
+                    {submitMode === 'pay'
+                      ? 'Pay by UPI, card or net-banking. Your seat is confirmed as soon as the payment goes through.'
+                      : effectiveMethod === 'cash' && !noPaymentAvailable
+                        ? 'Your seat is held as pending and confirmed by the yatra team when they receive the cash.'
+                        : 'Your request goes to the yatra team, who confirm your seat and arrange payment with you.'}
                   </p>
                 </div>
               </form>
