@@ -2,26 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, Users, CheckCircle2, Lock, User, Phone, Key, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { auth, db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
-// Administrators have a dedicated portal at /admin and must not use the
-// member sign-in. After Firebase accepts the credentials we check the
-// profile role; an admin is signed straight back out with a pointer to
-// the right door. Non-admin sign-ins are unaffected.
-const enforceNotAdmin = async () => {
-  const current = auth.currentUser;
-  if (!current) return;
-  try {
-    const snap = await getDoc(doc(db, 'users', current.uid));
-    if (snap.exists() && snap.data().role === 'admin') {
-      await signOut(auth);
-      throw new Error('admin-portal-only');
-    }
-  } catch (err) {
-    if (err.message === 'admin-portal-only') throw err;
-    // Profile lookup failed (rules/network): don't block the member login.
+// Administrators signing in here are let in (App.jsx lands staff on the
+// Command Center at "/"). This page used to sign admins straight back out,
+// which on a trip page looked like "I signed in and it asks me to sign in
+// again": the app remounted onto the public trip before the error could show.
+
+// Friendly text for Google sign-in failures that aren't the user's fault.
+const googleErrorMessage = (err) => {
+  switch (err?.code) {
+    case 'auth/unauthorized-domain':
+      return 'Google sign-in is not enabled for this web address yet. Please sign in with Phone (WhatsApp OTP) or email for now.';
+    case 'auth/popup-blocked':
+      return 'Your browser blocked the Google sign-in window. Allow pop-ups for this site, or sign in with Phone (WhatsApp OTP).';
+    case 'auth/operation-not-supported-in-this-environment':
+    case 'auth/web-storage-unsupported':
+      return 'Google sign-in does not work in this browser (for example inside WhatsApp or Instagram). Open the link in Chrome or Safari, or sign in with Phone (WhatsApp OTP).';
+    case 'auth/network-request-failed':
+      return 'Network problem while signing in. Check your connection and try again.';
+    default:
+      return err?.message || 'Failed to sign in with Google';
   }
 };
 
@@ -63,12 +64,13 @@ const Login = () => {
     setLoading(true); setError(''); setMessage('');
     try {
       await loginGoogle();
-      await enforceNotAdmin();
-    } 
-    catch (err) { 
-      if (err.message === 'admin-portal-only') { setError('Administrator accounts must sign in via the Admin Portal at /admin.'); }
-      else { setError(err.message || 'Failed to sign in with Google'); }
-    } 
+    }
+    catch (err) {
+      // Closing the Google window yourself isn't an error worth showing.
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        setError(googleErrorMessage(err));
+      }
+    }
     finally { setLoading(false); }
   };
 
@@ -90,11 +92,9 @@ const Login = () => {
         await registerEmail(toEmail(email), password, name);
       } else {
         await loginEmail(toEmail(email), password);
-        await enforceNotAdmin();
       }
     } catch (err) {
-      if (err.message === 'admin-portal-only') setError('Administrator accounts must sign in via the Admin Portal at /admin.');
-      else if (err.code === 'auth/email-already-in-use') setError('Email already in use. Please sign in instead.');
+      if (err.code === 'auth/email-already-in-use') setError('Email already in use. Please sign in instead.');
       else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') setError('Invalid email or password.');
       else if (err.code === 'auth/weak-password') setError('Password should be at least 6 characters.');
       else setError(err.message || 'Authentication failed. Please try again.');
@@ -145,11 +145,9 @@ const Login = () => {
     setLoading(true); setError(''); setMessage('');
     try {
       await verifyOTP(otp);
-      await enforceNotAdmin();
     } catch (err) {
       console.error('OTP verify error:', err);
-      if (err.message === 'admin-portal-only') setError('Administrator accounts must sign in via the Admin Portal at /admin.');
-      else if (err.code === 'auth/invalid-verification-code') setError('Invalid OTP. Please check and try again.');
+      if (err.code === 'auth/invalid-verification-code') setError('Invalid OTP. Please check and try again.');
       else setError(err.message || 'Failed to verify OTP.');
     } finally {
       setLoading(false);
@@ -174,6 +172,19 @@ const Login = () => {
       setError('Failed to save role. Please try again.');
     } finally { setLoading(false); }
   };
+
+  // Firebase has accepted the sign-in but the profile is still loading.
+  // Without this the form reappears for a moment, which looks like the login
+  // didn't work. AuthContext always resolves `user` after a sign-in, so this
+  // can't spin forever.
+  if (!user && auth.currentUser) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 border-4 border-saffron border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-bold text-gray-500">Signing you in…</p>
+      </div>
+    );
+  }
 
   const inputWrapperClass = "relative flex items-center bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden focus-within:border-saffron focus-within:ring-2 focus-within:ring-saffron/20 transition-all";
   const inputClass = "w-full py-4 pl-12 pr-4 bg-transparent outline-none text-gray-700 font-medium placeholder:text-gray-400";

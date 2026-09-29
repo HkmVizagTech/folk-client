@@ -81,15 +81,21 @@ service cloud.firestore {
         isSuperAdmin()
       );
 
-      // Anyone may update their own non-role fields. Staff (admin/folks_head)
-      // may update anyone's non-role fields (e.g. assignedGroup, phone).
-      // Only an admin may ever change the `role` field itself - folks_head
-      // can no longer promote anyone (including themselves) to admin.
+      // Anyone may update their own non-role fields. A folks_head may update
+      // the non-role fields (e.g. assignedGroup, phone) of plain devotees
+      // only: editing a staff profile's phone would let them sign in to that
+      // account through phone OTP. Only an admin may ever change the `role`
+      // field itself - folks_head can never promote anyone (including
+      // themselves). The root account may promote its own profile.
       allow update: if isSignedIn() && (
         isSuperAdmin() ||
+        (request.auth.uid == userId && isRootAdminUid()) ||
         (
-          (request.auth.uid == userId || isStaff()) &&
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) &&
+          (
+            request.auth.uid == userId ||
+            (isStaff() && resource.data.get('role', 'devotee') == 'devotee')
+          )
         )
       );
 
@@ -155,9 +161,21 @@ service cloud.firestore {
 
     // ---------------- SEVAS ----------------
     // Any signed-in devotee may adjust `countRegistered` themselves (this is
-    // how join/cancel works client-side), but only by exactly +1 or -1, and
-    // never below 0 or past maxVolunteers - closing the hole where anyone
-    // could set the count to an arbitrary number.
+    // how join/cancel works client-side), but only by exactly +1 or -1, never
+    // below 0 or past maxVolunteers, and only in the same transaction that
+    // flips THEIR OWN registration: +1 when it becomes 'registered', -1 when
+    // it stops being so. Otherwise anyone could decrement a full seva back
+    // open, or inflate it, without registering.
+    function sevaRegPath(sevaId) {
+      return /databases/$(database)/documents/seva_registrations/$(request.auth.uid + '_' + sevaId);
+    }
+    function sevaHeldBefore(sevaId) {
+      return exists(sevaRegPath(sevaId)) && get(sevaRegPath(sevaId)).data.status == 'registered';
+    }
+    function sevaHeldAfter(sevaId) {
+      return existsAfter(sevaRegPath(sevaId)) && getAfter(sevaRegPath(sevaId)).data.status == 'registered';
+    }
+
     match /sevas/{sevaId} {
       allow read: if isSignedIn();
       allow create: if isStaff();
@@ -166,8 +184,10 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['countRegistered']) &&
         request.resource.data.countRegistered >= 0 &&
         (
-          request.resource.data.countRegistered == resource.data.countRegistered + 1 ||
-          request.resource.data.countRegistered == resource.data.countRegistered - 1
+          (request.resource.data.countRegistered == resource.data.countRegistered + 1 &&
+            !sevaHeldBefore(sevaId) && sevaHeldAfter(sevaId)) ||
+          (request.resource.data.countRegistered == resource.data.countRegistered - 1 &&
+            sevaHeldBefore(sevaId) && !sevaHeldAfter(sevaId))
         ) &&
         (!('maxVolunteers' in resource.data) || request.resource.data.countRegistered <= resource.data.maxVolunteers)
       );
@@ -177,13 +197,24 @@ service cloud.firestore {
     // ---------------- SEVA REGISTRATIONS ----------------
     // Owners can register/cancel themselves, but only staff can ever mark a
     // registration "completed" - otherwise a devotee could credit themselves
-    // for seva they never performed.
+    // for seva they never performed. That includes creating it already
+    // completed, and "re-joining" over a completed record. The doc id is
+    // always <uid>_<sevaId>, which the sevas counter rule above relies on.
     match /seva_registrations/{regId} {
       allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        regId == request.auth.uid + '_' + request.resource.data.sevaId &&
+        request.resource.data.status == 'registered';
       allow update: if isSignedIn() && (
         isStaff() ||
-        (request.auth.uid == resource.data.userId && request.resource.data.status != 'completed')
+        (
+          request.auth.uid == resource.data.userId &&
+          resource.data.status != 'completed' &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.sevaId == resource.data.sevaId &&
+          request.resource.data.status in ['registered', 'cancelled']
+        )
       );
       allow delete: if false;
     }
@@ -233,6 +264,13 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ---------------- EVENT SECRETS ----------------
+    // Self-check-in tokens, kept apart from the publicly readable events.
+    // Server-only (Admin SDK); staff get the token from createEvent's reply.
+    match /event_secrets/{eventId} {
+      allow read, write: if false;
+    }
+
     // ---------------- TRIPS (yatras / pilgrimages) ----------------
     // Publicly readable so the /trips list and each /trip/<slug> landing page
     // work for logged-out visitors (same pattern as events). Only staff
@@ -260,15 +298,32 @@ service cloud.firestore {
     // otherwise mark their own seat paid. `paymentMode` is the devotee's
     // declared intent at registration time and carries no payment meaning on
     // its own.
+    // The pointer may only name an order the server created for this very
+    // registration (createOrder records userId + tripRegistrationId on it),
+    // never someone else's payment or an unrelated ₹1 donation.
+    function isOwnOrderFor(regId) {
+      let orderId = request.resource.data.paymentOrderId;
+      let path = /databases/$(database)/documents/payments/$(orderId);
+      return orderId is string && exists(path) &&
+        get(path).data.userId == request.auth.uid &&
+        get(path).data.get('tripRegistrationId', '') == regId;
+    }
+
     match /trip_registrations/{regId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff());
 
+      // The staff-only attestation fields (and the payment pointer) can't be
+      // pre-filled at creation either, or a devotee could create their seat
+      // already marked "cash collected".
       allow create: if isSignedIn() &&
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.status == 'pending' &&
         request.resource.data.seats is int &&
         request.resource.data.seats > 0 &&
-        request.resource.data.seats <= 20;
+        request.resource.data.seats <= 20 &&
+        request.resource.data.get('cashCollected', false) == false &&
+        !request.resource.data.keys().hasAny(['cashAmount', 'cashCollectedAt', 'cashCollectedBy']) &&
+        request.resource.data.get('paymentOrderId', null) == null;
 
       allow update: if isSignedIn() && (
         (
@@ -286,7 +341,8 @@ service cloud.firestore {
           // Owner attaches the Razorpay order id once checkout starts.
           request.auth.uid == resource.data.userId &&
           request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['paymentOrderId', 'updatedAt'])
+            .hasOnly(['paymentOrderId', 'updatedAt']) &&
+          isOwnOrderFor(regId)
         ) ||
         (
           // Owner cancels their own still-pending seat.

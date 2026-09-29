@@ -231,9 +231,12 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
     ) || null
   }, [payments, myRegistration?.paymentOrderId])
 
+  // A payment created for a specific registration must be for THIS one: the
+  // pointer is devotee-writable, so it could otherwise name another order.
   const isPaid = !!myPayment
     && String(myPayment.status || '').toLowerCase() === 'completed'
     && myPayment.verified === true
+    && (!myPayment.tripRegistrationId || myPayment.tripRegistrationId === myRegistration?.id)
 
   /**
    * Cash truth is `cashCollected` on the registration, which the rules let
@@ -386,11 +389,14 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
       }
 
       // --- Online payment -------------------------------------------------
-      const order = await callApi('createOrder', { amount: payNow, eventId: trip.id })
+      // The server prices the order from the trip and this registration's
+      // seats; `amount` is only a fallback for a backend that predates that.
+      const order = await callApi('createOrder', { amount: payNow, eventId: trip.id, tripRegistrationId: regRef.id })
       if (!order || !order.id) throw new Error('The payment order could not be created. Please try again.')
 
       // Persist the pointer BEFORE checkout opens, so it survives the user
-      // closing the modal. Rules allow only these two fields here.
+      // closing the modal. Rules allow only these two fields here. (The
+      // current server also sets it itself; writing it again is harmless.)
       await updateDoc(regRef, { paymentOrderId: order.id, updatedAt: serverTimestamp() })
 
       const loaded = await initializeRazorpay()

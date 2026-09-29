@@ -63,7 +63,7 @@ const AdminLogin = () => {
     } catch (err) {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
         setError(
-          'Invalid administrator credentials. If the shared admin / admin@folk123 login was never created, sign in with the site owner\u2019s account first (Google works too) and use \u201cCreate / Reset Admin Login\u201d in the Command Center.'
+          'Invalid administrator credentials. If the shared admin login was never set up (or you forgot its password), sign in with the site owner\u2019s account first (Google works too) and use \u201cCreate / Reset Admin Login\u201d in the Command Center.'
         );
       } else if (err.code === 'auth/too-many-requests') {
         setError('Too many attempts. Please wait and try again.');

@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldAlert, LogOut, ArrowRight, Loader2, KeyRound, ChevronDown, Copy, Check } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { callApi } from '../lib/api';
+import { provisionAdminLogin, validateAdminPassword } from '../lib/adminLogin';
+import AdminPasswordFields from '../components/auth/AdminPasswordFields';
 
 /**
  * Shown on /admin to a signed-in user whose role is not staff. Their
  * credentials authenticated fine, but they don't get the Command Center.
  * Offers a clean hop to the member app, a sign-out to try another account,
- * and — for a brand-new site with no admin yet — the one-time bootstrap that
- * provisions the shared admin login (the server only allows it while no
- * admin profile exists).
+ * and the site owner's bootstrap that provisions the shared admin login (the
+ * server only allows it for the ROOT_ADMIN_UID account or with the server's
+ * ADMIN_SETUP_CODE).
  */
 const AdminAccessDenied = () => {
   const { user, logout } = useAuth();
@@ -18,6 +19,8 @@ const AdminAccessDenied = () => {
   const [setupState, setSetupState] = useState({ status: 'idle', message: '' });
   const [uidCopied, setUidCopied] = useState(false);
   const [setupCode, setSetupCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const copyUid = async () => {
     try {
@@ -31,20 +34,24 @@ const AdminAccessDenied = () => {
   };
 
   const createSiteAdmin = async () => {
+    const problem = validateAdminPassword(newPassword, confirmPassword);
+    if (problem) {
+      setSetupState({ status: 'error', message: problem });
+      return;
+    }
     setSetupState({ status: 'working', message: 'Provisioning the shared admin login…' });
     try {
-      const result = await callApi('createAdmin', setupCode ? { setupCode } : {});
-      const promotedNote = result?.callerPromoted
-        ? ' Your account was also promoted to admin — the portal is ready.'
-        : '';
+      const message = await provisionAdminLogin({ password: newPassword, setupCode });
+      setNewPassword('');
+      setConfirmPassword('');
+      setSetupCode('');
       setSetupState({
         status: 'done',
-        message: `Admin login ready → username: ${result.username} · password: admin@folk123.${promotedNote} Sign out and sign in with those credentials.`,
+        message: `${message} Reload the page, or sign out and sign in with the admin login.`,
       });
     } catch (error) {
       console.error('createAdmin failed:', error);
-      // The server's message is already human-readable and may name the
-      // existing admin — show it verbatim instead of replacing it.
+      // The server's message is already human-readable — show it verbatim.
       setSetupState({
         status: 'error',
         message: error?.message || 'Failed to create admin login',
@@ -99,16 +106,15 @@ const AdminAccessDenied = () => {
             </button>
           </div>
 
-          {/* First-time setup: on a fresh site no admin exists yet, so whoever
-              signs in first provisions the shared admin login. Once an admin
-              profile exists the server rejects this, so it stays safe. */}
+          {/* Site-owner setup: the server only accepts this from the
+              ROOT_ADMIN_UID account or with the correct ADMIN_SETUP_CODE. */}
           <div className="mt-8 pt-5 border-t border-gray-800/80 text-left">
             <button
               type="button"
               onClick={() => setShowBootstrap(!showBootstrap)}
               className="w-full flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-gray-300 transition-colors"
             >
-              <span>First time? Create the admin login</span>
+              <span>Site owner? Create or reset the admin login</span>
               <ChevronDown size={14} className={`transition-transform ${showBootstrap ? 'rotate-180' : ''}`} />
             </button>
 
@@ -116,9 +122,9 @@ const AdminAccessDenied = () => {
               <div className="mt-4">
                 <p className="text-[11px] text-gray-500 leading-relaxed mb-4">
                   This creates the shared administrator account (username{' '}
-                  <span className="font-bold text-gray-300">admin</span>, password{' '}
-                  <span className="font-bold text-gray-300">admin@folk123</span>). It only works while
-                  no admin exists yet.
+                  <span className="font-bold text-gray-300">admin</span>) with the password you
+                  choose, or resets it. Only the site owner's account, or someone with the
+                  server's setup code, can do this.
                 </p>
 
                 {/* Direct unblock: paste this UID as ROOT_ADMIN_UID on the
@@ -154,6 +160,16 @@ const AdminAccessDenied = () => {
                       className="w-full px-3 py-2.5 bg-gray-900/70 border border-gray-700/60 rounded-xl outline-none focus:border-saffron/70 text-gray-200 text-xs font-mono placeholder:text-gray-600"
                     />
                   </div>
+                </div>
+                <div className="mb-4">
+                  <AdminPasswordFields
+                    dark
+                    password={newPassword}
+                    confirm={confirmPassword}
+                    onPasswordChange={setNewPassword}
+                    onConfirmChange={setConfirmPassword}
+                    disabled={setupState.status === 'working'}
+                  />
                 </div>
                 <button
                   onClick={createSiteAdmin}

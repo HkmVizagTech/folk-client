@@ -116,6 +116,12 @@ function App() {
     }
   }, []);
 
+  // The sign-in request has been served once someone is signed in; clear it
+  // so signing out later on a trip page shows the trip again, not the login.
+  useEffect(() => {
+    if (user) setForceLogin(false);
+  }, [user]);
+
   // Handle browser Back/Forward and manual URL edits.
   useEffect(() => {
     const onPopState = () => {

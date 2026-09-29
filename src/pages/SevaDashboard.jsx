@@ -15,8 +15,9 @@ import {
   UserCheck 
 } from 'lucide-react';
 import { db } from '../lib/firebase';
+import { callApi } from '../lib/api';
 import { 
-  collection, doc, setDoc, updateDoc, getDoc, getDocs, addDoc,
+  collection, doc, setDoc, getDoc, getDocs, addDoc,
   query, where, orderBy, serverTimestamp, increment, runTransaction 
 } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
@@ -163,10 +164,9 @@ const SevaDashboard = () => {
 
   const handleMarkAttendance = async (registrationId, status) => {
     try {
-      await updateDoc(doc(db, 'seva_registrations', registrationId), {
-        status,
-        updatedAt: serverTimestamp(),
-      });
+      // Through the server so the seva's volunteer count is freed/retaken in
+      // the same transaction (a direct write here left the count stale).
+      await callApi('markSevaAttendance', { registrationId, status });
       setParticipants(prev => prev.map(p => p.id === registrationId ? { ...p, status } : p));
     } catch (error) {
       console.error('Mark attendance error:', error);

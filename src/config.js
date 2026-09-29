@@ -14,6 +14,11 @@ const withScheme = (url) => {
   return `https://${raw.replace(/^:\/*/, '')}`;
 };
 
+// The site owner's Firebase Auth UID. An identity, not a secret: only the
+// owner of that Firebase account can sign in as it. Keep in sync with
+// isRootAdminUid() in firestore.rules and ROOT_ADMIN_UID on the server.
+export const ROOT_ADMIN_UID = 'wRbvUaFiBOYeXEEtF8OuXnzGWXs2';
+
 export const CONFIG = {
   BACKEND_URL: withScheme(
     import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || 'https://folkvizag-backend-production.up.railway.app'

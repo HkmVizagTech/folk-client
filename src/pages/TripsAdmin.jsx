@@ -469,7 +469,9 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     // 1. Verified online payment outranks everything — real money, webhook-proven.
     if (orderId) {
       const p = paymentsById.get(String(orderId))
-      if (p && p.status === 'completed' && p.verified === true) {
+      // An order made for a specific registration only settles that one.
+      const forThisReg = !p?.tripRegistrationId || p.tripRegistrationId === reg?.id
+      if (p && p.status === 'completed' && p.verified === true && forThisReg) {
         const amt = Number.isFinite(Number(p.amount)) ? Number(p.amount) : 0
         return { ...base, state: 'online_paid', onlineAmount: amt > 0 ? amt : due, amount: amt > 0 ? amt : due }
       }

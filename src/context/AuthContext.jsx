@@ -14,9 +14,38 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getSafeProfileImage } from '../lib/imageUtils';
 import { callApi } from '../lib/api';
+import { ROOT_ADMIN_UID } from '../config';
 
 
 export const AuthContext = createContext();
+
+const readCachedUser = () => {
+  try {
+    const cached = localStorage.getItem('fast_load_cache');
+    return cached ? JSON.parse(cached) : null;
+  } catch {
+    return null;
+  }
+};
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Read the profile, retrying transient failures (flaky mobile data, the
+// long-polling channel still connecting right after sign-in). Permission
+// errors are final and are rethrown immediately.
+const getProfileWithRetry = async (uid, attempts = 3) => {
+  let lastError;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await getDoc(doc(db, 'users', uid));
+    } catch (error) {
+      if (error.code === 'permission-denied') throw error;
+      lastError = error;
+      if (i < attempts - 1) await wait(500 * (i + 1));
+    }
+  }
+  throw lastError;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
@@ -88,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     // firestore.rules `users` create rule, so this write is never rejected,
     // and it means a compromised/modified client can no longer self-assign
     // an elevated role by passing a different value here.
-    const isRootAdmin = auth.currentUser.uid === 'wRbvUaFiBOYeXEEtF8OuXnzGWXs2';
+    const isRootAdmin = auth.currentUser.uid === ROOT_ADMIN_UID;
     const assignedRole = isRootAdmin ? 'admin' : 'devotee';
 
     const userRef = doc(db, 'users', auth.currentUser.uid);
@@ -135,32 +164,42 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    let isInitialLoad = true;
+    // No setLoading(true) here. The full-screen spinner is only for the very
+    // first check on page load (the initial `loading` state covers it).
+    // Showing it again on sign-in/sign-out unmounted the whole app, which
+    // threw away App's "user asked to sign in" state and the login screen's
+    // errors — after signing in from a trip page people landed back on the
+    // public trip, still being asked to sign in.
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      // If we already have a cached user and it's the initial load, don't show loading spinner again
-      if (isInitialLoad && user) {
-        setLoading(false);
-        isInitialLoad = false;
-      } else {
-        setLoading(true);
-      }
       if (authUser) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', authUser.uid));
+          const userDoc = await getProfileWithRetry(authUser.uid);
           if (userDoc.exists()) {
             const userData = userDoc.data();
             let liveRole = userData.role;
-            
-            // Auto-generate qrToken if missing
+
+            // Auto-generate qrToken if missing. Best effort: a failed write
+            // must not stop the person from being signed in.
             if (!userData.qrToken) {
               const newToken = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
-              await setDoc(doc(db, 'users', authUser.uid), { qrToken: newToken }, { merge: true });
-              userData.qrToken = newToken;
+              try {
+                await setDoc(doc(db, 'users', authUser.uid), { qrToken: newToken }, { merge: true });
+                userData.qrToken = newToken;
+              } catch (tokenError) {
+                console.error('qrToken save failed:', tokenError);
+              }
             }
 
-            if (authUser.uid === 'wRbvUaFiBOYeXEEtF8OuXnzGWXs2' && liveRole !== 'admin') {
-               await setDoc(doc(db, 'users', authUser.uid), { role: 'admin' }, { merge: true });
-               liveRole = 'admin';
+            if (authUser.uid === ROOT_ADMIN_UID && liveRole !== 'admin') {
+              // Its own try: if the rules reject the promotion, this used to
+              // throw out of the whole profile load and leave the owner
+              // stuck on the "complete your profile" screen.
+              try {
+                await setDoc(doc(db, 'users', authUser.uid), { role: 'admin' }, { merge: true });
+                liveRole = 'admin';
+              } catch (promoteError) {
+                console.error('Root admin promotion failed:', promoteError);
+              }
             }
             const finalUser = { ...authUser, ...userData, role: liveRole, requiresRole: false };
             setUser(finalUser);
@@ -172,7 +211,16 @@ export const AuthProvider = ({ children }) => {
           if (error.code === 'permission-denied') {
             setUser({ ...authUser, requiresRole: true });
           } else {
+            // The profile couldn't be loaded (network/offline). Previously
+            // `user` stayed null, so a person Firebase had just signed in
+            // was shown as signed out. Use their cached profile if it is
+            // theirs, otherwise a minimal signed-in user; the Firestore
+            // rules still decide what they may actually do.
             console.error("Auth Firestore Error:", error);
+            const cached = readCachedUser();
+            setUser(cached && cached.uid === authUser.uid
+              ? cached
+              : { ...authUser, role: 'devotee', requiresRole: false, profileUnavailable: true });
           }
         } finally {
           setProfileLoaded(true);

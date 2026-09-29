@@ -4,7 +4,8 @@ import { ShieldCheck, Loader2, Mail, User, Key, ArrowRight, Building2, Home, Cal
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
-import { callApi } from '../lib/api';
+import { provisionAdminLogin, validateAdminPassword } from '../lib/adminLogin';
+import AdminPasswordFields from '../components/auth/AdminPasswordFields';
 
 const MANAGEMENT_LINKS = [
   { id: 'events', label: 'Events', desc: 'Create / manage community events', icon: <Calendar />, color: 'bg-saffron/10 text-saffron' },
@@ -18,17 +19,23 @@ const MANAGEMENT_LINKS = [
 const AdminSetup = ({ setActiveTab }) => {
   const { user } = useAuth();
   const [adminSetupState, setAdminSetupState] = useState({ status: 'idle', message: '' });
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const isAdmin = user?.role === 'admin' || user?.role === 'folks_head';
 
   const createSiteAdmin = async () => {
+    const problem = validateAdminPassword(newPassword, confirmPassword);
+    if (problem) {
+      setAdminSetupState({ status: 'error', message: problem });
+      return;
+    }
     setAdminSetupState({ status: 'working', message: 'Setting up the shared admin login…' });
     try {
-      const result = await callApi('createAdmin');
-      setAdminSetupState({
-        status: 'done',
-        message: `Admin login ready → username: ${result.username}  ·  password: admin@folk123`,
-      });
+      const message = await provisionAdminLogin({ password: newPassword });
+      setNewPassword('');
+      setConfirmPassword('');
+      setAdminSetupState({ status: 'done', message });
     } catch (error) {
       console.error("createAdmin failed:", error);
       setAdminSetupState({ status: 'error', message: error?.message || 'Failed to create admin login' });
@@ -67,17 +74,12 @@ const AdminSetup = ({ setActiveTab }) => {
           <p className="text-sm text-gray-600 leading-relaxed mb-4">
             You are signed in as a <span className="font-bold text-gray-800">{user?.role || 'devotee'}</span>.
             The panels below are only visible to the Site Administrator / Folks Head. To manage
-            the site, sign out and sign in with the shared admin login:
+            the site, sign out and sign in with the shared admin login (username{' '}
+            <span className="font-bold text-saffron">admin</span>) — ask the site owner for its password.
           </p>
-          <div className="flex items-center gap-2 text-xs font-bold text-gray-700 bg-white rounded-xl px-3 py-2.5 mb-2">
-            <User size={14} className="text-gray-400" /> username: <span className="text-saffron">admin</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-gray-700 bg-white rounded-xl px-3 py-2.5">
-            <Key size={14} className="text-gray-400" /> password: <span className="text-saffron">admin@folk123</span>
-          </div>
           <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-            If this login has not been created yet, an admin creates it here with the
-            button below — the very first site admin is provisioned on first sign-up.
+            If this login has not been set up yet, the site owner creates it here with the
+            button below.
           </p>
         </Card>
       )}
@@ -124,12 +126,20 @@ const AdminSetup = ({ setActiveTab }) => {
             <User size={14} className="text-gray-400" /> username: <span className="text-saffron">admin</span>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-gray-700 bg-gray-50 rounded-xl px-3 py-2.5">
-            <Key size={14} className="text-gray-400" /> password: <span className="text-saffron">admin@folk123</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-gray-700 bg-gray-50 rounded-xl px-3 py-2.5">
             <Mail size={14} className="text-gray-400" /> sign-in: <span className="text-gray-500">admin (auto-mapped)</span>
           </div>
         </div>
+        {user && (
+          <div className="mb-4">
+            <AdminPasswordFields
+              password={newPassword}
+              confirm={confirmPassword}
+              onPasswordChange={setNewPassword}
+              onConfirmChange={setConfirmPassword}
+              disabled={adminSetupState.status === 'working'}
+            />
+          </div>
+        )}
         {!user ? (
           <p className="text-xs font-bold text-center bg-blue-50 text-blue-600 rounded-xl px-3 py-3">
             Please sign in with an admin account to manage the site. The shared
@@ -165,7 +175,7 @@ const AdminSetup = ({ setActiveTab }) => {
         </h3>
         <ol className="list-decimal list-inside text-sm text-gray-500 space-y-1.5 leading-relaxed">
           <li>Log out if you are signed in as a regular devotee.</li>
-          <li>On the login screen, type username <span className="font-bold text-gray-700">admin</span> and password <span className="font-bold text-gray-700">admin@folk123</span>.</li>
+          <li>On the login screen, type username <span className="font-bold text-gray-700">admin</span> and the admin password the site owner set.</li>
           <li>You will land on the <span className="font-bold text-gray-700">Command Center</span> — from there use the management cards above (or the navbar) to run Events, Hostels, Accommodation, Devotees, Attendance and Seva.</li>
         </ol>
       </Card>

@@ -9,6 +9,8 @@ import { useFirestore } from '../hooks/useFirestore'
 import { where } from 'firebase/firestore'
 import { getSafeProfileImage } from '../lib/imageUtils'
 import { callApi } from '../lib/api'
+import { provisionAdminLogin, validateAdminPassword } from '../lib/adminLogin'
+import AdminPasswordFields from '../components/auth/AdminPasswordFields'
 
 /**
  * Administrator Command Center — the admin's own dashboard, fully separate
@@ -104,6 +106,8 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
 
   const [backendStatus, setBackendStatus] = useState('checking');
   const [adminSetupState, setAdminSetupState] = useState({ status: 'idle', message: '' });
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
 
   const generateGrowthAudit = () => {
     const headers = ['Name', 'Role', 'Level', 'Streak', 'Longest Streak', 'Score', 'Phone', 'QR Token'];
@@ -123,13 +127,17 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
   };
 
   const createSiteAdmin = async () => {
+    const problem = validateAdminPassword(newAdminPassword, confirmAdminPassword);
+    if (problem) {
+      setAdminSetupState({ status: 'error', message: problem });
+      return;
+    }
     setAdminSetupState({ status: 'working', message: 'Setting up the shared admin login…' });
     try {
-      const result = await callApi('createAdmin');
-      setAdminSetupState({
-        status: 'done',
-        message: `Admin login ready → username: ${result.username}  ·  password: admin@folk123`,
-      });
+      const message = await provisionAdminLogin({ password: newAdminPassword });
+      setNewAdminPassword('');
+      setConfirmAdminPassword('');
+      setAdminSetupState({ status: 'done', message });
     } catch (error) {
       console.error("createAdmin failed:", error);
       setAdminSetupState({ status: 'error', message: error?.message || 'Failed to create admin login' });
@@ -692,10 +700,18 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
              <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
               Site Admin Access
             </h3>
-            <p className="text-xs text-gray-500 mb-6 leading-relaxed">Authorize a dedicated administrator login for managing the whole site. The shared login uses username <span className="font-bold text-gray-700">admin</span> and password <span className="font-bold text-gray-700">admin@folk123</span>.</p>
-            <div className="flex flex-wrap gap-2 mb-6">
+            <p className="text-xs text-gray-500 mb-6 leading-relaxed">Create the dedicated administrator login for managing the whole site, or reset its password. The shared login uses username <span className="font-bold text-gray-700">admin</span> and the password you choose here.</p>
+            <div className="flex flex-wrap gap-2 mb-4">
                <span className="px-3 py-1.5 rounded-full bg-celestial/10 text-celestial text-[10px] font-black uppercase tracking-widest">Username: admin</span>
-               <span className="px-3 py-1.5 rounded-full bg-saffron/10 text-saffron text-[10px] font-black uppercase tracking-widest">Password: admin@folk123</span>
+            </div>
+            <div className="mb-6">
+              <AdminPasswordFields
+                password={newAdminPassword}
+                confirm={confirmAdminPassword}
+                onPasswordChange={setNewAdminPassword}
+                onConfirmChange={setConfirmAdminPassword}
+                disabled={adminSetupState.status === 'working'}
+              />
             </div>
             <Button
               onClick={createSiteAdmin}
