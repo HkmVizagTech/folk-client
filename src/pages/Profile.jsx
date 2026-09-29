@@ -1,476 +1,274 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  User, Mail, Phone, MapPin, Briefcase, GraduationCap, 
-  Map, Globe, Home, Users, Camera, Edit2, Save, X,
-  Calendar, CreditCard, ChevronRight, CheckCircle2,
-  Plus, Info, Award, Loader2, LogOut
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Camera, Pencil, Save, X, CalendarCheck, CreditCard, UserRound, Download } from 'lucide-react';
+import { doc, setDoc, serverTimestamp, where } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { db, storage } from '../lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, where } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getSafeProfileImage } from '../lib/imageUtils';
-import { cn } from '../components/ui/Card';
 import { compressImage } from '../lib/performance';
+import { toDate, formatDay } from '../lib/dates';
+import { stageOf, stageLabel } from '../content/journey';
+import { normalizePhone } from '../lib/phone';
+import { Field, inputClass } from '../components/ui/Modal';
+
+// The only profile fields a member edits themselves. Stage, guide, role and
+// sadhana numbers are managed elsewhere (and firestore.rules enforces it).
+const EDITABLE = ['name', 'phone', 'email', 'gender', 'dob', 'occupation', 'qualification', 'college', 'city', 'state', 'country', 'fatherName', 'fatherPhone'];
+
+const SECTIONS = [
+  { title: 'Personal', fields: [
+    ['name', 'Full name', 'text', { required: true, autoComplete: 'name' }],
+    ['phone', 'Mobile', 'tel', { required: true, autoComplete: 'tel' }],
+    ['email', 'Email', 'email', { autoComplete: 'email' }],
+    ['gender', 'Gender', 'select', { options: ['', 'Male', 'Female'] }],
+    ['dob', 'Date of birth', 'date', {}],
+  ] },
+  { title: 'Study & work', fields: [
+    ['occupation', 'Occupation', 'text', { placeholder: 'e.g. Student, Software engineer' }],
+    ['college', 'College / company', 'text', {}],
+    ['qualification', 'Qualification', 'text', { placeholder: 'e.g. B.Tech 3rd year' }],
+  ] },
+  { title: 'Location', fields: [
+    ['city', 'City', 'text', {}],
+    ['state', 'State', 'text', {}],
+    ['country', 'Country', 'text', {}],
+  ] },
+  { title: 'Family contact', fields: [
+    ['fatherName', "Parent's name", 'text', {}],
+    ['fatherPhone', "Parent's mobile", 'tel', {}],
+  ] },
+];
+
+const initials = (n = '') => n.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || '?';
+const isRealPhoto = (src) => src && !/dicebear|ui-avatars/.test(src);
 
 const Profile = () => {
   const { user, logout } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState('profile');
-  const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState('details');
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({});
+  const [photo, setPhoto] = useState('');
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState(null);
-  const fileInputRef = useRef(null);
+  const fileRef = useRef(null);
+  const qrRef = useRef(null);
 
-  const attendanceQuery = React.useMemo(() => [where('userId', '==', user?.uid || '')], [user?.uid]);
-  const paymentsQuery = React.useMemo(() => [where('userId', '==', user?.uid || '')], [user?.uid]);
-  const { data: myAttendance, loading: attendanceLoading } = useFirestore('attendance', attendanceQuery);
-  const { data: myPayments, loading: paymentsLoading } = useFirestore('payments', paymentsQuery);
-
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    gender: '',
-    level: '',
-    occupation: '',
-    qualification: '',
-    city: '',
-    state: '',
-    country: '',
-    center: '',
-    fatherName: '',
-    fatherPhone: '',
-    spouseId: '',
-    profileImage: ''
-  });
+  const mine = useMemo(() => [where('userId', '==', user?.uid || '__none__')], [user?.uid]);
+  const { data: attendance, loading: attLoading } = useFirestore('attendance', mine);
+  const { data: payments, loading: payLoading } = useFirestore('payments', mine);
 
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || user.displayName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        gender: user.gender || '',
-        level: user.level || 'FOLK New',
-        occupation: user.occupation || '',
-        qualification: user.qualification || '',
-        city: user.city || '',
-        state: user.state || '',
-        country: user.country || '',
-        center: user.center || '',
-        fatherName: user.fatherName || '',
-        fatherPhone: user.fatherPhone || '',
-        spouseId: user.spouseId || '',
-        profileImage: user.photo || user.photoURL || ''
-      });
-    }
+    if (!user) return;
+    setForm(Object.fromEntries(EDITABLE.map((k) => [k, user[k] ?? (k === 'name' ? user.displayName || '' : '')])));
+    setPhoto(user.photo || user.photoURL || '');
   }, [user]);
 
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const flash = (message, tone = 'ok') => { setToast({ message, tone }); setTimeout(() => setToast(null), 3500); };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleImageClick = () => {
-    if (!isEditing) setIsEditing(true);
-    setTimeout(() => fileInputRef.current?.click(), 100);
-  };
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      showToast('Image size must be less than 2MB', 'error');
-      return;
-    }
-
+  const save = async (e) => {
+    e.preventDefault();
+    if (!String(form.name || '').trim() || !String(form.phone || '').trim()) { flash('Name and mobile are required.', 'err'); return; }
+    setSaving(true);
     try {
-      setUploading(true);
-      
-      // Fallback if compression fails
-      let fileToUpload = file;
-      try {
-        console.log("Compressing image...");
-        fileToUpload = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.7 });
-      } catch (e) {
-        console.warn("Compression failed, using original file:", e);
-      }
+      const data = Object.fromEntries(EDITABLE.map((k) => [k, String(form[k] ?? '').trim()]));
+      await setDoc(doc(db, 'users', user.uid), { ...data, phoneNormalized: normalizePhone(data.phone), photo, updatedAt: serverTimestamp() }, { merge: true });
+      setEditing(false);
+      flash('Profile saved.');
+    } catch (err) {
+      console.error('Profile save failed:', err);
+      flash('Could not save your profile. Please try again.', 'err');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-      const storageRef = ref(storage, `profileImages/${user.uid}`);
-      await uploadBytes(storageRef, fileToUpload);
-      const downloadURL = await getDownloadURL(storageRef);
-      
-      setFormData(prev => ({ ...prev, profileImage: downloadURL }));
-      showToast('Image uploaded successfully!');
-    } catch (error) {
-      console.error("Upload error:", error);
-      showToast('Failed to upload image', 'error');
+  const onPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { flash('Please choose an image.', 'err'); return; }
+    if (file.size > 8 * 1024 * 1024) { flash('That photo is too large (max 8 MB).', 'err'); return; }
+    setUploading(true);
+    try {
+      let blob = file;
+      try { blob = await compressImage(file, { maxWidth: 600, maxHeight: 600, quality: 0.75 }); } catch { /* use original */ }
+      const r = ref(storage, `profileImages/${user.uid}`);
+      await uploadBytes(r, blob);
+      const url = await getDownloadURL(r);
+      setPhoto(url);
+      await setDoc(doc(db, 'users', user.uid), { photo: url, updatedAt: serverTimestamp() }, { merge: true });
+      flash('Photo updated.');
+    } catch (err) {
+      console.error('Photo upload failed:', err);
+      flash('Could not upload the photo right now.', 'err');
     } finally {
       setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
-  const handleSave = async () => {
-    if (!formData.name || !formData.phone) {
-      showToast('Name and Phone are required', 'error');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log("Saving profile for UID:", user?.uid, formData);
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
-        ...formData,
-        photo: formData.profileImage, // Sync legacy photo field
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      
-      console.log("Profile saved successfully to users/" + user.uid);
-      setIsEditing(false);
-      showToast('Profile updated successfully!');
-    } catch (error) {
-      console.error("Update error details:", error);
-      showToast('Failed to update profile: ' + (error.message || 'Unknown error'), 'error');
-    } finally {
-      setLoading(false);
-    }
+  const downloadQR = () => {
+    const svg = qrRef.current?.querySelector('svg');
+    if (!svg) return;
+    const data = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 420; c.height = 520;
+      const x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+      x.drawImage(img, 30, 30, 360, 360);
+      x.fillStyle = '#101217'; x.font = 'bold 22px Montserrat, sans-serif'; x.textAlign = 'center';
+      x.fillText(form.name || 'Member', c.width / 2, 440);
+      x.fillStyle = '#5B6170'; x.font = '15px sans-serif';
+      x.fillText('FOLK Vizag member ID', c.width / 2, 472);
+      const a = document.createElement('a');
+      a.download = `FOLK-ID-${(form.name || 'member').replace(/\s+/g, '-')}.png`;
+      a.href = c.toDataURL('image/png');
+      a.click();
+    };
+    img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(data)))}`;
   };
 
-  const renderDetailItem = (icon, label, value, name, type = "text", options = null) => {
-    const Icon = icon;
-    return (
-      <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-saffron/5 hover:border-saffron/20 transition-all group">
-        <div className="w-10 h-10 rounded-xl bg-saffron/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-          <Icon className="text-saffron" size={20} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-label mb-1">{label}</p>
-          {isEditing ? (
-            options ? (
-              <select
-                name={name}
-                value={formData[name]}
-                onChange={handleInputChange}
-                className="w-full bg-white border border-saffron/20 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 ring-saffron/20"
-              >
-                {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            ) : (
-              <input
-                type={type}
-                name={name}
-                value={formData[name]}
-                onChange={handleInputChange}
-                className="w-full bg-white border border-saffron/20 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 ring-saffron/20"
-              />
-            )
-          ) : (
-            <p className="text-gray-800 font-bold truncate">
-              {value || <span className="text-gray-300 font-normal">Not specified</span>}
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const completionFields = ['name', 'phone', 'gender', 'level', 'occupation', 'qualification', 'city', 'country', 'fatherName'];
-  const completionPercent = Math.round(
-    (completionFields.filter((f) => formData[f] && String(formData[f]).trim() !== '').length / completionFields.length) * 100
-  );
-
-  const formatDate = (value) => {
-    const d = value?.toDate ? value.toDate() : new Date(value);
-    return isNaN(d?.getTime?.()) ? '—' : d.toLocaleDateString();
-  };
+  const stage = stageOf(user);
+  const memberSince = toDate(user?.createdAt);
 
   return (
-    <div className="max-w-4xl mx-auto pb-12 animate-in fade-in duration-700">
-      
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className={cn(
-              "fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:top-6 z-[100] px-5 sm:px-6 py-3 rounded-2xl shadow-premium-xl flex items-center gap-3 font-bold text-sm",
-              toast.type === 'error' ? "bg-red-500 text-white" : "bg-green-600 text-white"
-            )}
-          >
-            {toast.type === 'error' ? <X size={18} /> : <CheckCircle2 size={18} />}
-            {toast.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="space-y-6">
+      {toast && (
+        <div role={toast.tone === 'err' ? 'alert' : 'status'} className={`fixed z-[210] left-1/2 -translate-x-1/2 bottom-24 lg:bottom-8 rounded-md px-4 py-3 text-[15px] shadow-premium-xl ${toast.tone === 'err' ? 'bg-red-600 text-white' : 'bg-ink text-white'}`}>
+          {toast.message}
+        </div>
+      )}
 
-      {/* Top Section / Header */}
-      <div className="relative rounded-xl overflow-hidden shadow-premium-xl bg-white mb-8 group">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-saffron/10 to-saffron/20" />
-        <div className="relative p-8 md:p-12 flex flex-col items-center">
-          
-          {/* Profile Image */}
-          <div className="relative group mb-6">
-            <motion.div 
-              whileHover={{ scale: isEditing ? 1.05 : 1 }}
-              onClick={handleImageClick}
-              className={cn(
-                "w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-xl overflow-hidden bg-cream relative cursor-pointer transition-all",
-                isEditing && "ring-4 ring-saffron/30"
-              )}
-            >
-              <img 
-                src={getSafeProfileImage(formData.profileImage, formData.name)} 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-              />
-              {uploading && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <Loader2 className="text-white animate-spin" size={32} />
-                </div>
-              )}
-              {isEditing && !uploading && (
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                  <Camera className="text-white" size={32} />
-                </div>
-              )}
-            </motion.div>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*" 
-              onChange={handleFileChange} 
-            />
-          </div>
-
-          <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-800 mb-2 font-poppins tracking-tight break-words">
-              {formData.name || 'Your Name'}
-            </h1>
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-              <span className="px-3 py-1 bg-white rounded-full text-[10px] font-black text-gray-500 shadow-sm border border-gray-100 uppercase tracking-label">
-                ID: {user?.qrToken?.substring(0, 8).toUpperCase() || 'NEW-USER'}
-              </span>
-              <span className={cn(
-                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-label",
-                user?.role === 'admin' ? "bg-red-500 text-white" : "bg-saffron text-white"
-              )}>
-                {user?.role || 'Devotee'}
-              </span>
-            </div>
-          </div>
-
-          {/* Edit Button */}
-          <div className="absolute top-6 right-6 md:top-8 md:right-8 flex gap-2">
-            <button
-              onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-              disabled={loading}
-              aria-label={isEditing ? 'Save profile' : 'Edit profile'}
-              className={cn(
-                "w-11 h-11 sm:w-12 sm:h-12 rounded-2xl shadow-lg border flex items-center justify-center transition-all group",
-                isEditing ? "bg-saffron text-white border-saffron" : "bg-white text-saffron border-saffron/10 hover:bg-saffron hover:text-white"
-              )}
-            >
-              {loading ? <Loader2 size={24} className="animate-spin" /> : (isEditing ? <Save size={24} /> : <Edit2 size={24} />)}
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Identity + QR */}
+        <section className="card p-6 lg:row-span-2 flex flex-col items-center text-center">
+          <div className="relative">
+            <span className="w-24 h-24 rounded-full bg-navy text-white font-display text-3xl font-bold inline-flex items-center justify-center overflow-hidden">
+              {isRealPhoto(photo) ? <img src={photo} alt="" className="w-full h-full object-cover" /> : initials(form.name || user?.displayName)}
+            </span>
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Change photo"
+              className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-saffron text-white inline-flex items-center justify-center border-2 border-white disabled:opacity-60">
+              <Camera size={16} />
             </button>
-            {!isEditing && (
-              <button
-                onClick={logout}
-                aria-label="Log out"
-                className="w-11 h-11 sm:w-12 sm:h-12 bg-white text-gray-400 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:text-red-500 hover:bg-red-50 transition-all"
-              >
-                <LogOut size={22} />
-              </button>
-            )}
-            {isEditing && (
-              <button
-                onClick={() => setIsEditing(false)}
-                aria-label="Cancel editing"
-                className="w-11 h-11 sm:w-12 sm:h-12 bg-white text-gray-400 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-all"
-              >
-                <X size={24} />
-              </button>
-            )}
+            <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={onPhoto} />
           </div>
-        </div>
-      </div>
+          <h1 className="mt-4 font-display text-2xl font-bold user-text">{form.name || 'Member'}</h1>
+          <p className="mt-1 inline-flex items-center gap-2 h-7 px-3 rounded-full bg-navy-50 text-navy-700 font-display text-[12px] font-bold uppercase tracking-label">{stageLabel(stage)}</p>
+          {memberSince && <p className="mt-2 text-[14px] text-ink-muted">Member since {memberSince.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</p>}
 
-      {/* Tabs */}
-      <div className="flex gap-2 p-1.5 bg-white rounded-2xl border border-saffron/10 mb-8 sticky top-24 z-30 shadow-sm">
-        {[
-          { id: 'profile', icon: <User size={18} />, label: 'Profile' },
-          { id: 'attendance', icon: <Calendar size={18} />, label: 'Attendance' },
-          { id: 'payments', icon: <CreditCard size={18} />, label: 'Payments' }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveSubTab(tab.id)}
-            aria-pressed={activeSubTab === tab.id}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-1 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all",
-              activeSubTab === tab.id
-                ? "bg-saffron text-white shadow-lg"
-                : "text-gray-400 hover:text-saffron hover:bg-saffron/5"
-            )}
-          >
-            {tab.icon}
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        {activeSubTab === 'profile' && (
-          <motion.div 
-            key="profile-content"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-            <div className="md:col-span-2 flex items-center gap-2 mb-2 px-2">
-              <Info className="text-saffron" size={16} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Personal Details</h3>
-            </div>
-            
-            {renderDetailItem(Mail, "Email Address", formData.email, "email", "email")}
-            {renderDetailItem(Phone, "Mobile Number", formData.phone, "phone", "tel")}
-            {renderDetailItem(Users, "Gender", formData.gender, "gender", "select", ["Male", "Female", "Other"])}
-            {renderDetailItem(Award, "Level", formData.level, "level", "select", ["FOLK New", "FOLK Enhanced", "Pre-Initiated", "Initiated"])}
-            {renderDetailItem(Briefcase, "Occupation", formData.occupation, "occupation")}
-            {renderDetailItem(GraduationCap, "Higher Qualification", formData.qualification, "qualification")}
-            
-            <div className="md:col-span-2 flex items-center gap-2 mt-6 mb-2 px-2 border-t border-saffron/5 pt-6">
-              <MapPin className="text-saffron" size={16} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Location Info</h3>
-            </div>
-            
-            {renderDetailItem(Globe, "Country", formData.country, "country")}
-            {renderDetailItem(Map, "State", formData.state, "state")}
-            {renderDetailItem(Home, "City", formData.city, "city")}
-            {renderDetailItem(Home, "Center", formData.center, "center")}
-
-            <div className="md:col-span-2 flex items-center gap-2 mt-6 mb-2 px-2 border-t border-saffron/5 pt-6">
-              <Plus className="text-saffron" size={16} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Family Details</h3>
-            </div>
-
-            {renderDetailItem(User, "Father's Name", formData.fatherName, "fatherName")}
-            {renderDetailItem(Phone, "Father's Mobile", formData.fatherPhone, "fatherPhone")}
-            {renderDetailItem(Users, "Spouse ID", formData.spouseId, "spouseId")}
-          </motion.div>
-        )}
-
-        {activeSubTab === 'attendance' && (
-          <motion.div
-            key="attendance-content"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="bg-white rounded-xl p-6 sm:p-10 border border-saffron/10"
-          >
-            <div className="flex items-center gap-3 mb-8">
-              <Calendar className="text-saffron" size={20} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Attendance History</h3>
-            </div>
-            {attendanceLoading ? (
-              <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-saffron" size={32} /></div>
-            ) : myAttendance.length > 0 ? (
-              <div className="space-y-3">
-                {myAttendance.map((att) => (
-                  <div key={att.id} className="flex items-center justify-between gap-3 p-4 sm:p-5 bg-white rounded-2xl border border-saffron/5 shadow-sm">
-                    <div className="min-w-0">
-                      <p className="font-bold text-gray-800 truncate">{att.session || att.eventTitle || 'Temple Visit'}</p>
-                      <p className="text-xs text-gray-400 font-medium mt-0.5">{formatDate(att.createdAt)}</p>
-                    </div>
-                    <span className="shrink-0 text-[10px] font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase tracking-wider">Verified</span>
-                  </div>
-                ))}
-              </div>
+          <div className="mt-6 w-full border-t border-line pt-6">
+            <p className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">Check-in QR</p>
+            {user?.qrToken ? (
+              <>
+                <div ref={qrRef} className="mt-4 inline-block p-3 bg-white border border-line rounded-lg">
+                  <QRCodeSVG value={user.qrToken} size={200} level="M" />
+                </div>
+                <p className="mt-2 text-[13px] text-ink-muted">ID {String(user.qrToken).slice(0, 8).toUpperCase()}</p>
+                <button type="button" onClick={downloadQR} className="btn border border-line text-ink hover:bg-paper normal-case tracking-normal text-[14px] mt-4">
+                  <Download size={16} /> Save to phone
+                </button>
+              </>
             ) : (
-              <div className="py-16 text-center text-gray-400">No attendance records yet.</div>
+              <p className="mt-3 text-ink-muted">Your QR is being set up. Refresh in a moment.</p>
             )}
-          </motion.div>
-        )}
+          </div>
+        </section>
 
-        {activeSubTab === 'payments' && (
-          <motion.div
-            key="payments-content"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="bg-white rounded-xl p-6 sm:p-10 border border-saffron/10"
-          >
-            <div className="flex items-center gap-3 mb-8">
-              <CreditCard className="text-saffron" size={20} />
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-label">Payment History</h3>
-            </div>
-            {paymentsLoading ? (
-              <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-saffron" size={32} /></div>
-            ) : myPayments.length > 0 ? (
-              <div className="space-y-3">
-                {myPayments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between gap-3 p-4 sm:p-5 bg-white rounded-2xl border border-saffron/5 shadow-sm">
-                    <div className="min-w-0">
-                      <p className="font-bold text-gray-800 truncate">{p.sevaType || (p.eventId ? 'Event Contribution' : 'Donation')}</p>
-                      <p className="text-xs text-gray-400 font-medium mt-0.5">{formatDate(p.createdAt)}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-black text-saffron-dark">₹{Number(p.amount || 0).toLocaleString('en-IN')}</p>
-                      <span className={cn(
-                        "text-[10px] font-black uppercase tracking-wider",
-                        (p.status === 'completed' || p.status === 'COMPLETED') ? 'text-green-600' :
-                        p.status === 'failed' ? 'text-red-500' : 'text-yellow-600'
-                      )}>
-                        {p.status || 'pending'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-16 text-center text-gray-400">No payment records yet.</div>
+        {/* Tabs */}
+        <section className="card lg:col-span-2 overflow-hidden">
+          <div className="flex border-b border-line overflow-x-auto scrollbar-hide" role="tablist">
+            {[['details', 'Details', UserRound], ['attendance', 'Attendance', CalendarCheck], ['payments', 'Payments', CreditCard]].map(([id, label, Icon]) => (
+              <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+                className={`shrink-0 h-12 px-5 inline-flex items-center gap-2 font-semibold border-b-2 -mb-px ${tab === id ? 'border-saffron text-ink' : 'border-transparent text-ink-muted hover:text-ink'}`}>
+                <Icon size={17} /> {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="p-5 sm:p-6">
+            {tab === 'details' && (
+              <form onSubmit={save}>
+                <div className="flex justify-end gap-2 -mt-1 mb-2">
+                  {editing ? (
+                    <>
+                      <button type="button" onClick={() => { setEditing(false); setForm(Object.fromEntries(EDITABLE.map((k) => [k, user?.[k] ?? '']))); }} className="btn border border-line text-ink hover:bg-paper normal-case tracking-normal text-[14px] min-h-[40px]"><X size={16} /> Cancel</button>
+                      <button type="submit" disabled={saving} className="btn-primary min-h-[40px]"><Save size={16} /> {saving ? 'Saving…' : 'Save'}</button>
+                    </>
+                  ) : (
+                    <button type="button" onClick={() => setEditing(true)} className="btn border border-line text-ink hover:bg-paper normal-case tracking-normal text-[14px] min-h-[40px]"><Pencil size={16} /> Edit</button>
+                  )}
+                </div>
+                <div className="space-y-7">
+                  {SECTIONS.map((s) => (
+                    <fieldset key={s.title}>
+                      <legend className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">{s.title}</legend>
+                      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                        {s.fields.map(([k, label, type, opts]) => (
+                          editing ? (
+                            <Field key={k} label={label}>
+                              {type === 'select' ? (
+                                <select className={inputClass} value={form[k] || ''} onChange={(e) => setForm({ ...form, [k]: e.target.value })}>
+                                  {opts.options.map((o) => <option key={o} value={o}>{o || 'Prefer not to say'}</option>)}
+                                </select>
+                              ) : (
+                                <input type={type} className={inputClass} value={form[k] || ''} required={opts.required} autoComplete={opts.autoComplete} placeholder={opts.placeholder}
+                                  onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+                              )}
+                            </Field>
+                          ) : (
+                            <div key={k}>
+                              <p className="text-[13px] text-ink-muted">{label}</p>
+                              <p className="mt-0.5 font-semibold user-text">{type === 'date' && form[k] ? formatDay(new Date(`${form[k]}T12:00:00+05:30`)) : form[k] || <span className="font-normal text-ink-muted">Not added</span>}</p>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </fieldset>
+                  ))}
+                </div>
+              </form>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Profile Completion Indicator */}
-      <div className="mt-12 p-6 sm:p-10 bg-saffron rounded-xl sm:rounded-xl border border-saffron/10 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-8 text-saffron opacity-[0.03] group-hover:scale-110 transition-transform">
-          <Award size={160} />
-        </div>
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-2">
-            <Award className="text-gold" size={24} />
-            <h3 className="text-xl font-black text-gray-800 tracking-tight">Profile Completion</h3>
+            {tab === 'attendance' && (
+              attLoading ? <div className="h-32 rounded-md bg-paper animate-pulse" /> : attendance.length ? (
+                <ul className="divide-y divide-line">
+                  {attendance.slice().sort((a, b) => (toDate(b.createdAt)?.getTime() || 0) - (toDate(a.createdAt)?.getTime() || 0)).map((a) => (
+                    <li key={a.id} className="py-3 flex items-center justify-between gap-3">
+                      <span className="min-w-0"><span className="block font-semibold truncate">{a.session || a.eventTitle || 'Program'}</span><span className="text-[14px] text-ink-muted">{formatDay(toDate(a.createdAt || a.timestamp))}</span></span>
+                      <span className="shrink-0 text-[12px] font-bold uppercase tracking-label text-green-700 bg-green-50 rounded-full px-2.5 py-1">Present</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-ink-muted">When staff scan your QR at a program, it will be recorded here.</p>
+            )}
+
+            {tab === 'payments' && (
+              payLoading ? <div className="h-32 rounded-md bg-paper animate-pulse" /> : payments.length ? (
+                <ul className="divide-y divide-line">
+                  {payments.slice().sort((a, b) => (toDate(b.createdAt)?.getTime() || 0) - (toDate(a.createdAt)?.getTime() || 0)).map((p) => {
+                    const status = String(p.status || 'pending').toLowerCase();
+                    const tone = status === 'completed' ? 'text-green-700 bg-green-50' : status === 'failed' || status === 'amount_mismatch' ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50';
+                    return (
+                      <li key={p.id} className="py-3 flex items-center justify-between gap-3">
+                        <span className="min-w-0"><span className="block font-semibold truncate">{p.purpose === 'trip' ? 'Yatra booking' : p.sevaType || 'Donation'}</span><span className="text-[14px] text-ink-muted">{formatDay(toDate(p.createdAt))}</span></span>
+                        <span className="text-right shrink-0">
+                          <span className="block font-display font-bold">₹{Number(p.amount || 0).toLocaleString('en-IN')}</span>
+                          <span className={`text-[12px] font-bold uppercase tracking-label rounded-full px-2 py-0.5 ${tone}`}>{status === 'amount_mismatch' ? 'Needs review' : status}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : <p className="text-ink-muted">Your donations and yatra payments will show up here.</p>
+            )}
           </div>
-          <p className="text-sm text-gray-500 mb-8 max-w-sm font-medium leading-relaxed">Complete your profile to unlock special community badges and digital ID features.</p>
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="flex-1 h-4 bg-white rounded-full overflow-hidden shadow-inner ring-1 ring-gold/10">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${completionPercent}%` }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full bg-saffron"
-              />
-            </div>
-            <span className="text-2xl sm:text-3xl font-black text-saffron-dark drop-shadow-sm leading-none">{completionPercent}%</span>
-          </div>
-        </div>
+        </section>
       </div>
+
+      <button type="button" onClick={logout} className="lg:hidden btn border border-line text-ink hover:bg-paper w-full">Sign out</button>
     </div>
   );
 };

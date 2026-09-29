@@ -43,8 +43,10 @@
     font-family: 'Noto Sans Telugu', 'Source Sans 3', sans-serif;
   }
 
+  /* No colour here: headings inherit it, so a heading inside a dark panel
+     (text-white parent) stays white. body already sets text-ink. */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display text-ink;
+    @apply font-display;
     letter-spacing: -0.01em;
   }
 

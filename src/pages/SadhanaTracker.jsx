@@ -285,7 +285,7 @@ const SadhanaTracker = () => {
                   contentStyle={{ borderRadius: 8, border: '1px solid #E3DDD1' }}
                 />
                 <ReferenceLine y={effectiveTarget} stroke="#032B7C" strokeDasharray="4 4" />
-                <Bar dataKey="rounds" radius={[4, 4, 0, 0]} maxBarSize={28}>
+                <Bar dataKey="rounds" radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false}>
                   {chart.map((c) => <Cell key={c.key} fill={c.done ? '#16A34A' : c.rounds > 0 ? '#E4702A' : '#E3DDD1'} />)}
                 </Bar>
               </BarChart>

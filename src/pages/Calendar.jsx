@@ -1,139 +1,124 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import Card from '../components/ui/Card'
-import { Calendar as CalendarIcon, Moon, Star, Flame, ChevronDown, Sunrise } from 'lucide-react'
+import React, { useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, CalendarDays, MapPin } from 'lucide-react';
+import { useFirestore } from '../hooks/useFirestore';
+import { toDate, formatTime, dateKeyIST } from '../lib/dates';
 
+// Festival dates follow the lunar calendar and move every year, so none are
+// hard-coded here (the old page had several in the wrong month). The grid
+// shows what FOLK Vizag has actually scheduled; add festivals as events.
 const OBSERVANCES = [
-  { name: 'Ekadashi Fasting', desc: 'Fast from grains & beans; the best day to intensify chanting. Occurs twice each month (bright & dark fortnight).', icon: <Moon size={22} />, color: 'text-indigo-500 bg-indigo-50' },
-  { name: 'Janmastami', desc: 'Appearance day of Lord Krishna. Midnight darshan, grand arati, and the famous Jhulanotsava swing festival.', icon: <Star size={22} />, color: 'text-saffron bg-saffron/10' },
-  { name: 'Ratha Yatra', desc: 'The Festival of the Chariots. Celebrate by pulling the deities\' chariots in a joyful street procession.', icon: <Sunrise size={22} />, color: 'text-amber-500 bg-amber-50' },
-  { name: 'Gaura Purnima', desc: 'Appearance day of Sri Chaitanya Mahaprabhu, who taught the world to chant the holy name in great happiness.', icon: <Flame size={22} />, color: 'text-rose-500 bg-rose-50' },
-  { name: 'Kartik Month', desc: 'The festival month — vrata, deepadan, and japa intensify. The most merciful time of the year.', icon: <CalendarIcon size={22} />, color: 'text-emerald-600 bg-emerald-50' },
-  { name: 'Gita Jayanti', desc: 'The day the Bhagavad-gita was spoken 5,000 years ago at Kurukshetra. Marked with Gita recitation & classes.', icon: <Star size={22} />, color: 'text-violet-500 bg-violet-50' },
-]
+  ['Ekadashi', 'Twice a month. A day for fasting from grains and beans, and extra chanting.'],
+  ['Gaura Purnima', 'Appearance of Sri Chaitanya Mahaprabhu (spring full moon).'],
+  ['Ratha Yatra', 'The chariot festival of Lord Jagannath (monsoon).'],
+  ['Janmashtami', 'Appearance of Lord Krishna (August–September).'],
+  ['Radhashtami', 'Appearance of Srimati Radharani, two weeks after Janmashtami.'],
+  ['Kartik', 'The holy month of Damodara, with daily deepa-dana (October–November).'],
+  ['Gita Jayanti', 'The day the Bhagavad-gita was spoken (November–December).'],
+];
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-
-const HIGHLIGHTS = {
-  1: 'Gita Jayanti / Utpanna Ekadashi',
-  2: 'Gaura Purnima',
-  6: 'Ratha Yatra (Chariot Festival)',
-  8: 'Krishna Janmastami',
-  9: 'Radhastami · Darbhangi',
-  11: 'Kartik-Maas begins · Deepadan',
-}
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const Calendar = () => {
-  const [expanded, setExpanded] = useState(null)
-  const [month, setMonth] = useState(new Date().getMonth())
+  const { data: events } = useFirestore('events');
+  const now = new Date();
+  const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
+  const [selected, setSelected] = useState(dateKeyIST(now));
+
+  const byDay = useMemo(() => {
+    const map = new Map();
+    for (const e of events) {
+      const d = toDate(e.dateISO || e.date);
+      if (!d) continue;
+      const k = dateKeyIST(d);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push({ ...e, _d: d });
+    }
+    for (const list of map.values()) list.sort((a, b) => a._d - b._d);
+    return map;
+  }, [events]);
+
+  const cells = useMemo(() => {
+    const first = new Date(Date.UTC(cursor.y, cursor.m, 1));
+    const offset = (first.getUTCDay() + 6) % 7; // Monday-first
+    const days = new Date(Date.UTC(cursor.y, cursor.m + 1, 0)).getUTCDate();
+    const out = Array.from({ length: offset }, () => null);
+    for (let d = 1; d <= days; d++) out.push(`${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    while (out.length % 7) out.push(null);
+    return out;
+  }, [cursor]);
+
+  const move = (delta) => setCursor(({ y, m }) => { const n = new Date(Date.UTC(y, m + delta, 1)); return { y: n.getUTCFullYear(), m: n.getUTCMonth() }; });
+  const monthLabel = new Date(Date.UTC(cursor.y, cursor.m, 1)).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const todayKey = dateKeyIST(now);
+  const dayEvents = byDay.get(selected) || [];
 
   return (
-    <div className="min-h-screen bg-cream">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-4 max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-label">
-            <CalendarIcon size={14} /> Vaishnava Calendar
-          </span>
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight uppercase leading-[0.95]">
-            Festivals & <span className="bg-saffron bg-clip-text text-transparent">fasting days</span>
-          </h1>
-          <p className="text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
-            The Vedic lunar calendar marks Ekadashis, appearance days and the most auspicious months of
-            the year. Plan your spiritual life around them.
-          </p>
-        </motion.div>
-
-        <div className="grid lg:grid-cols-5 gap-5">
-          <div className="lg:col-span-2 space-y-4">
-            <Card className="p-6 sm:p-8">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">{MONTHS[month]} {new Date().getFullYear()}</h3>
-                  <p className="text-xs text-gray-400 font-bold mt-1">Lunar highlights this month</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setMonth(m => (m + 11) % 12)} aria-label="Previous month" className="w-9 h-9 rounded-xl bg-gray-50 hover:bg-saffron/10 text-gray-500 hover:text-saffron font-black transition-all">‹</button>
-                  <button onClick={() => setMonth(m => (m + 1) % 12)} aria-label="Next month" className="w-9 h-9 rounded-xl bg-gray-50 hover:bg-saffron/10 text-gray-500 hover:text-saffron font-black transition-all">›</button>
-                </div>
-              </div>
-              <div className="w-12 h-1.5 rounded-full bg-saffron mb-4" />
-              <div className={`p-6 rounded-3xl bg-saffron border border-saffron/15 min-h-[120px] flex flex-col justify-center`}>
-                <p className="text-lg sm:text-xl font-black text-saffron-dark uppercase leading-snug">
-                  {HIGHLIGHTS[month] || 'Nitya (daily) japa & class'}
-                </p>
-                <p className="text-xs text-gray-500 font-medium mt-2">Daily program continues: Mangala-arati 4:30 am · Japa class · Evening kirtan.</p>
-              </div>
-            </Card>
-
-            <Card className="p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-11 h-11 rounded-2xl bg-saffron/10 text-saffron flex items-center justify-center">
-                  <Moon size={22} />
-                </div>
-                <div>
-                  <h3 className="font-black text-gray-900 uppercase tracking-tight">Ekadashi calendar</h3>
-                  <p className="text-xs text-gray-400 font-bold">Twice each month, per the Vedic lunar day</p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-500 font-medium leading-relaxed">
-                Ekadashi falls on the 11th day of both the waxing and waning moon. Fasting from grains,
-                beans and spices is kept until the following sunrise. The most merciful of all fasting days —
-                one can be fully satisfied by simply chanting and hearing hari-katha.
-              </p>
-              <a
-                href="https://wa.me/919154881444"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-2 text-[11px] font-black text-saffron uppercase tracking-label hover:gap-3 transition-all"
-              >
-                Get the monthly Ekadashi reminders <span className="text-saffron">→</span>
-              </a>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-3 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Sacred occasions</h3>
-            </div>
-            {OBSERVANCES.map((obs, i) => (
-              <motion.div key={obs.name} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Card className="p-5 sm:p-6 hover:bg-white cursor-pointer" >
-                  <button
-                    onClick={() => setExpanded(expanded === i ? null : i)}
-                    className="w-full flex items-center justify-between gap-4 text-left"
-                    aria-expanded={expanded === i}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${obs.color}`}>{obs.icon}</div>
-                      <div>
-                        <h4 className="font-black text-gray-900 uppercase tracking-tight text-sm">{obs.name}</h4>
-                        <p className={`text-xs font-bold transition-colors ${expanded === i ? 'text-saffron' : 'text-gray-400'}`}>
-                          {expanded === i ? 'Details' : 'Tap to view details'}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronDown size={18} className={`text-gray-300 transition-transform shrink-0 ${expanded === i ? 'rotate-180 text-saffron' : ''}`} />
-                  </button>
-                  <AnimatePresence>
-                    {expanded === i && (
-                      <motion.p
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden text-sm text-gray-500 font-medium leading-relaxed pr-10"
-                      >
-                        {obs.desc}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="display-lg">Calendar</h1>
+        <p className="mt-1 text-ink-muted">Everything FOLK Vizag has scheduled. Tap a day to see its programs.</p>
       </div>
-    </div>
-  )
-}
 
-export default Calendar
+      <div className="grid gap-5 lg:grid-cols-3">
+        <section className="card p-4 sm:p-6 lg:col-span-2">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-xl font-bold">{monthLabel}</h2>
+            <div className="flex gap-1">
+              <button type="button" onClick={() => move(-1)} aria-label="Previous month" className="w-10 h-10 inline-flex items-center justify-center rounded-md border border-line hover:bg-paper"><ChevronLeft size={18} /></button>
+              <button type="button" onClick={() => { setCursor({ y: now.getFullYear(), m: now.getMonth() }); setSelected(todayKey); }} className="h-10 px-3 rounded-md border border-line hover:bg-paper text-[14px] font-semibold">Today</button>
+              <button type="button" onClick={() => move(1)} aria-label="Next month" className="w-10 h-10 inline-flex items-center justify-center rounded-md border border-line hover:bg-paper"><ChevronRight size={18} /></button>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-7 text-center text-[12px] font-display font-bold uppercase tracking-label text-ink-muted">
+            {WEEKDAYS.map((d) => <div key={d} className="py-2">{d}</div>)}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map((k, i) => {
+              if (!k) return <div key={`x${i}`} />;
+              const list = byDay.get(k) || [];
+              const isSel = k === selected;
+              return (
+                <button key={k} type="button" onClick={() => setSelected(k)} aria-pressed={isSel} aria-label={`${k}${list.length ? `, ${list.length} event${list.length > 1 ? 's' : ''}` : ''}`}
+                  className={`aspect-square rounded-md flex flex-col items-center justify-center gap-1 text-[15px] ${isSel ? 'bg-ink text-white' : k === todayKey ? 'bg-saffron-50 text-saffron-dark font-bold' : 'hover:bg-paper'}`}>
+                  {Number(k.slice(8))}
+                  <span className={`h-1.5 w-1.5 rounded-full ${list.length ? (isSel ? 'bg-marigold' : 'bg-saffron') : 'bg-transparent'}`} />
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="card p-5 sm:p-6">
+          <h2 className="font-display text-[13px] font-bold uppercase tracking-label text-ink-muted">
+            {new Date(`${selected}T12:00:00+05:30`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })}
+          </h2>
+          {dayEvents.length ? (
+            <ul className="mt-4 space-y-4">
+              {dayEvents.map((e) => (
+                <li key={e.id}>
+                  <p className="font-display font-bold user-text">{e.title}</p>
+                  <p className="text-[14px] text-ink-muted flex flex-wrap gap-x-3">
+                    <span className="inline-flex items-center gap-1"><CalendarDays size={14} /> {formatTime(e._d)}</span>
+                    {e.location && <span className="inline-flex items-center gap-1 user-text"><MapPin size={14} /> {e.location}</span>}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="mt-4 text-ink-muted">Nothing scheduled.</p>}
+        </section>
+      </div>
+
+      <section className="card p-5 sm:p-6">
+        <h2 className="display-md">Vaishnava observances</h2>
+        <p className="mt-1 text-ink-muted">Exact dates change each year with the lunar calendar. FOLK Vizag announces each one as an event.</p>
+        <ul className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          {OBSERVANCES.map(([t, b]) => (
+            <li key={t}><p className="font-display font-bold">{t}</p><p className="text-ink-muted">{b}</p></li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+};
+
+export default Calendar;

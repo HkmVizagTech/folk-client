@@ -15,6 +15,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getSafeProfileImage } from '../lib/imageUtils';
 import { callApi } from '../lib/api';
 import { ROOT_ADMIN_UID } from '../config';
+import { normalizePhone } from '../lib/phone';
 
 
 export const AuthContext = createContext();
@@ -163,6 +164,7 @@ const RealAuthProvider = ({ children }) => {
         uid: auth.currentUser.uid,
         email: auth.currentUser.email || '',
         phone: auth.currentUser.phoneNumber || '',
+        phoneNormalized: normalizePhone(auth.currentUser.phoneNumber || ''),
         name: finalName,
         photo: getSafeProfileImage(auth.currentUser.photoURL, auth.currentUser.displayName),
         role: assignedRole, 

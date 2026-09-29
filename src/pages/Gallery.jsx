@@ -1,110 +1,95 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import Card from '../components/ui/Card'
-import { Camera, X, Image } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react';
+import { Instagram, X, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
+import { useFirestore } from '../hooks/useFirestore';
+import { PHOTOS, SITE } from '../content/site';
+import { toDate, formatDay } from '../lib/dates';
 
-const ALBUMS = [
-  { id: 'contents', title: 'Festivals', count: 48, gradient: 'from-saffron to-gold' },
-  { id: 'trips', title: 'Yatras & Trips', count: 76, gradient: 'from-emerald-500 to-teal-600' },
-  { id: 'seva', title: 'Seva & Outreach', count: 39, gradient: 'from-blue-500 to-indigo-600' },
-  { id: 'classes', title: 'Gita Classes', count: 27, gradient: 'from-violet-500 to-purple-600' },
-  { id: 'projects', title: 'Sunday Clubs', count: 33, gradient: 'from-rose-500 to-pink-600' },
-  { id: 'youth', title: 'Community & Youth', count: 52, gradient: 'from-amber-500 to-orange-600' },
-]
+// Only real images: photos added in src/content/site.js (PHOTOS.gallery) and
+// the posters the team uploaded to events. The old page listed albums with
+// photo counts but contained no photos at all.
+const realImage = (src) => (src && !/picsum\.photos|unsplash\.com\/random/.test(src) ? src : '');
 
 const Gallery = () => {
-  const [selected, setSelected] = useState(null)
+  const { data: events, loading } = useFirestore('events');
+  const [open, setOpen] = useState(null);
+
+  const items = useMemo(() => {
+    const photos = (PHOTOS.gallery || []).map((p) => ({ src: p.src, caption: p.caption || '', kind: 'photo' }));
+    const posters = events
+      .filter((e) => realImage(e.img))
+      .map((e) => ({ src: e.img, caption: e.title, date: toDate(e.dateISO || e.date), kind: 'poster' }))
+      .sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
+    return [...photos, ...posters];
+  }, [events]);
+
+  useEffect(() => {
+    if (open === null) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(null);
+      if (e.key === 'ArrowRight') setOpen((i) => (i + 1) % items.length);
+      if (e.key === 'ArrowLeft') setOpen((i) => (i - 1 + items.length) % items.length);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, items.length]);
+
+  const current = open !== null ? items[open] : null;
 
   return (
-    <div className="min-h-screen bg-cream">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-4 max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-label">
-            <Camera size={14} /> Our Gallery
-          </span>
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight uppercase leading-[0.95]">
-            Moments of <span className="bg-saffron bg-clip-text text-transparent">devotion</span>
-          </h1>
-          <p className="text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
-            A glimpse into the life of FOLK — festivals, yatras, seva and the community that makes it
-            all happen.
-          </p>
-        </motion.div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {ALBUMS.map((album, i) => (
-            <motion.button
-              key={album.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              onClick={() => setSelected(album)}
-              className="group text-left"
-            >
-              <Card className="p-0 overflow-hidden bg-white">
-                <div className={`h-48 bg-gradient-to-br ${album.gradient} relative overflow-hidden`}>
-                  <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0%,transparent_70%)]" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-3xl bg-white/20 border border-white/30 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                      <Image size={28} />
-                    </div>
-                  </div>
-                  <span className="absolute bottom-3 right-4 text-white/90 font-black text-xs tracking-label">{album.count} photos</span>
-                </div>
-                <div className="p-5 flex items-center justify-between">
-                  <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm">{album.title}</h3>
-                  <span className="text-[10px] font-black text-saffron uppercase tracking-label group-hover:translate-x-1 transition-transform">Open →</span>
-                </div>
-              </Card>
-            </motion.button>
-          ))}
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="display-lg">Gallery</h1>
+          <p className="mt-1 text-ink-muted">Photos and posters from FOLK Vizag programs.</p>
         </div>
+        {SITE.social.instagram && (
+          <a href={SITE.social.instagram} target="_blank" rel="noopener noreferrer" className="btn border border-line bg-white text-ink hover:bg-paper normal-case tracking-normal text-[14px]"><Instagram size={17} /> @folkvizag</a>
+        )}
       </div>
 
-      <AnimatePresence>
-        {selected && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelected(null)} className="absolute inset-0 bg-gray-900/70" />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-premium-xl"
-            >
-              <div className={`h-32 bg-gradient-to-br ${selected.gradient} flex items-center justify-center`}>
-                <div className="w-16 h-16 rounded-3xl bg-white/20 border border-white/30 flex items-center justify-center text-white">
-                  <Image size={28} />
-                </div>
-              </div>
-              <div className="p-6 text-center">
-                <h3 className="text-xl font-black text-gray-900 uppercase">{selected.title}</h3>
-                <p className="text-sm text-gray-500 font-medium mt-1">{selected.count} photos</p>
-                <p className="text-xs text-gray-400 font-medium mt-4 leading-relaxed">
-                  Full photo albums are shared on our social media. Follow FOLK Vizag to see the complete collection.
-                </p>
-                <div className="flex gap-3 mt-5">
-                  <a
-                    href="https://www.instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-3 rounded-2xl bg-saffron text-white font-black uppercase tracking-label text-[10px] shadow-lg hover:scale-[1.02] transition-all active:scale-95 text-center"
-                  >
-                    Instagram
-                  </a>
-                  <button
-                    onClick={() => setSelected(null)}
-                    className="px-5 py-3 rounded-2xl bg-gray-50 text-gray-500 font-black uppercase tracking-label text-[10px] hover:bg-gray-100 transition-all"
-                  >
-                    <X size={16} className="mx-auto" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
+      {loading && items.length === 0 ? (
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <div key={i} className="aspect-square card animate-pulse" />)}</div>
+      ) : items.length === 0 ? (
+        <div className="card p-10 text-center">
+          <ImageOff size={36} className="mx-auto text-ink-muted" />
+          <p className="mt-4 font-display font-bold">No photos yet</p>
+          <p className="mt-1 text-ink-muted">Follow @folkvizag on Instagram for the latest from programs and festivals.</p>
+        </div>
+      ) : (
+        <ul className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {items.map((it, i) => (
+            <li key={`${it.src.slice(-40)}-${i}`}>
+              <button type="button" onClick={() => setOpen(i)} className="group block w-full text-left">
+                <span className="block aspect-square rounded-lg overflow-hidden bg-navy-900">
+                  <img src={it.src} alt={it.caption} loading="lazy" className={`w-full h-full ${it.kind === 'poster' ? 'object-contain' : 'object-cover'} group-hover:opacity-90`} />
+                </span>
+                <span className="mt-1.5 block text-[14px] font-semibold truncate">{it.caption}</span>
+                {it.date && <span className="block text-[13px] text-ink-muted">{formatDay(it.date)}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
-export default Gallery
+      {current && (
+        <div className="fixed inset-0 z-[200] bg-black/90 flex flex-col" role="dialog" aria-modal="true" aria-label={current.caption || 'Photo'}>
+          <div className="h-14 px-4 flex items-center justify-between text-white">
+            <p className="font-semibold truncate">{current.caption}</p>
+            <button type="button" onClick={() => setOpen(null)} aria-label="Close" className="w-11 h-11 inline-flex items-center justify-center rounded-md hover:bg-white/10"><X size={22} /></button>
+          </div>
+          <div className="flex-1 min-h-0 flex items-center justify-center px-2 pb-6 relative">
+            <img src={current.src} alt={current.caption} className="max-w-full max-h-full object-contain" />
+            {items.length > 1 && (
+              <>
+                <button type="button" onClick={() => setOpen((i) => (i - 1 + items.length) % items.length)} aria-label="Previous" className="absolute left-2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white inline-flex items-center justify-center"><ChevronLeft size={24} /></button>
+                <button type="button" onClick={() => setOpen((i) => (i + 1) % items.length)} aria-label="Next" className="absolute right-2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white inline-flex items-center justify-center"><ChevronRight size={24} /></button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Gallery;

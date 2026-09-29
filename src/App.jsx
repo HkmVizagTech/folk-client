@@ -7,6 +7,9 @@ import AdminAccessDenied from './pages/AdminAccessDenied'
 import Events from './pages/Events'
 import SadhanaTracker from './pages/SadhanaTracker'
 import MemberHome from './pages/MemberHome'
+import MyMembers from './pages/MyMembers'
+import Courses from './pages/Courses'
+import Reports from './pages/Reports'
 import Accommodation from './pages/Accommodation'
 import Hostels from './pages/Hostels'
 import Attendance from './pages/Attendance'
@@ -34,6 +37,9 @@ const TAB_TO_PATH = {
   admin: '/admin',
   'admin-setup': '/createadmin',
   devotees: '/devotees',
+  'my-members': '/my-members',
+  courses: '/courses',
+  reports: '/reports',
   events: '/events',
   dashboard: '/',
   sadhana: '/sadhana',
@@ -205,6 +211,12 @@ function App() {
     switch(activeTab) {
       case 'admin-setup':
         return <AdminSetup setActiveTab={setActiveTab} />
+      case 'my-members':
+        return <UserRoleGuard allowedRoles={['admin', 'folks_head']}><MyMembers /></UserRoleGuard>
+      case 'courses':
+        return <Courses />
+      case 'reports':
+        return <UserRoleGuard allowedRoles={['admin', 'folks_head']}><Reports /></UserRoleGuard>
       case 'devotees': 
         return <UserRoleGuard allowedRoles={['admin', 'folks_head']}><Devotees /></UserRoleGuard>
       case 'events': 

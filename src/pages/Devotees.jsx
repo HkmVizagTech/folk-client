@@ -1,534 +1,339 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'
-import { getSafeProfileImage } from '../lib/imageUtils';
-import { 
-  Search, 
-  Plus, 
-  User, 
-  Phone, 
-  MapPin, 
-  MoreVertical, 
-  Edit2, 
-  Trash2, 
-  Shield,
-  Filter,
-  Download,
-  X,
-  Flame,
-  Star,
-  Trophy,
-  QrCode
-} from 'lucide-react';
-import QRView from '../components/qr/QRView';
+import React, { useMemo, useState } from 'react';
+import { Search, Plus, Download, Pencil, Trash2, QrCode, UserPlus, Layers, MessageCircle, X } from 'lucide-react';
+import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../hooks/useAuth';
+import { useMembers } from '../hooks/useMembers';
 import { db } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp 
-} from 'firebase/firestore';
-import Card from '../components/ui/Card';
+import { STAGES, stageLabel } from '../content/journey';
+import { normalizePhone, formatPhone, whatsappUrl } from '../lib/phone';
+import { todayIST, daysBetween } from '../lib/dates';
+import Modal, { Field, inputClass } from '../components/ui/Modal';
+
+const EMPTY = { name: '', phone: '', city: '', address: '', stage: 'new', guideId: '', role: 'devotee' };
+
+const lastChant = (m) => {
+  if (!m.lastSadhanaDate) return { label: 'Never', tone: 'text-ink-muted' };
+  const d = daysBetween(m.lastSadhanaDate, todayIST());
+  if (d === 0) return { label: 'Today', tone: 'text-green-700' };
+  if (d === 1) return { label: 'Yesterday', tone: 'text-green-700' };
+  return { label: `${d} days ago`, tone: d > 7 ? 'text-red-700' : 'text-amber-700' };
+};
+
+const StageChip = ({ stage }) => (
+  <span className="inline-flex h-6 items-center px-2.5 rounded-full bg-navy-50 text-navy-700 text-[12px] font-bold">{stageLabel(stage)}</span>
+);
 
 const Devotees = () => {
-  const { user: currentUser } = useAuth();
-  // Only a real admin can grant/change roles - a folks_head can view and
-  // edit ordinary devotee details but firestore.rules now reject any role
-  // change coming from a non-admin, so the UI shouldn't offer it either.
-  const isAdmin = currentUser?.role === 'admin';
-  const [devotees, setDevotees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDevotee, setEditingDevotee] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    role: 'devotee',
-    level: '1'
-  });
-  const [qrModalDevotee, setQrModalDevotee] = useState(null);
-  const [roleFilter, setRoleFilter] = useState('All');
-  const [showRoleFilter, setShowRoleFilter] = useState(false);
+  const { user: me } = useAuth();
+  const isAdmin = me?.role === 'admin';
+  const { members, staff, loading } = useMembers();
 
+  const [q, setQ] = useState('');
+  const [stage, setStage] = useState('all');
+  const [guide, setGuide] = useState('all');
+  const [selected, setSelected] = useState(new Set());
+  const [editing, setEditing] = useState(null); // member | 'new' | null
+  const [form, setForm] = useState(EMPTY);
+  const [bulk, setBulk] = useState(null); // 'guide' | 'stage'
+  const [bulkValue, setBulkValue] = useState('');
+  const [qrFor, setQrFor] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const staffById = useMemo(() => new Map(staff.map((s) => [s.id, s])), [staff]);
+
+  const list = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const digits = needle.replace(/\D/g, '');
+    return members.filter((m) => {
+      if (stage !== 'all' && m.stage !== stage) return false;
+      if (guide === 'none' && (m.guideId || m.isStaff)) return false;
+      if (guide !== 'all' && guide !== 'none' && m.guideId !== guide) return false;
+      if (!needle) return true;
+      return m.displayName.toLowerCase().includes(needle) || (digits.length >= 3 && normalizePhone(m.phone).includes(digits));
+    });
+  }, [members, q, stage, guide]);
+
+  // A FOLK guide may only edit plain members (firestore.rules enforces this too).
+  const canEdit = (m) => isAdmin || m.role === 'devotee' || !m.role;
+  const editable = list.filter(canEdit);
+  const allSelected = editable.length > 0 && editable.every((m) => selected.has(m.id));
+  const toggle = (id) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(editable.map((m) => m.id)));
+
+  const guideFields = (guideId) => {
+    const g = staffById.get(guideId);
+    return g
+      ? { guideId: g.id, guideName: g.displayName, guidePhone: g.phone || '' }
+      : { guideId: '', guideName: '', guidePhone: '' };
+  };
+
+  const openEdit = (m) => {
+    setError('');
+    if (m === 'new') { setForm(EMPTY); setEditing('new'); return; }
+    setForm({ name: m.displayName, phone: m.phone || '', city: m.city || '', address: m.address || '', stage: m.stage, guideId: m.guideId || '', role: m.role || 'devotee' });
+    setEditing(m);
+  };
+
+  const save = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) { setError('Name is required.'); return; }
+    setBusy(true);
+    setError('');
+    try {
+      const data = {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        phoneNormalized: normalizePhone(form.phone),
+        city: form.city.trim(),
+        address: form.address.trim(),
+        stage: form.stage,
+        ...guideFields(form.guideId),
+        updatedAt: serverTimestamp(),
+      };
+      if (editing === 'new') {
+        await addDoc(collection(db, 'users'), {
+          ...data,
+          role: 'devotee',
+          qrToken: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `FOLK-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+          createdAt: serverTimestamp(),
+          createdBy: me.uid,
+        });
+      } else {
+        await updateDoc(doc(db, 'users', editing.id), isAdmin ? { ...data, role: form.role } : data);
+      }
+      setEditing(null);
+    } catch (err) {
+      console.error('Save member failed:', err);
+      setError(err.code === 'permission-denied' ? "You don't have permission to change this profile." : 'Could not save. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const applyBulk = async () => {
+    if (!bulk || !selected.size) return;
+    setBusy(true);
+    setError('');
+    try {
+      const ids = [...selected];
+      // Firestore batches hold at most 500 writes.
+      for (let i = 0; i < ids.length; i += 450) {
+        const batch = writeBatch(db);
+        ids.slice(i, i + 450).forEach((id) => batch.update(doc(db, 'users', id), {
+          ...(bulk === 'guide' ? guideFields(bulkValue) : { stage: bulkValue }),
+          updatedAt: serverTimestamp(),
+        }));
+        await batch.commit();
+      }
+      setBulk(null);
+      setSelected(new Set());
+    } catch (err) {
+      console.error('Bulk update failed:', err);
+      setError('Some members could not be updated. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (m) => {
+    if (!window.confirm(`Delete ${m.displayName}'s profile? This cannot be undone.`)) return;
+    try { await deleteDoc(doc(db, 'users', m.id)); } catch (err) { console.error(err); setError('Could not delete this profile.'); }
+  };
+
+  // QR tokens are left out on purpose: anyone holding one can check in as that member.
   const exportCSV = () => {
-    const headers = ['Name', 'Phone', 'Address', 'Role', 'Level', 'Streak', 'Longest Streak', 'Score', 'QR Token'];
-    const rows = filteredDevotees.map((d) => [
-      d.name, d.phone, d.address, d.role, d.level, d.streak || 0, d.longestStreak || 0, d.score || 0, d.qrToken || ''
-    ]);
-    const csv = [headers, ...rows]
-      .map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `devotees_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
+    const rows = [['Name', 'Phone', 'City', 'Stage', 'Guide', 'Role', 'Streak', 'Last chanted']]
+      .concat(list.map((m) => [m.displayName, formatPhone(m.phone), m.city || '', stageLabel(m.stage), m.guideName || '', m.role || 'devotee', m.streak || 0, m.lastSadhanaDate || '']));
+    const csv = rows.map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([String.fromCharCode(0xFEFF) + csv], { type: 'text/csv;charset=utf-8;' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: `folk-members-${todayIST()}.csv` });
     a.click();
-    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const generateQrToken = async (devotee) => {
-    try {
-      const qrToken = `FOLK-${devotee.id || 'D'}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-      await updateDoc(doc(db, 'users', devotee.id), { qrToken });
-      setQrModalDevotee({ ...devotee, qrToken });
-    } catch (error) {
-      console.error("Error generating QR token:", error);
-    }
-  };
-
-  useEffect(() => {
-    const q = query(collection(db, 'users'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setDevotees(data);
-      setLoading(false);
-    }, (error) => {
-      console.error("Firestore error in Devotees:", error);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      // Only an admin may set/change the role field - firestore.rules
-      // enforces this too, but we also keep it out of the payload here so a
-      // folks_head's save never even attempts a role change.
-      const { role, ...rest } = formData;
-      const payload = isAdmin ? formData : rest;
-
-      if (editingDevotee) {
-        await updateDoc(doc(db, 'users', editingDevotee.id), {
-          ...payload,
-          updatedAt: serverTimestamp()
-        });
-      } else {
-        const qrToken = `FOLK-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-        await addDoc(collection(db, 'users'), {
-          ...payload,
-          role: isAdmin ? formData.role : 'devotee',
-          qrToken,
-          createdAt: serverTimestamp(),
-          photo: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`
-        });
-      }
-      handleCloseModal();
-    } catch (error) {
-      console.error("Error saving devotee:", error);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this devotee?')) {
-      try {
-        await deleteDoc(doc(db, 'users', id));
-      } catch (error) {
-        console.error("Error deleting devotee:", error);
-      }
-    }
-  };
-
-  const handleEdit = (devotee) => {
-    setEditingDevotee(devotee);
-    setFormData({
-      name: devotee.name || '',
-      phone: devotee.phone || '',
-      address: devotee.address || '',
-      role: devotee.role || 'devotee',
-      level: devotee.level || '1'
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingDevotee(null);
-    setFormData({ name: '', phone: '', address: '', role: 'devotee', level: '1' });
-  };
-
-  const filteredDevotees = devotees.filter(d =>
-    (roleFilter === 'All' || d.role === roleFilter) &&
-    (
-      d.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.phone?.includes(searchTerm)
-    )
-  );
-
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-saffron-dark font-poppins">Devotee Management</h1>
-          <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage all registered devotees and their permissions</p>
+          <h1 className="display-lg">Members</h1>
+          <p className="mt-1 text-ink-muted">{members.length} profiles · {members.filter((m) => !m.isStaff && !m.guideId).length} without a guide</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <button
-            onClick={exportCSV}
-            disabled={filteredDevotees.length === 0}
-            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download size={18} />
-            <span>Export</span>
-          </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-6 py-2.5 bg-saffron text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
-          >
-            <Plus size={20} />
-            <span>Add Devotee</span>
-          </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={exportCSV} className="btn border border-line bg-white text-ink hover:bg-paper normal-case tracking-normal text-[14px]"><Download size={16} /> Export</button>
+          <button type="button" onClick={() => openEdit('new')} className="btn-primary"><Plus size={17} /> Add member</button>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-white p-4 rounded-2xl border border-saffron/10 shadow-sm">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search by name or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-cream/30 border border-transparent rounded-xl focus:bg-white focus:border-saffron focus:ring-4 focus:ring-saffron/5 outline-none transition-all"
-          />
-        </div>
-        <div className="relative w-full md:w-auto">
-          <button
-            onClick={() => setShowRoleFilter(!showRoleFilter)}
-            className="flex items-center justify-center gap-2 px-4 py-3 w-full md:w-auto bg-white border border-gray-200 rounded-xl hover:border-saffron text-gray-600 hover:text-saffron transition-all"
-          >
-            <Filter size={18} />
-            <span>{roleFilter === 'All' ? 'Filters' : `Role: ${roleFilter}`}</span>
-          </button>
-          <AnimatePresence>
-            {showRoleFilter && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                className="absolute right-0 top-full mt-2 w-44 bg-white rounded-2xl shadow-premium-xl border border-gray-100 overflow-hidden z-50"
-              >
-                {['All', 'devotee', 'admin', 'folks_head', 'volunteer'].map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => { setRoleFilter(role); setShowRoleFilter(false); }}
-                    className={`w-full px-4 py-2.5 text-left text-sm font-bold capitalize hover:bg-saffron/5 transition-colors ${
-                      roleFilter === role ? 'text-saffron bg-saffron/5' : 'text-gray-600'
-                    }`}
-                  >
-                    {role === 'folks_head' ? 'Folks Head' : role}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+      <div className="card p-3 sm:p-4 grid gap-3 md:grid-cols-[1fr_12rem_14rem]">
+        <label className="relative">
+          <span className="sr-only">Search</span>
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
+          <input className={`${inputClass} pl-10`} placeholder="Search name or phone" value={q} onChange={(e) => setQ(e.target.value)} />
+        </label>
+        <select aria-label="Stage" className={inputClass} value={stage} onChange={(e) => setStage(e.target.value)}>
+          <option value="all">All stages</option>
+          {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+        </select>
+        <select aria-label="Guide" className={inputClass} value={guide} onChange={(e) => setGuide(e.target.value)}>
+          <option value="all">All guides</option>
+          <option value="none">No guide assigned</option>
+          {me && <option value={me.uid}>My members</option>}
+          {staff.filter((s) => s.id !== me?.uid).map((s) => <option key={s.id} value={s.id}>{s.displayName}</option>)}
+        </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AnimatePresence mode='popLayout'>
-          {loading ? (
-            [1, 2, 3].map(i => (
-              <div key={i} className="h-48 bg-gray-100 rounded-3xl animate-pulse" />
-            ))
-          ) : filteredDevotees.length > 0 ? (
-            filteredDevotees.map((devotee) => (
-              <motion.div
-                key={devotee.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-              >
-                <Card className="group hover:shadow-premium-xl transition-all duration-300 border-none bg-white relative overflow-hidden h-full shadow-md p-5 sm:p-6 md:p-8">
-                  {/* Action buttons: always visible on mobile/touch (no hover state there);
-                      on md+ they overlay top-right and only reveal on card hover, as before. */}
-                  <div className="flex justify-end gap-2 mb-3 md:mb-0 md:absolute md:top-0 md:right-0 md:p-4 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
-                    <button
-                      onClick={() => setQrModalDevotee(devotee)}
-                      className="p-2.5 bg-saffron/5 text-saffron rounded-lg hover:bg-saffron/10 transition-colors"
-                      title="View Vaikuntha ID"
-                      aria-label={`View Vaikuntha ID for ${devotee.name || 'devotee'}`}
-                    >
-                      <QrCode size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleEdit(devotee)}
-                      className="p-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                      title="Edit devotee"
-                      aria-label={`Edit ${devotee.name || 'devotee'}`}
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleDelete(devotee.id)}
-                        className="p-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                        title="Delete devotee"
-                        aria-label={`Delete ${devotee.name || 'devotee'}`}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
+      {selected.size > 0 && (
+        <div className="sticky top-16 z-20 card p-3 flex flex-wrap items-center gap-3 border-navy">
+          <span className="font-semibold">{selected.size} selected</span>
+          <button type="button" onClick={() => { setBulk('guide'); setBulkValue(''); }} className="btn border border-line text-ink hover:bg-paper normal-case tracking-normal text-[14px] min-h-[40px]"><UserPlus size={16} /> Assign guide</button>
+          <button type="button" onClick={() => { setBulk('stage'); setBulkValue('regular'); }} className="btn border border-line text-ink hover:bg-paper normal-case tracking-normal text-[14px] min-h-[40px]"><Layers size={16} /> Set stage</button>
+          <button type="button" onClick={() => setSelected(new Set())} className="ml-auto inline-flex items-center gap-1 text-ink-muted hover:text-ink"><X size={16} /> Clear</button>
+        </div>
+      )}
 
-                  <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-saffron p-1 shrink-0 shadow-inner">
-                      <img 
-                        src={getSafeProfileImage(devotee.photo, devotee.name)} 
-                        className="w-full h-full rounded-2xl object-cover" 
-                        alt="" 
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider mb-2 ${
-                        devotee.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-saffron/10 text-saffron'
-                      }`}>
-                        {devotee.role || 'Devotee'}
-                      </span>
-                      <h3 className="font-bold text-lg text-gray-900 truncate">{devotee.name}</h3>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-saffron bg-saffron/5 px-2 py-0.5 rounded-md border border-saffron/10">
-                          <Flame size={12} fill="currentColor" />
-                          <span>{devotee.streak || 0}d</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                          <Trophy size={12} />
-                          <span>{devotee.longestStreak || 0}d BEST</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-gold-dark bg-gold/5 px-2 py-0.5 rounded-md border border-gold/10">
-                          <Star size={12} fill="currentColor" />
-                          <span>{devotee.score || 0} pts</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
-                        <Phone size={14} className="text-gray-400" />
-                        <span>{devotee.phone || 'No phone'}</span>
-                      </div>
-                    </div>
-                  </div>
+      {error && !editing && <p role="alert" className="rounded-md bg-red-50 text-red-700 px-4 py-3">{error}</p>}
 
-                  <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
-                    <div className="flex items-center gap-2 text-purple-600 bg-purple-50 px-3 py-1 rounded-lg">
-                      <Shield size={14} />
-                      <span>Level {devotee.level || '1'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <MapPin size={14} />
-                      <span className="truncate max-w-[120px]">{devotee.address || 'Vizag'}</span>
+      {loading ? (
+        <div className="card h-64 animate-pulse" aria-busy="true" />
+      ) : list.length === 0 ? (
+        <div className="card p-10 text-center text-ink-muted">No members match these filters.</div>
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="hidden md:table w-full text-left">
+            <thead className="bg-paper text-[13px] font-display font-bold uppercase tracking-label text-ink-muted">
+              <tr>
+                <th className="w-10 px-4 py-3"><input type="checkbox" aria-label="Select all" checked={allSelected} onChange={toggleAll} className="w-4 h-4 accent-navy" /></th>
+                <th className="px-3 py-3">Member</th>
+                <th className="px-3 py-3">Stage</th>
+                <th className="px-3 py-3">Guide</th>
+                <th className="px-3 py-3">Last chanted</th>
+                <th className="px-3 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {list.map((m) => {
+                const lc = lastChant(m);
+                return (
+                  <tr key={m.id} className={selected.has(m.id) ? 'bg-navy-50/50' : 'hover:bg-paper/60'}>
+                    <td className="px-4 py-3">{canEdit(m) && <input type="checkbox" aria-label={`Select ${m.displayName}`} checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="w-4 h-4 accent-navy" />}</td>
+                    <td className="px-3 py-3">
+                      <p className="font-semibold user-text">{m.displayName} {m.isStaff && <span className="ml-1 text-[11px] font-bold uppercase text-saffron">{m.role === 'admin' ? 'Admin' : 'Guide'}</span>}</p>
+                      <p className="text-[14px] text-ink-muted">{formatPhone(m.phone) || 'No phone'}{m.city ? ` · ${m.city}` : ''}</p>
+                    </td>
+                    <td className="px-3 py-3"><StageChip stage={m.stage} /></td>
+                    <td className="px-3 py-3 text-[15px]">{m.guideName || <span className="text-amber-700">Not assigned</span>}</td>
+                    <td className={`px-3 py-3 text-[15px] ${lc.tone}`}>{lc.label}{m.streak ? <span className="text-ink-muted"> · {m.streak}d streak</span> : null}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex justify-end gap-1">
+                        {m.phone && <a href={whatsappUrl(m.phone, `Hare Krishna ${m.displayName.split(' ')[0]}!`)} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${m.displayName}`} className="w-9 h-9 inline-flex items-center justify-center rounded-md hover:bg-paper text-green-700"><MessageCircle size={17} /></a>}
+                        <button type="button" onClick={() => setQrFor(m)} aria-label={`QR for ${m.displayName}`} className="w-9 h-9 inline-flex items-center justify-center rounded-md hover:bg-paper"><QrCode size={17} /></button>
+                        {canEdit(m) && <button type="button" onClick={() => openEdit(m)} aria-label={`Edit ${m.displayName}`} className="w-9 h-9 inline-flex items-center justify-center rounded-md hover:bg-paper"><Pencil size={17} /></button>}
+                        {isAdmin && m.id !== me?.uid && <button type="button" onClick={() => remove(m)} aria-label={`Delete ${m.displayName}`} className="w-9 h-9 inline-flex items-center justify-center rounded-md hover:bg-red-50 text-red-700"><Trash2 size={17} /></button>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <ul className="md:hidden divide-y divide-line">
+            {list.map((m) => {
+              const lc = lastChant(m);
+              return (
+                <li key={m.id} className="p-4 flex gap-3">
+                  {canEdit(m) && <input type="checkbox" aria-label={`Select ${m.displayName}`} checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="mt-1 w-5 h-5 accent-navy shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold user-text">{m.displayName}</p>
+                    <p className="text-[14px] text-ink-muted">{formatPhone(m.phone) || 'No phone'}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[14px]">
+                      <StageChip stage={m.stage} />
+                      <span className={m.guideName ? 'text-ink-muted' : 'text-amber-700'}>{m.guideName ? `Guide: ${m.guideName}` : 'No guide'}</span>
+                      <span className={lc.tone}>· {lc.label}</span>
                     </div>
                   </div>
-                </Card>
-              </motion.div>
-            ))
-          ) : (
-            <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4">
-              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-200">
-                 <User size={40} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-800">No Devotees Found</h3>
-                <p className="text-gray-400">Try adjusting your search or filters.</p>
-              </div>
-            </div>
+                  <div className="flex flex-col gap-1">
+                    {canEdit(m) && <button type="button" onClick={() => openEdit(m)} aria-label={`Edit ${m.displayName}`} className="w-10 h-10 inline-flex items-center justify-center rounded-md border border-line"><Pencil size={17} /></button>}
+                    <button type="button" onClick={() => setQrFor(m)} aria-label={`QR for ${m.displayName}`} className="w-10 h-10 inline-flex items-center justify-center rounded-md border border-line"><QrCode size={17} /></button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add member' : 'Edit member'}
+        footer={<>
+          <button type="button" onClick={() => setEditing(null)} className="btn border border-line text-ink hover:bg-paper">Cancel</button>
+          <button type="submit" form="member-form" disabled={busy} className="btn-primary">{busy ? 'Saving…' : 'Save'}</button>
+        </>}>
+        <form id="member-form" onSubmit={save} className="space-y-4">
+          {error && <p role="alert" className="rounded-md bg-red-50 text-red-700 px-3 py-2">{error}</p>}
+          <Field label="Full name"><input required className={inputClass} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Mobile"><input type="tel" className={inputClass} value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+91 98765 43210" /></Field>
+            <Field label="City"><input className={inputClass} value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} /></Field>
+          </div>
+          <Field label="Address"><input className={inputClass} value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} /></Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Stage">
+              <select className={inputClass} value={form.stage} onChange={(e) => setForm((f) => ({ ...f, stage: e.target.value }))}>
+                {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+            </Field>
+            <Field label="FOLK guide">
+              <select className={inputClass} value={form.guideId} onChange={(e) => setForm((f) => ({ ...f, guideId: e.target.value }))}>
+                <option value="">Not assigned</option>
+                {staff.map((s) => <option key={s.id} value={s.id}>{s.displayName}</option>)}
+              </select>
+            </Field>
+          </div>
+          {isAdmin && editing !== 'new' && editing?.id !== me?.uid && (
+            <Field label="Role" hint="FOLK guides can see and follow up with members. Admins manage everything.">
+              <select className={inputClass} value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
+                <option value="devotee">Member</option>
+                <option value="folks_head">FOLK guide</option>
+                <option value="admin">Admin</option>
+              </select>
+            </Field>
           )}
-        </AnimatePresence>
-      </div>
+        </form>
+      </Modal>
 
-      {/* Add/Edit Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={handleCloseModal}
-              className="absolute inset-0 bg-black/40"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg max-h-[90vh] bg-white rounded-3xl shadow-premium overflow-hidden flex flex-col"
-            >
-              <button
-                onClick={handleCloseModal}
-                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all z-10"
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
-
-              <div className="p-6 sm:p-8 overflow-y-auto">
-              <h2 className="text-2xl font-bold text-saffron-dark mb-6 pr-10">
-                {editingDevotee ? 'Edit Devotee' : 'Add New Devotee'}
-              </h2>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                      required
-                      type="text" 
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-saffron outline-none transition-all"
-                      placeholder="e.g. Rahul Sharma"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Phone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                      required
-                      type="tel" 
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-saffron outline-none transition-all"
-                      placeholder="e.g. +91 9876543210"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700 ml-1">Address (Town/City)</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                      type="text" 
-                      value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
-                      className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-saffron outline-none transition-all"
-                      placeholder="e.g. Visakhapatnam"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 ml-1">Role</label>
-                    {isAdmin ? (
-                      <select
-                        value={formData.role}
-                        onChange={(e) => setFormData({...formData, role: e.target.value})}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-saffron outline-none transition-all appearance-none"
-                      >
-                        <option value="devotee">Devotee</option>
-                        <option value="folks_head">Folks Head</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    ) : (
-                      <div className="w-full px-4 py-3 bg-gray-100 border border-gray-100 rounded-xl text-gray-500 font-medium capitalize">
-                        {(editingDevotee ? formData.role : 'devotee')?.replace('_', ' ') || 'Devotee'}
-                        <span className="block text-[10px] font-bold text-gray-400 normal-case mt-0.5">Only an admin can change roles</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 ml-1">Auth Level</label>
-                    <select 
-                      value={formData.level}
-                      onChange={(e) => setFormData({...formData, level: e.target.value})}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-saffron outline-none transition-all appearance-none"
-                    >
-                      {[1, 2, 3, 4, 5].map(l => <option key={l} value={l}>Level {l}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 pt-6">
-                  <button 
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="flex-1 py-3.5 px-6 border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    className="flex-1 py-3.5 px-6 bg-saffron text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
-                  >
-                    {editingDevotee ? 'Update Devotee' : 'Save Devotee'}
-                  </button>
-                </div>
-              </form>
-              </div>
-            </motion.div>
-          </div>
+      <Modal open={!!bulk} onClose={() => setBulk(null)} size="sm" title={bulk === 'guide' ? `Assign guide to ${selected.size}` : `Set stage for ${selected.size}`}
+        footer={<>
+          <button type="button" onClick={() => setBulk(null)} className="btn border border-line text-ink hover:bg-paper">Cancel</button>
+          <button type="button" onClick={applyBulk} disabled={busy || (bulk === 'stage' && !bulkValue)} className="btn-primary">{busy ? 'Updating…' : 'Apply'}</button>
+        </>}>
+        {bulk === 'guide' ? (
+          <Field label="FOLK guide">
+            <select className={inputClass} value={bulkValue} onChange={(e) => setBulkValue(e.target.value)}>
+              <option value="">Remove guide</option>
+              {staff.map((s) => <option key={s.id} value={s.id}>{s.displayName}</option>)}
+            </select>
+          </Field>
+        ) : (
+          <Field label="Stage">
+            <select className={inputClass} value={bulkValue} onChange={(e) => setBulkValue(e.target.value)}>
+              {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label} · {s.desc}</option>)}
+            </select>
+          </Field>
         )}
-      </AnimatePresence>
-      {/* QR Modal */}
-      <AnimatePresence>
-        {qrModalDevotee && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setQrModalDevotee(null)}
-              className="absolute inset-0 bg-gray-900/60"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm max-h-[90vh] bg-white rounded-xl sm:rounded-xl shadow-premium-xl overflow-hidden text-center border border-white flex flex-col"
-            >
-              <button
-                onClick={() => setQrModalDevotee(null)}
-                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all z-10"
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
+      </Modal>
 
-              <div className="p-6 sm:p-10 overflow-y-auto">
-                <div className="mb-4">
-                  <span className="text-[10px] font-black text-saffron uppercase tracking-[0.4rem] block mb-2">Vaikuntha ID Card</span>
-                  <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight uppercase leading-none mb-6 sm:mb-10 pr-8">Permanent pass</h2>
-                </div>
-
-                {qrModalDevotee.qrToken ? (
-                  <QRView value={qrModalDevotee.qrToken} name={qrModalDevotee.name} />
-                ) : (
-                  <div className="py-10 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
-                     <p className="text-gray-400 font-bold uppercase tracking-label text-xs mb-4">No token yet</p>
-                     <button
-                       onClick={() => generateQrToken(qrModalDevotee)}
-                       className="px-6 py-3 bg-saffron text-white rounded-xl font-bold text-xs uppercase tracking-label hover:bg-saffron-dark transition-all"
-                     >
-                       Generate QR Token
-                     </button>
-                  </div>
-                )}
-
-                <p className="mt-8 text-[11px] font-bold text-gray-400 uppercase tracking-label leading-relaxed">
-                  Scan for Attendance & Prasadam <br/>
-                  <span className="text-saffron-dark/40 font-black">Folkvizag Devotee Management</span>
-                </p>
-              </div>
-            </motion.div>
+      <Modal open={!!qrFor} onClose={() => setQrFor(null)} size="sm" title={qrFor?.displayName || 'QR'}>
+        {qrFor?.qrToken ? (
+          <div className="text-center">
+            <div className="inline-block p-3 border border-line rounded-lg"><QRCodeSVG value={qrFor.qrToken} size={220} /></div>
+            <p className="mt-2 text-[13px] text-ink-muted">ID {String(qrFor.qrToken).slice(0, 8).toUpperCase()}</p>
           </div>
+        ) : (
+          <p className="text-ink-muted">This member has no QR yet. It&apos;s created the next time they sign in.</p>
         )}
-      </AnimatePresence>
+      </Modal>
     </div>
   );
 };

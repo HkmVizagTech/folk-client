@@ -1,15 +1,32 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { initializeFirestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { initializeFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 import { getAnalytics } from "firebase/analytics";
 import { getStorage } from "firebase/storage";
+
+// Development only: http://localhost:3001/?emulator=1 talks to the local
+// Firebase emulators (Firestore :8080, Auth :9099) with the fake "demo-folk"
+// project instead of production. Remembered for the browser tab. Vite
+// compiles this away in production builds (import.meta.env.DEV is false).
+const USE_EMULATOR = (() => {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return false;
+  if (!/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) return false;
+  try {
+    const flag = new URLSearchParams(window.location.search).get('emulator');
+    if (flag === '1') sessionStorage.setItem('use_emulator', '1');
+    if (flag === '0') sessionStorage.removeItem('use_emulator');
+    return sessionStorage.getItem('use_emulator') === '1';
+  } catch {
+    return false;
+  }
+})();
 
 // Firebase configuration (override via VITE_FIREBASE_* env vars, e.g. in Vercel)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB8UsgVIkTss7yZ_fKyDVIoykGELgrMrqA",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "folkvizag-b6830.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "folkvizag-b6830",
+  projectId: USE_EMULATOR ? 'demo-folk' : (import.meta.env.VITE_FIREBASE_PROJECT_ID || "folkvizag-b6830"),
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "folkvizag-b6830.firebasestorage.app",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "95883020949",
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:95883020949:web:343a5294bcad79dd51e99c",
@@ -26,8 +43,15 @@ export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
 
+if (USE_EMULATOR) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  console.info('[firebase] Using local emulators (demo-folk).');
+}
+
+export const isEmulator = USE_EMULATOR;
 export const functions = getFunctions(app);
 export const storage = getStorage(app);
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+export const analytics = typeof window !== 'undefined' && !USE_EMULATOR ? getAnalytics(app) : null;
 
 export default app;

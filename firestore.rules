@@ -20,6 +20,13 @@ service cloud.firestore {
       return role() == 'admin';
     }
 
+    // Profile fields only the team sets (FOLK guide assignment, journey
+    // stage, follow-up bookkeeping). `level` is the older name for stage.
+    function staffManagedFields() {
+      return ['stage', 'level', 'guideId', 'guideName', 'guidePhone',
+              'nextFollowUpDate', 'lastFollowUpAt', 'lastFollowUpNote'];
+    }
+
     // The one hardcoded root account. This is a real Firebase Auth UID, so it
     // can never be spoofed by another signed-in user - only the person who
     // actually owns that Firebase account can ever satisfy request.auth.uid == this.
@@ -67,6 +74,7 @@ service cloud.firestore {
         // one hardcoded (unspoofable) root admin uid.
         (
           request.auth.uid == userId &&
+          !request.resource.data.keys().hasAny(staffManagedFields()) &&
           (
             (isRootAdminUid() && request.resource.data.role == 'admin') ||
             (!isRootAdminUid() && request.resource.data.role == 'devotee')
@@ -87,13 +95,15 @@ service cloud.firestore {
       // account through phone OTP. Only an admin may ever change the `role`
       // field itself - folks_head can never promote anyone (including
       // themselves). The root account may promote its own profile.
+      // Members can't change the fields the team manages about them (their
+      // stage, their FOLK guide, follow-up bookkeeping) on their own profile.
       allow update: if isSignedIn() && (
         isSuperAdmin() ||
         (request.auth.uid == userId && isRootAdminUid()) ||
         (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) &&
           (
-            request.auth.uid == userId ||
+            (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(staffManagedFields())) ||
             (isStaff() && resource.data.get('role', 'devotee') == 'devotee')
           )
         )
@@ -262,6 +272,54 @@ service cloud.firestore {
     // would defeat the whole purpose, so every client access is denied.
     match /otp_codes/{phone} {
       allow read, write: if false;
+    }
+
+    // ---------------- FOLLOW-UPS (FOLK guide notes) ----------------
+    // Private notes a guide keeps about a member. Members never see them.
+    match /followups/{followupId} {
+      allow read: if isStaff();
+      allow create: if isStaff() &&
+        request.resource.data.guideId == request.auth.uid &&
+        request.resource.data.note is string &&
+        request.resource.data.note.size() <= 1500;
+      allow update, delete: if isSuperAdmin() || (isStaff() && resource.data.guideId == request.auth.uid);
+    }
+
+    // ---------------- COURSES ----------------
+    match /courses/{courseId} {
+      allow read: if isSignedIn();
+      allow create, update: if isStaff();
+      allow delete: if isSuperAdmin();
+    }
+
+    // A member enrols themselves (id <courseId>_<uid>, starting at zero);
+    // only staff record sessions attended or completion.
+    match /enrollments/{enrollmentId} {
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isStaff());
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        enrollmentId == request.resource.data.courseId + '_' + request.auth.uid &&
+        request.resource.data.status == 'enrolled' &&
+        request.resource.data.sessionsAttended == 0;
+      allow update: if isStaff();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- CONTACT MESSAGES ----------------
+    match /contact_messages/{messageId} {
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'new' &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() <= 2000;
+      allow read, update: if isStaff();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ---------------- BROADCAST LOG (server-written) ----------------
+    match /broadcasts/{broadcastId} {
+      allow read: if isStaff();
+      allow write: if false;
     }
 
     // ---------------- EVENT SECRETS ----------------

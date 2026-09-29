@@ -254,17 +254,17 @@ const Events = () => {
         </>}
       >
         <form id="event-form" onSubmit={create} className="space-y-4">
-          <Field label="Title"><input required className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Sunday Feast Program" /></Field>
+          <Field label="Title"><input required className={inputClass} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="e.g. Sunday Feast Program" /></Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Date & time"><input required type="datetime-local" className={inputClass} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
+            <Field label="Date & time"><input required type="datetime-local" className={inputClass} value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} /></Field>
             <Field label="Category">
-              <select className={inputClass} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              <select className={inputClass} value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
                 {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </Field>
           </div>
-          <Field label="Location"><input className={inputClass} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g. Temple hall" /></Field>
-          <Field label="Description"><textarea className={textareaClass} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="What will happen, who it's for, what to bring" /></Field>
+          <Field label="Location"><input className={inputClass} value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="e.g. Temple hall" /></Field>
+          <Field label="Description"><textarea className={textareaClass} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="What will happen, who it's for, what to bring" /></Field>
           <Field label="Photo" hint="Optional. A real photo from a past program works best.">
             <div className="flex items-center gap-4">
               <label className="btn border border-line text-ink hover:bg-paper normal-case tracking-normal text-[14px] cursor-pointer">
