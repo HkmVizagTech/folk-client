@@ -176,7 +176,7 @@ const tripStatusClass = (status) => {
     case 'ongoing': return 'text-emerald-600 bg-emerald-50 border-emerald-200'
     case 'completed': return 'text-blue-600 bg-blue-50 border-blue-200'
     case 'cancelled': return 'text-red-500 bg-red-50 border-red-200'
-    default: return 'text-gray-500 bg-gray-100 border-gray-200'
+    default: return 'text-ink-muted bg-paper-dark border-line'
   }
 }
 
@@ -184,7 +184,7 @@ const regStatusClass = (status) => {
   switch ((status || '').toLowerCase()) {
     case 'confirmed': return 'text-green-600 bg-green-100 border-green-200'
     case 'waitlisted': return 'text-amber-600 bg-amber-50 border-amber-200'
-    case 'cancelled': return 'text-gray-500 bg-gray-100 border-gray-200'
+    case 'cancelled': return 'text-ink-muted bg-paper-dark border-line'
     default: return 'text-saffron bg-saffron/10 border-saffron/20'
   }
 }
@@ -233,8 +233,8 @@ const PAY_STATES = {
   },
   checking: {
     label: 'Checking…', short: '—', rail: 'none', settled: false,
-    chip: 'text-gray-400 bg-gray-50 border-gray-200',
-    dot: 'bg-gray-300', icon: Loader2,
+    chip: 'text-ink-muted bg-paper border-line',
+    dot: 'bg-line', icon: Loader2,
   },
 }
 
@@ -242,7 +242,7 @@ const payMeta = (state) => PAY_STATES[state] || PAY_STATES.unpaid
 
 const inputClass =
   'w-full px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-sm min-h-[44px]'
-const labelClass = 'text-[10px] font-black text-gray-400 uppercase tracking-label ml-1'
+const labelClass = 'text-[10px] font-bold text-ink-muted uppercase tracking-label ml-1'
 
 /* ------------------------------------------------------------------ *
  *  Module-level sub components (kept outside so typing never remounts)
@@ -252,7 +252,7 @@ const Field = ({ label, error, hint, children, className = '' }) => (
   <div className={`space-y-2 user-text-box ${className}`}>
     <div className="flex items-baseline justify-between gap-2 user-text-box">
       <label className={`${labelClass} shrink-0`}>{label}</label>
-      {hint && <span className="text-[10px] text-gray-400 font-medium text-right user-text min-w-0">{hint}</span>}
+      {hint && <span className="text-[10px] text-ink-muted font-medium text-right user-text min-w-0">{hint}</span>}
     </div>
     {children}
     {error && (
@@ -277,7 +277,7 @@ const StringListEditor = ({ label, hint, items, onChange, placeholder }) => {
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
         <label className={labelClass}>{label}</label>
-        <span className="text-[10px] text-gray-400 font-medium">{hint || 'Enter to add · commas split'}</span>
+        <span className="text-[10px] text-ink-muted font-medium">{hint || 'Enter to add · commas split'}</span>
       </div>
 
       {(items || []).length > 0 && (
@@ -340,15 +340,15 @@ const SummaryTile = ({ label, value, sub, icon: Icon, tone = 'saffron' }) => {
     saffron: 'from-saffron/10 to-gold/10 text-saffron-dark',
     green: 'from-emerald-50 to-green-50 text-emerald-600',
     amber: 'from-amber-50 to-yellow-50 text-amber-600',
-    slate: 'from-gray-50 to-gray-100 text-gray-600',
+    slate: 'from-paper to-paper-dark text-ink-muted',
   }
   return (
     <div className={`rounded-2xl p-3.5 sm:p-4 bg-gradient-to-br ${tones[tone]} border border-white/60 shadow-premium user-text-box`}>
       <div className="flex items-center gap-2 mb-1 user-text-box">
         {Icon && <Icon size={14} className="shrink-0" />}
-        <p className="text-[9px] font-black uppercase tracking-label opacity-80 truncate">{label}</p>
+        <p className="text-[9px] font-bold uppercase tracking-label opacity-80 truncate">{label}</p>
       </div>
-      <p className="text-lg sm:text-xl font-black leading-tight user-text">{value}</p>
+      <p className="text-lg sm:text-xl font-bold leading-tight user-text">{value}</p>
       {sub && <p className="text-[10px] font-bold opacity-60 mt-0.5 user-text">{sub}</p>}
     </div>
   )
@@ -361,7 +361,7 @@ const PayChip = ({ pay, size = 'sm' }) => {
   const Icon = meta.icon
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-black rounded-lg uppercase tracking-label border whitespace-nowrap ${meta.chip} ${
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg uppercase tracking-label border whitespace-nowrap ${meta.chip} ${
         size === 'md' ? 'text-[10px] px-2.5 py-1.5' : 'text-[9px] px-2 py-1'
       }`}
     >
@@ -381,23 +381,23 @@ const RailToggle = ({ on, onToggle, icon: Icon, title, onCopy, offCopy }) => (
     aria-label={`${title}: ${on ? 'enabled' : 'disabled'}`}
     onClick={onToggle}
     className={`w-full text-left p-4 rounded-2xl border-2 transition-all user-text-box ${
-      on ? 'bg-emerald-50/70 border-emerald-200' : 'bg-gray-50 border-gray-200'
+      on ? 'bg-emerald-50/70 border-emerald-200' : 'bg-paper border-line'
     }`}
   >
     <div className="flex items-start gap-3">
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-        on ? 'bg-emerald-500 text-white' : 'bg-white text-gray-300 border border-gray-200'
+        on ? 'bg-emerald-500 text-white' : 'bg-white text-ink-muted/50 border border-line'
       }`}>
         <Icon size={17} />
       </div>
       <div className="flex-1 min-w-0 user-text-box">
         <div className="flex items-center justify-between gap-2">
-          <p className={`text-xs font-black uppercase tracking-label ${on ? 'text-emerald-700' : 'text-gray-400'}`}>
+          <p className={`text-xs font-bold uppercase tracking-label ${on ? 'text-emerald-700' : 'text-ink-muted'}`}>
             {title}
           </p>
-          {on ? <ToggleRight size={24} className="text-emerald-500 shrink-0" /> : <ToggleLeft size={24} className="text-gray-300 shrink-0" />}
+          {on ? <ToggleRight size={24} className="text-emerald-500 shrink-0" /> : <ToggleLeft size={24} className="text-ink-muted/50 shrink-0" />}
         </div>
-        <p className="text-[11px] text-gray-500 font-medium leading-relaxed mt-1 user-text">
+        <p className="text-[11px] text-ink-muted font-medium leading-relaxed mt-1 user-text">
           {on ? onCopy : offCopy}
         </p>
       </div>
@@ -1102,7 +1102,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
           disabled={busy}
           onClick={() => askRecordCash(reg)}
           aria-label={`Record cash received from ${reg.userName || 'this devotee'}`}
-          className="min-h-[44px] px-3 bg-teal-600 text-white text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+          className="min-h-[44px] px-3 bg-teal-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-40 flex items-center gap-1.5"
         >
           <Banknote size={13} /> Record cash
         </button>
@@ -1112,7 +1112,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
           disabled={busy}
           onClick={() => { setUndoTarget(reg); setCashError('') }}
           aria-label={`Undo the cash record for ${reg.userName || 'this devotee'}`}
-          className="min-h-[44px] px-3 bg-teal-50 text-teal-700 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-teal-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+          className="min-h-[44px] px-3 bg-teal-50 text-teal-700 text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-teal-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
         >
           <Undo2 size={13} /> Undo cash
         </button>
@@ -1121,7 +1121,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         disabled={busy || status === 'confirmed'}
         onClick={() => updateRegistration(reg, 'confirmed')}
         aria-label={`Confirm ${reg.userName || 'registration'}`}
-        className="min-h-[44px] px-3 bg-green-500 text-white text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-green-600 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+        className="min-h-[44px] px-3 bg-green-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-green-600 transition-colors disabled:opacity-40 flex items-center gap-1.5"
       >
         {busy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} Confirm
       </button>
@@ -1129,7 +1129,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         disabled={busy || status === 'waitlisted'}
         onClick={() => updateRegistration(reg, 'waitlisted')}
         aria-label={`Waitlist ${reg.userName || 'registration'}`}
-        className="min-h-[44px] px-3 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+        className="min-h-[44px] px-3 bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
       >
         {busy ? <Loader2 size={12} className="animate-spin" /> : <Hourglass size={12} />} Wait
       </button>
@@ -1137,7 +1137,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         disabled={busy || status === 'cancelled'}
         onClick={() => updateRegistration(reg, 'cancelled')}
         aria-label={`Cancel ${reg.userName || 'registration'}`}
-        className="min-h-[44px] px-3 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-red-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+        className="min-h-[44px] px-3 bg-red-50 text-red-500 text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-red-100 transition-colors disabled:opacity-40 flex items-center gap-1.5"
       >
         {busy ? <Loader2 size={12} className="animate-spin" /> : <Ban size={12} />} Cancel
       </button>
@@ -1145,7 +1145,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         onClick={() => toggleNote(reg, expanded)}
         aria-label={`Staff note for ${reg.userName || 'registration'}`}
         className={`w-11 h-11 shrink-0 rounded-lg flex items-center justify-center transition-colors ${
-          reg.staffNotes ? 'bg-saffron/10 text-saffron' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+          reg.staffNotes ? 'bg-saffron/10 text-saffron' : 'bg-paper-dark text-ink-muted hover:bg-paper-dark'
         }`}
       >
         <MessageSquare size={15} />
@@ -1155,28 +1155,28 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
 
   const regDetailPanel = (reg, pay, busy, expanded) => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 user-text-box">
-      <div className="text-[11px] text-gray-500 space-y-2 user-text-box">
+      <div className="text-[11px] text-ink-muted space-y-2 user-text-box">
         {pay.cashDone && (
           <p className="user-text">
-            <span className="font-black uppercase tracking-label text-[9px] text-teal-600">Cash recorded</span><br />
+            <span className="font-bold uppercase tracking-label text-[9px] text-teal-600">Cash recorded</span><br />
             {formatINR(pay.cashAmount)} · {formatStamp(pay.cashAt)}
             {pay.cashBy ? <> · by <span className="font-mono">{pay.cashBy}</span></> : null}
           </p>
         )}
         {pay.orderId && (
           <p className="user-text">
-            <span className="font-black uppercase tracking-label text-[9px] text-gray-400">Razorpay order</span><br />
+            <span className="font-bold uppercase tracking-label text-[9px] text-ink-muted">Razorpay order</span><br />
             <span className="font-mono">{pay.orderId}</span>
           </p>
         )}
         {reg.travellerNotes && (
-          <p className="user-text"><span className="font-black uppercase tracking-label text-[9px] text-gray-400">Traveller note</span><br />{reg.travellerNotes}</p>
+          <p className="user-text"><span className="font-bold uppercase tracking-label text-[9px] text-ink-muted">Traveller note</span><br />{reg.travellerNotes}</p>
         )}
         {reg.emergencyContact && (
-          <p className="user-text"><span className="font-black uppercase tracking-label text-[9px] text-gray-400">Emergency contact</span><br />{reg.emergencyContact}</p>
+          <p className="user-text"><span className="font-bold uppercase tracking-label text-[9px] text-ink-muted">Emergency contact</span><br />{reg.emergencyContact}</p>
         )}
         {!expanded && reg.staffNotes && (
-          <p className="user-text"><span className="font-black uppercase tracking-label text-[9px] text-gray-400">Staff note</span><br />{reg.staffNotes}</p>
+          <p className="user-text"><span className="font-bold uppercase tracking-label text-[9px] text-ink-muted">Staff note</span><br />{reg.staffNotes}</p>
         )}
       </div>
       {expanded && (
@@ -1193,13 +1193,13 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <button
               disabled={busy}
               onClick={() => saveNoteOnly(reg)}
-              className="min-h-[44px] px-4 bg-saffron text-white text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-saffron-dark transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="min-h-[44px] px-4 bg-saffron text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-saffron-dark transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {busy ? <Loader2 size={13} className="animate-spin" /> : null} Save note
             </button>
             <button
               onClick={() => setNoteOpen(null)}
-              className="min-h-[44px] px-4 bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-gray-200 transition-colors"
+              className="min-h-[44px] px-4 bg-paper-dark text-ink-muted text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-paper-dark transition-colors"
             >
               Close
             </button>
@@ -1215,7 +1215,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       <div className="h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-saffron" size={40} />
-          <p className="text-gray-400 font-black uppercase tracking-label text-[10px]">Loading Yatras…</p>
+          <p className="text-ink-muted font-bold uppercase tracking-label text-[10px]">Loading Yatras…</p>
         </div>
       </div>
     )
@@ -1233,7 +1233,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         <div className="min-w-0">
           <button
             onClick={() => setActiveTab && setActiveTab('admin')}
-            className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-label text-gray-400 hover:text-saffron transition-colors min-h-[44px]"
+            className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-label text-ink-muted hover:text-saffron transition-colors min-h-[44px]"
           >
             <ChevronLeft size={14} /> Command Center
           </button>
@@ -1241,12 +1241,12 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <h1 className="text-2xl sm:text-3xl font-bold font-poppins text-saffron-dark">Trips & Yatras</h1>
             <Bus className="text-saffron shrink-0" size={24} />
             {isAdmin && (
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-saffron/10 text-saffron text-[9px] font-black uppercase tracking-label">
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-saffron/10 text-saffron text-[9px] font-bold uppercase tracking-label">
                 <ShieldCheck size={11} /> Admin
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-ink-muted mt-1">
             Create pilgrimages, publish them, and manage every registration and payment.
           </p>
         </div>
@@ -1273,12 +1273,12 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <button
               key={tab.key}
               onClick={() => setView(tab.key)}
-              className={`flex-1 sm:flex-none min-h-[44px] px-5 rounded-xl text-xs font-black uppercase tracking-label transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
-                active ? 'bg-saffron text-white shadow-md' : 'text-gray-400 hover:text-saffron'
+              className={`flex-1 sm:flex-none min-h-[44px] px-5 rounded-xl text-xs font-bold uppercase tracking-label transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                active ? 'bg-saffron text-white shadow-md' : 'text-ink-muted hover:text-saffron'
               }`}
             >
               <Icon size={15} /> {tab.label}
-              <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${active ? 'bg-white/25' : 'bg-gray-100 text-gray-500'}`}>
+              <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${active ? 'bg-white/25' : 'bg-paper-dark text-ink-muted'}`}>
                 {tab.count}
               </span>
             </button>
@@ -1305,7 +1305,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
           {sortedTrips.length === 0 ? (
             <Card className="p-10 text-center border-none shadow-sm bg-white">
               <Bus className="mx-auto text-saffron/30 mb-4" size={44} />
-              <p className="text-gray-400 text-sm mb-5">No trips yet — create the first yatra.</p>
+              <p className="text-ink-muted text-sm mb-5">No trips yet — create the first yatra.</p>
               <Button onClick={openCreate} className="mx-auto px-8 rounded-2xl font-bold">
                 <Plus size={18} /> New Trip
               </Button>
@@ -1332,35 +1332,35 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
 
                           {/* meta */}
                           <div className="flex-1 min-w-0 user-text-box">
-                            <h3 className="font-bold text-gray-800 text-sm sm:text-base user-text">{trip.title || 'Untitled trip'}</h3>
+                            <h3 className="font-bold text-ink text-sm sm:text-base user-text">{trip.title || 'Untitled trip'}</h3>
                             <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                              <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${tripStatusClass(trip.status)}`}>
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${tripStatusClass(trip.status)}`}>
                                 {trip.status || 'draft'}
                               </span>
-                              <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${
-                                trip.registrationOpen ? 'text-green-600 bg-green-50 border-green-200' : 'text-gray-400 bg-gray-50 border-gray-200'
+                              <span className={`text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${
+                                trip.registrationOpen ? 'text-green-600 bg-green-50 border-green-200' : 'text-ink-muted bg-paper border-line'
                               }`}>
                                 {trip.registrationOpen ? 'Registrations open' : 'Registrations closed'}
                               </span>
                               {/* payment rails at a glance — absent field means online is on */}
                               {trip.onlinePaymentEnabled !== false && (
-                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border text-emerald-700 bg-emerald-50 border-emerald-200 inline-flex items-center gap-1 whitespace-nowrap">
+                                <span className="text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-label border text-emerald-700 bg-emerald-50 border-emerald-200 inline-flex items-center gap-1 whitespace-nowrap">
                                   <CreditCard size={10} /> Online
                                 </span>
                               )}
                               {trip.cashPaymentEnabled === true && (
-                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border text-teal-700 bg-teal-50 border-teal-200 inline-flex items-center gap-1 whitespace-nowrap">
+                                <span className="text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-label border text-teal-700 bg-teal-50 border-teal-200 inline-flex items-center gap-1 whitespace-nowrap">
                                   <Banknote size={10} /> Cash
                                 </span>
                               )}
                               {trip.onlinePaymentEnabled === false && trip.cashPaymentEnabled !== true && (
-                                <span className="text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border text-amber-700 bg-amber-50 border-amber-200 inline-flex items-center gap-1 whitespace-nowrap">
+                                <span className="text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-label border text-amber-700 bg-amber-50 border-amber-200 inline-flex items-center gap-1 whitespace-nowrap">
                                   <AlertTriangle size={10} /> No payment
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-gray-400 font-mono mt-1.5 user-text">/trip/{trip.slug || '—'}</p>
-                            <div className="flex items-center gap-x-4 gap-y-1 flex-wrap mt-2 text-[11px] text-gray-500 font-semibold user-text-box">
+                            <p className="text-[11px] text-ink-muted font-mono mt-1.5 user-text">/trip/{trip.slug || '—'}</p>
+                            <div className="flex items-center gap-x-4 gap-y-1 flex-wrap mt-2 text-[11px] text-ink-muted font-semibold user-text-box">
                               <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={12} className="text-gold shrink-0" /> {formatDate(trip.startDate)} → {formatDate(trip.endDate)}</span>
                               {trip.location && <span className="flex items-center gap-1.5 min-w-0 max-w-full user-text-box"><MapPin size={12} className="text-saffron shrink-0" /> <span className="user-text">{trip.location}</span></span>}
                               <span className="flex items-center gap-1.5 whitespace-nowrap"><IndianRupee size={12} className="text-emerald-500 shrink-0" /> {formatINR(trip.price)}</span>
@@ -1376,7 +1376,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                                 disabled={busy}
                                 aria-label={`Status for ${trip.title}`}
                                 onChange={(e) => handleTripStatus(trip, e.target.value)}
-                                className="flex-1 min-h-[44px] px-3 bg-cream/40 border border-saffron/10 rounded-xl text-xs font-bold text-gray-600 outline-none focus:border-saffron/40 disabled:opacity-60"
+                                className="flex-1 min-h-[44px] px-3 bg-cream/40 border border-saffron/10 rounded-xl text-xs font-bold text-ink-muted outline-none focus:border-saffron/40 disabled:opacity-60"
                               >
                                 {TRIP_STATUSES.map((s) => (
                                   <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -1388,7 +1388,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                                 onClick={() => handleToggleRegistration(trip)}
                                 aria-label={trip.registrationOpen ? `Close registrations for ${trip.title}` : `Open registrations for ${trip.title}`}
                                 className={`min-h-[44px] px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60 ${
-                                  trip.registrationOpen ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                  trip.registrationOpen ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-paper-dark text-ink-muted hover:bg-paper-dark'
                                 }`}
                               >
                                 {busy ? <Loader2 size={15} className="animate-spin" /> : trip.registrationOpen ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
@@ -1407,7 +1407,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                               <button
                                 onClick={() => openDuplicate(trip)}
                                 aria-label={`Duplicate ${trip.title}`}
-                                className="min-h-[44px] bg-gray-100 text-gray-600 text-[11px] font-bold rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
+                                className="min-h-[44px] bg-paper-dark text-ink-muted text-[11px] font-bold rounded-xl hover:bg-paper-dark transition-colors flex items-center justify-center gap-1.5"
                               >
                                 <Copy size={13} /> Copy
                               </button>
@@ -1415,7 +1415,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                                 onClick={() => openTrip && trip.slug && openTrip(trip.slug)}
                                 disabled={!trip.slug}
                                 aria-label={`View public page for ${trip.title}`}
-                                className="min-h-[44px] bg-gray-100 text-gray-600 text-[11px] font-bold rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
+                                className="min-h-[44px] bg-paper-dark text-ink-muted text-[11px] font-bold rounded-xl hover:bg-paper-dark transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
                               >
                                 <ExternalLink size={13} /> View
                               </button>
@@ -1431,7 +1431,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                                 <button
                                   onClick={() => { setFilterTrip(trip.id); setView('registrations') }}
                                   aria-label={`See registrations for ${trip.title}`}
-                                  className="min-h-[44px] bg-gray-100 text-gray-600 text-[11px] font-bold rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
+                                  className="min-h-[44px] bg-paper-dark text-ink-muted text-[11px] font-bold rounded-xl hover:bg-paper-dark transition-colors flex items-center justify-center gap-1.5"
                                 >
                                   <Users size={13} /> Regs
                                 </button>
@@ -1480,7 +1480,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
           <Card hover={false} className="p-4 sm:p-5 border-none shadow-premium bg-white rounded-xl sm:rounded-xl">
             <div className="space-y-3">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={16} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted/50 pointer-events-none" size={16} />
                 <input
                   type="text"
                   value={search}
@@ -1496,7 +1496,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   value={filterTrip}
                   onChange={(e) => setFilterTrip(e.target.value)}
                   aria-label="Filter by trip"
-                  className="w-full min-w-0 min-h-[44px] px-4 bg-cream/30 border border-saffron/10 rounded-xl text-xs font-bold text-gray-600 outline-none focus:border-saffron/40"
+                  className="w-full min-w-0 min-h-[44px] px-4 bg-cream/30 border border-saffron/10 rounded-xl text-xs font-bold text-ink-muted outline-none focus:border-saffron/40"
                 >
                   <option value="all">All trips</option>
                   {sortedTrips.map((t) => (
@@ -1507,7 +1507,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                   aria-label="Filter by status"
-                  className="w-full min-w-0 min-h-[44px] px-4 bg-cream/30 border border-saffron/10 rounded-xl text-xs font-bold text-gray-600 outline-none focus:border-saffron/40"
+                  className="w-full min-w-0 min-h-[44px] px-4 bg-cream/30 border border-saffron/10 rounded-xl text-xs font-bold text-ink-muted outline-none focus:border-saffron/40"
                 >
                   <option value="all">All statuses</option>
                   {REG_STATUSES.map((s) => (
@@ -1536,8 +1536,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                         type="button"
                         aria-pressed={active}
                         onClick={() => setFilterMethod(m.key)}
-                        className={`flex-1 min-w-0 min-h-[44px] px-2 rounded-lg text-[10px] font-black uppercase tracking-label flex items-center justify-center gap-1.5 transition-all ${
-                          active ? 'bg-white text-saffron-dark shadow-sm' : 'text-gray-400 hover:text-saffron'
+                        className={`flex-1 min-w-0 min-h-[44px] px-2 rounded-lg text-[10px] font-bold uppercase tracking-label flex items-center justify-center gap-1.5 transition-all ${
+                          active ? 'bg-white text-saffron-dark shadow-sm' : 'text-ink-muted hover:text-saffron'
                         }`}
                       >
                         <Icon size={13} className="shrink-0" />
@@ -1551,7 +1551,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   variant="secondary"
                   onClick={exportRegistrations}
                   disabled={filteredRegs.length === 0}
-                  className="w-full sm:w-auto shrink-0 min-h-[44px] px-5 rounded-xl text-xs font-black uppercase tracking-label disabled:opacity-40 flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto shrink-0 min-h-[44px] px-5 rounded-xl text-xs font-bold uppercase tracking-label disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   <Download size={15} /> Export CSV
                 </Button>
@@ -1559,13 +1559,13 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
 
               {(filterTrip !== 'all' || filterStatus !== 'all' || filterMethod !== 'all' || search) && (
                 <div className="flex items-center justify-between gap-3 pt-1">
-                  <p className="text-[11px] font-bold text-gray-400 user-text">
+                  <p className="text-[11px] font-bold text-ink-muted user-text">
                     Showing {filteredRegs.length} of {(registrations || []).length}
                   </p>
                   <button
                     type="button"
                     onClick={() => { setFilterTrip('all'); setFilterStatus('all'); setFilterMethod('all'); setSearch('') }}
-                    className="min-h-[44px] px-3 rounded-lg text-[10px] font-black uppercase tracking-label text-gray-400 hover:text-saffron hover:bg-cream/50 transition-colors shrink-0"
+                    className="min-h-[44px] px-3 rounded-lg text-[10px] font-bold uppercase tracking-label text-ink-muted hover:text-saffron hover:bg-cream/50 transition-colors shrink-0"
                   >
                     Clear filters
                   </button>
@@ -1587,10 +1587,10 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               <div className="w-14 h-14 rounded-2xl bg-saffron flex items-center justify-center mx-auto mb-4">
                 <Users className="text-saffron/50" size={26} />
               </div>
-              <p className="font-bold text-gray-600 text-sm">
+              <p className="font-bold text-ink-muted text-sm">
                 {(registrations || []).length === 0 ? 'No registrations yet' : 'Nothing matches these filters'}
               </p>
-              <p className="text-gray-400 text-xs mt-1.5 max-w-sm mx-auto leading-relaxed">
+              <p className="text-ink-muted text-xs mt-1.5 max-w-sm mx-auto leading-relaxed">
                 {(registrations || []).length === 0
                   ? 'Once a trip is published with registrations open, every devotee who books a seat appears here.'
                   : 'Try a different trip, status or payment method — or clear the filters to see everything.'}
@@ -1599,7 +1599,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <button
                   type="button"
                   onClick={() => { setFilterTrip('all'); setFilterStatus('all'); setFilterMethod('all'); setSearch('') }}
-                  className="mt-5 min-h-[44px] px-6 rounded-2xl bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-label hover:bg-saffron hover:text-white transition-colors"
+                  className="mt-5 min-h-[44px] px-6 rounded-2xl bg-saffron/10 text-saffron-dark text-[11px] font-bold uppercase tracking-label hover:bg-saffron hover:text-white transition-colors"
                 >
                   Clear filters
                 </button>
@@ -1626,43 +1626,43 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     <div className="flex items-start gap-3 user-text-box">
                       <span className={`w-1.5 self-stretch rounded-full shrink-0 ${meta.dot}`} aria-hidden="true" />
                       <div className="flex-1 min-w-0 user-text-box">
-                        <p className="font-bold text-gray-800 text-sm user-text">{reg.userName || 'Devotee'}</p>
-                        <p className="text-[11px] text-gray-400 font-bold mt-0.5 user-text">{reg.tripTitle || '—'}</p>
+                        <p className="font-bold text-ink text-sm user-text">{reg.userName || 'Devotee'}</p>
+                        <p className="text-[11px] text-ink-muted font-bold mt-0.5 user-text">{reg.tripTitle || '—'}</p>
 
                         <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                           <PayChip pay={pay} />
-                          <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${regStatusClass(status)}`}>
+                          <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${regStatusClass(status)}`}>
                             {regStatusIcon(status)} {status}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-3 text-[11px] font-semibold text-gray-500 user-text-box">
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-3 text-[11px] font-semibold text-ink-muted user-text-box">
                           <span className="user-text">{toInt(reg.seats) || 1} seat{(toInt(reg.seats) || 1) === 1 ? '' : 's'}</span>
-                          <span className="user-text text-right font-bold text-gray-700">{formatINR(reg.amountDue)} due</span>
+                          <span className="user-text text-right font-bold text-ink-soft">{formatINR(reg.amountDue)} due</span>
                           {reg.userPhone && (
                             <a
                               href={`tel:${reg.userPhone}`}
-                              className="col-span-2 flex items-center gap-1.5 text-gray-400 hover:text-saffron min-h-[44px] -my-1 user-text-box"
+                              className="col-span-2 flex items-center gap-1.5 text-ink-muted hover:text-saffron min-h-[44px] -my-1 user-text-box"
                             >
                               <Phone size={11} className="shrink-0" /> <span className="user-text">{reg.userPhone}</span>
                             </a>
                           )}
                           {reg.userEmail && (
-                            <span className="col-span-2 flex items-center gap-1.5 text-gray-400 user-text-box">
+                            <span className="col-span-2 flex items-center gap-1.5 text-ink-muted user-text-box">
                               <Mail size={11} className="shrink-0" /> <span className="user-text">{reg.userEmail}</span>
                             </span>
                           )}
-                          <span className="col-span-2 text-gray-300 user-text">Registered {formatStamp(reg.createdAt)}</span>
+                          <span className="col-span-2 text-ink-muted/50 user-text">Registered {formatStamp(reg.createdAt)}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5 mt-3.5 pt-3.5 border-t border-gray-50">
+                    <div className="flex flex-wrap gap-1.5 mt-3.5 pt-3.5 border-t border-line/60">
                       {regActions(reg, pay, busy, status, expanded)}
                     </div>
 
                     {hasDetail && (
-                      <div className="mt-3 pt-3 border-t border-gray-50">
+                      <div className="mt-3 pt-3 border-t border-line/60">
                         {regDetailPanel(reg, pay, busy, expanded)}
                       </div>
                     )}
@@ -1676,18 +1676,18 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[960px]">
                   <thead>
-                    <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-label border-b border-gray-100 bg-cream/20">
-                      <th className="py-4 px-5 font-black">Devotee</th>
-                      <th className="py-4 px-3 font-black">Trip</th>
-                      <th className="py-4 px-3 font-black">Seats</th>
-                      <th className="py-4 px-3 font-black">Amount</th>
-                      <th className="py-4 px-3 font-black">Payment</th>
-                      <th className="py-4 px-3 font-black">Status</th>
-                      <th className="py-4 px-3 font-black">Registered</th>
-                      <th className="py-4 px-5 font-black text-right">Actions</th>
+                    <tr className="text-left text-[10px] font-bold text-ink-muted uppercase tracking-label border-b border-line bg-cream/20">
+                      <th className="py-4 px-5 font-bold">Devotee</th>
+                      <th className="py-4 px-3 font-bold">Trip</th>
+                      <th className="py-4 px-3 font-bold">Seats</th>
+                      <th className="py-4 px-3 font-bold">Amount</th>
+                      <th className="py-4 px-3 font-bold">Payment</th>
+                      <th className="py-4 px-3 font-bold">Status</th>
+                      <th className="py-4 px-3 font-bold">Registered</th>
+                      <th className="py-4 px-5 font-bold text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-line/60">
                     {filteredRegs.map((reg) => {
                       const pay = resolvePayment(reg)
                       const meta = payMeta(pay.state)
@@ -1702,8 +1702,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                               <div className="flex items-start gap-2.5 w-[210px] user-text-box">
                                 <span className={`w-1 self-stretch rounded-full shrink-0 mt-0.5 ${meta.dot}`} aria-hidden="true" />
                                 <div className="min-w-0 user-text-box">
-                                  <p className="font-bold text-gray-800 text-sm user-text">{reg.userName || 'Devotee'}</p>
-                                  <div className="text-[11px] text-gray-400 font-medium mt-1 space-y-0.5 user-text-box">
+                                  <p className="font-bold text-ink text-sm user-text">{reg.userName || 'Devotee'}</p>
+                                  <div className="text-[11px] text-ink-muted font-medium mt-1 space-y-0.5 user-text-box">
                                     {reg.userPhone && <p className="flex items-center gap-1.5 user-text-box"><Phone size={10} className="shrink-0" /> <span className="user-text">{reg.userPhone}</span></p>}
                                     {reg.userEmail && <p className="flex items-center gap-1.5 user-text-box"><Mail size={10} className="shrink-0" /> <span className="user-text">{reg.userEmail}</span></p>}
                                   </div>
@@ -1712,12 +1712,12 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             </td>
                             <td className="py-4 px-3">
                               <div className="w-[170px] user-text-box">
-                                <p className="text-xs font-bold text-gray-600 user-text">{reg.tripTitle || '—'}</p>
-                                <p className="text-[10px] text-gray-400 font-mono user-text">{reg.tripSlug || ''}</p>
+                                <p className="text-xs font-bold text-ink-muted user-text">{reg.tripTitle || '—'}</p>
+                                <p className="text-[10px] text-ink-muted font-mono user-text">{reg.tripSlug || ''}</p>
                               </div>
                             </td>
-                            <td className="py-4 px-3 text-sm font-bold text-gray-700">{toInt(reg.seats) || 1}</td>
-                            <td className="py-4 px-3 text-sm font-bold text-gray-700 whitespace-nowrap">{formatINR(reg.amountDue)}</td>
+                            <td className="py-4 px-3 text-sm font-bold text-ink-soft">{toInt(reg.seats) || 1}</td>
+                            <td className="py-4 px-3 text-sm font-bold text-ink-soft whitespace-nowrap">{formatINR(reg.amountDue)}</td>
                             <td className="py-4 px-3">
                               <div className="w-[180px] user-text-box">
                               <PayChip pay={pay} />
@@ -1733,16 +1733,16 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                                 <p className="text-[10px] text-orange-500 font-bold mt-1 user-text">to collect at office</p>
                               )}
                               {pay.state === 'online_pending' && pay.orderId && (
-                                <p className="text-[9px] text-gray-400 font-mono mt-1 user-text" title={pay.orderId}>{pay.orderId}</p>
+                                <p className="text-[9px] text-ink-muted font-mono mt-1 user-text" title={pay.orderId}>{pay.orderId}</p>
                               )}
                               </div>
                             </td>
                             <td className="py-4 px-3">
-                              <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${regStatusClass(status)}`}>
+                              <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-lg uppercase tracking-label border whitespace-nowrap ${regStatusClass(status)}`}>
                                 {regStatusIcon(status)} {status}
                               </span>
                             </td>
-                            <td className="py-4 px-3 text-[11px] text-gray-400 font-semibold whitespace-nowrap">{formatStamp(reg.createdAt)}</td>
+                            <td className="py-4 px-3 text-[11px] text-ink-muted font-semibold whitespace-nowrap">{formatStamp(reg.createdAt)}</td>
                             <td className="py-4 px-5">
                               <div className="flex items-center justify-end gap-1.5 flex-wrap">
                                 {regActions(reg, pay, busy, status, expanded)}
@@ -1776,7 +1776,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={closeModal}
-              className="absolute inset-0 bg-gray-900/60"
+              className="absolute inset-0 bg-ink/60"
             />
             <motion.div
               initial={{ scale: 0.95, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 30 }}
@@ -1785,7 +1785,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               <button
                 onClick={closeModal}
                 aria-label="Close"
-                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-all z-10"
+                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-paper flex items-center justify-center text-ink-muted transition-all z-10"
               >
                 <X size={22} />
               </button>
@@ -1794,10 +1794,10 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <div className="w-12 h-12 bg-saffron rounded-2xl flex items-center justify-center mb-3 shadow-lg">
                   <Sparkles className="text-white" size={22} />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 pr-12">
+                <h2 className="text-xl sm:text-2xl font-bold text-ink pr-12">
                   {editingId ? 'Edit Trip' : 'New Trip'}
                 </h2>
-                <p className="text-gray-400 text-xs sm:text-sm mt-1">
+                <p className="text-ink-muted text-xs sm:text-sm mt-1">
                   {editingId ? 'Update the yatra details devotees see on its landing page.' : 'Set up a pilgrimage devotees can browse and register for.'}
                 </p>
 
@@ -1812,8 +1812,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                         key={s.key}
                         type="button"
                         onClick={() => setSection(s.key)}
-                        className={`relative min-h-[44px] px-4 rounded-xl text-[11px] font-black uppercase tracking-label whitespace-nowrap flex items-center gap-2 transition-all ${
-                          active ? 'bg-saffron text-white shadow-md' : 'bg-cream/40 text-gray-400 hover:text-saffron'
+                        className={`relative min-h-[44px] px-4 rounded-xl text-[11px] font-bold uppercase tracking-label whitespace-nowrap flex items-center gap-2 transition-all ${
+                          active ? 'bg-saffron text-white shadow-md' : 'bg-cream/40 text-ink-muted hover:text-saffron'
                         }`}
                       >
                         <Icon size={14} /> {s.label}
@@ -1857,7 +1857,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                           type="button"
                           aria-label="Regenerate slug from title"
                           onClick={() => { setSlugTouched(true); setField('slug', slugify(form.title)) }}
-                          className="min-h-[44px] px-4 rounded-xl bg-saffron/10 text-saffron text-[10px] font-black uppercase tracking-label hover:bg-saffron hover:text-white transition-colors shrink-0"
+                          className="min-h-[44px] px-4 rounded-xl bg-saffron/10 text-saffron text-[10px] font-bold uppercase tracking-label hover:bg-saffron hover:text-white transition-colors shrink-0"
                         >
                           Auto
                         </button>
@@ -2011,8 +2011,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                           type="button"
                           onClick={() => setField('registrationOpen', !form.registrationOpen)}
                           aria-label={form.registrationOpen ? 'Close registrations' : 'Open registrations'}
-                          className={`w-full min-h-[44px] px-4 rounded-xl text-xs font-black uppercase tracking-label flex items-center justify-between transition-colors ${
-                            form.registrationOpen ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'
+                          className={`w-full min-h-[44px] px-4 rounded-xl text-xs font-bold uppercase tracking-label flex items-center justify-between transition-colors ${
+                            form.registrationOpen ? 'bg-green-50 text-green-600' : 'bg-paper-dark text-ink-muted'
                           }`}
                         >
                           {form.registrationOpen ? 'Open' : 'Closed'}
@@ -2025,7 +2025,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     <div className="space-y-3 pt-1">
                       <div className="flex items-baseline justify-between gap-2">
                         <label className={labelClass}>How devotees pay</label>
-                        <span className="text-[10px] text-gray-400 font-medium">at least one, normally</span>
+                        <span className="text-[10px] text-ink-muted font-medium">at least one, normally</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2051,13 +2051,13 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                         <div className={`p-4 rounded-2xl border-2 flex items-start gap-3 ${
                           form.registrationOpen
                             ? 'bg-amber-50 border-amber-300 text-amber-800'
-                            : 'bg-gray-50 border-gray-200 text-gray-500'
+                            : 'bg-paper border-line text-ink-muted'
                         }`}>
                           <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0 text-[11px] font-medium leading-relaxed user-text-box">
                             {form.registrationOpen ? (
                               <>
-                                <p className="font-black uppercase tracking-label text-[10px] mb-1">
+                                <p className="font-bold uppercase tracking-label text-[10px] mb-1">
                                   Both payment methods are off while registrations are open
                                 </p>
                                 <p>
@@ -2078,9 +2078,9 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                       )}
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-cream/40 border border-saffron/10 text-[11px] text-gray-500 font-medium leading-relaxed">
-                      A trip only appears to devotees once its status is <span className="font-black text-saffron-dark">upcoming</span> (or later);
-                      <span className="font-black text-saffron-dark"> draft</span> keeps it staff-only. Registrations can be closed independently
+                    <div className="p-4 rounded-2xl bg-cream/40 border border-saffron/10 text-[11px] text-ink-muted font-medium leading-relaxed">
+                      A trip only appears to devotees once its status is <span className="font-bold text-saffron-dark">upcoming</span> (or later);
+                      <span className="font-bold text-saffron-dark"> draft</span> keeps it staff-only. Registrations can be closed independently
                       of the status — useful once the bus fills up.
                     </div>
                   </div>
@@ -2133,9 +2133,9 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                         <div className="flex-1 space-y-2">
                           <label className="flex items-center gap-3 cursor-pointer w-full p-4 bg-cream/30 border-2 border-dashed border-saffron/20 rounded-2xl hover:bg-cream/50 transition-all min-h-[44px]">
                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                              {uploading === 'cover' ? <Loader2 className="animate-spin text-saffron" size={18} /> : <ImageIcon className="text-gray-400" size={18} />}
+                              {uploading === 'cover' ? <Loader2 className="animate-spin text-saffron" size={18} /> : <ImageIcon className="text-ink-muted" size={18} />}
                             </div>
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-label">
+                            <span className="text-[10px] font-bold text-ink-muted uppercase tracking-label">
                               {uploading === 'cover' ? 'Processing…' : form.coverImage ? 'Replace cover' : 'Choose a cover'}
                             </span>
                             <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
@@ -2144,7 +2144,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             <button
                               type="button"
                               onClick={() => setField('coverImage', '')}
-                              className="min-h-[44px] px-4 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-label rounded-xl hover:bg-red-100 transition-colors"
+                              className="min-h-[44px] px-4 bg-red-50 text-red-500 text-[10px] font-bold uppercase tracking-label rounded-xl hover:bg-red-100 transition-colors"
                             >
                               Remove cover
                             </button>
@@ -2162,7 +2162,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                               type="button"
                               aria-label={`Remove gallery image ${i + 1}`}
                               onClick={() => setField('gallery', form.gallery.filter((_, idx) => idx !== i))}
-                              className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-gray-900/70 text-white flex items-center justify-center hover:bg-red-500 transition-colors"
+                              className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-ink/70 text-white flex items-center justify-center hover:bg-red-500 transition-colors"
                             >
                               <X size={14} />
                             </button>
@@ -2173,7 +2173,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             {uploading === 'gallery'
                               ? <Loader2 className="animate-spin text-saffron" size={18} />
                               : <Plus className="text-saffron/50" size={20} />}
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-label">Add</span>
+                            <span className="text-[9px] font-bold text-ink-muted uppercase tracking-label">Add</span>
                             <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
                           </label>
                         )}
@@ -2188,7 +2188,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     {(form.itinerary || []).length === 0 && (
                       <div className="p-8 text-center bg-cream/30 rounded-2xl border border-dashed border-saffron/20">
                         <ListOrdered className="mx-auto text-saffron/30 mb-3" size={30} />
-                        <p className="text-gray-400 text-xs">No days added yet — build the day-by-day plan here.</p>
+                        <p className="text-ink-muted text-xs">No days added yet — build the day-by-day plan here.</p>
                       </div>
                     )}
 
@@ -2215,14 +2215,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             <button
                               type="button" aria-label={`Move day ${i + 1} up`} disabled={i === 0}
                               onClick={() => moveDay(i, -1)}
-                              className="w-11 h-11 rounded-xl bg-white border border-saffron/10 text-gray-400 hover:text-saffron flex items-center justify-center disabled:opacity-30"
+                              className="w-11 h-11 rounded-xl bg-white border border-saffron/10 text-ink-muted hover:text-saffron flex items-center justify-center disabled:opacity-30"
                             >
                               <ChevronUp size={16} />
                             </button>
                             <button
                               type="button" aria-label={`Move day ${i + 1} down`} disabled={i === form.itinerary.length - 1}
                               onClick={() => moveDay(i, 1)}
-                              className="w-11 h-11 rounded-xl bg-white border border-saffron/10 text-gray-400 hover:text-saffron flex items-center justify-center disabled:opacity-30"
+                              className="w-11 h-11 rounded-xl bg-white border border-saffron/10 text-ink-muted hover:text-saffron flex items-center justify-center disabled:opacity-30"
                             >
                               <ChevronDown size={16} />
                             </button>
@@ -2249,7 +2249,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     <button
                       type="button"
                       onClick={addDay}
-                      className="w-full min-h-[44px] py-3 bg-saffron/10 text-saffron-dark text-xs font-black uppercase tracking-label rounded-2xl hover:bg-saffron hover:text-white transition-colors flex items-center justify-center gap-2"
+                      className="w-full min-h-[44px] py-3 bg-saffron/10 text-saffron-dark text-xs font-bold uppercase tracking-label rounded-2xl hover:bg-saffron hover:text-white transition-colors flex items-center justify-center gap-2"
                     >
                       <Plus size={16} /> Add Day
                     </button>
@@ -2265,7 +2265,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                       onChange={(v) => setField('inclusions', v)}
                       placeholder="AC bus travel, prasadam, accommodation"
                     />
-                    <div className="h-px bg-gray-100" />
+                    <div className="h-px bg-paper-dark" />
                     <StringListEditor
                       label="Exclusions"
                       items={form.exclusions}
@@ -2276,7 +2276,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 )}
 
                 {/* ---------- footer ---------- */}
-                <div className="sticky bottom-0 -mx-5 sm:-mx-8 px-5 sm:px-8 pt-4 pb-1 bg-white border-t border-gray-100 space-y-3">
+                <div className="sticky bottom-0 -mx-5 sm:-mx-8 px-5 sm:px-8 pt-4 pb-1 bg-white border-t border-line space-y-3">
                   {showErrors && hasErrors && (
                     <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold flex items-start gap-2">
                       <AlertTriangle size={14} className="shrink-0 mt-0.5" />
@@ -2289,14 +2289,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     </div>
                   )}
                   <div className="flex flex-col sm:flex-row gap-3 items-center">
-                    <p className="text-[10px] font-black uppercase tracking-label text-gray-300 flex-1 text-center sm:text-left">
+                    <p className="text-[10px] font-bold uppercase tracking-label text-ink-muted/50 flex-1 text-center sm:text-left">
                       {formatBytes(docBytes)} / 1 MB
                     </p>
                     <button
                       type="button"
                       onClick={closeModal}
                       disabled={saving}
-                      className="w-full sm:w-auto min-h-[44px] px-6 rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-label hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      className="w-full sm:w-auto min-h-[44px] px-6 rounded-2xl bg-paper-dark text-ink-muted text-xs font-bold uppercase tracking-label hover:bg-paper-dark transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -2323,7 +2323,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !deleting && setDeleteTarget(null)}
-              className="absolute inset-0 bg-gray-900/60"
+              className="absolute inset-0 bg-ink/60"
             />
             <motion.div
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
@@ -2332,7 +2332,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               <button
                 onClick={() => !deleting && setDeleteTarget(null)}
                 aria-label="Close"
-                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400"
+                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-paper flex items-center justify-center text-ink-muted"
               >
                 <X size={20} />
               </button>
@@ -2340,9 +2340,9 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
                 <Trash2 className="text-red-500" size={22} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 pr-10">Delete this trip?</h3>
-              <p className="text-sm text-gray-500 mt-2 leading-relaxed user-text">
-                <span className="font-bold text-gray-700">{deleteTarget.title}</span> will be removed permanently and
+              <h3 className="text-xl font-bold text-ink pr-10">Delete this trip?</h3>
+              <p className="text-sm text-ink-muted mt-2 leading-relaxed user-text">
+                <span className="font-bold text-ink-soft">{deleteTarget.title}</span> will be removed permanently and
                 <span className="font-bold"> /trip/{deleteTarget.slug}</span> will stop working. Its
                 {' '}{(regStatsByTrip.get(deleteTarget.id)?.count) || 0} registration(s) are kept but will no longer point at a live trip.
               </p>
@@ -2368,14 +2368,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <button
                   onClick={() => setDeleteTarget(null)}
                   disabled={deleting}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-label hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-paper-dark text-ink-muted text-xs font-bold uppercase tracking-label hover:bg-paper-dark transition-colors disabled:opacity-50"
                 >
                   Keep it
                 </button>
                 <button
                   onClick={confirmDelete}
                   disabled={deleting || deleteText.trim() !== (deleteTarget.slug || '')}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-red-500 text-white text-xs font-black uppercase tracking-label hover:bg-red-600 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-red-500 text-white text-xs font-bold uppercase tracking-label hover:bg-red-600 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                   Delete Trip
@@ -2393,7 +2393,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !cashSaving && setCashTarget(null)}
-              className="absolute inset-0 bg-gray-900/60"
+              className="absolute inset-0 bg-ink/60"
             />
             <motion.div
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
@@ -2402,7 +2402,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               <button
                 onClick={() => !cashSaving && setCashTarget(null)}
                 aria-label="Close"
-                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400"
+                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-paper flex items-center justify-center text-ink-muted"
               >
                 <X size={20} />
               </button>
@@ -2410,17 +2410,17 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               <div className="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center mb-4">
                 <Banknote className="text-teal-600" size={22} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 pr-10">Record cash received</h3>
-              <p className="text-sm text-gray-500 mt-2 leading-relaxed user-text">
-                Confirming that <span className="font-bold text-gray-700">{cashTarget.userName || 'this devotee'}</span> handed
-                over cash for <span className="font-bold text-gray-700">{cashTarget.tripTitle || 'this trip'}</span>. This is
+              <h3 className="text-xl font-bold text-ink pr-10">Record cash received</h3>
+              <p className="text-sm text-ink-muted mt-2 leading-relaxed user-text">
+                Confirming that <span className="font-bold text-ink-soft">{cashTarget.userName || 'this devotee'}</span> handed
+                over cash for <span className="font-bold text-ink-soft">{cashTarget.tripTitle || 'this trip'}</span>. This is
                 your attestation as staff — it is what the Collected total and the CSV will report.
               </p>
 
               <div className="mt-5 space-y-2">
                 <div className="flex items-baseline justify-between gap-2">
                   <label className={labelClass} htmlFor="cash-amount">Amount received (₹)</label>
-                  <span className="text-[10px] text-gray-400 font-medium">due {formatINR(cashTarget.amountDue)}</span>
+                  <span className="text-[10px] text-ink-muted font-medium">due {formatINR(cashTarget.amountDue)}</span>
                 </div>
                 <input
                   id="cash-amount"
@@ -2453,14 +2453,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <button
                   onClick={() => setCashTarget(null)}
                   disabled={cashSaving}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-label hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-paper-dark text-ink-muted text-xs font-bold uppercase tracking-label hover:bg-paper-dark transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmRecordCash}
                   disabled={cashSaving || !(toNumber(cashDraft) > 0)}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-teal-600 text-white text-xs font-black uppercase tracking-label hover:bg-teal-700 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-teal-600 text-white text-xs font-bold uppercase tracking-label hover:bg-teal-700 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   {cashSaving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
                   Record {formatINR(toNumber(cashDraft))}
@@ -2478,7 +2478,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !cashSaving && setUndoTarget(null)}
-              className="absolute inset-0 bg-gray-900/60"
+              className="absolute inset-0 bg-ink/60"
             />
             <motion.div
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
@@ -2487,7 +2487,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               <button
                 onClick={() => !cashSaving && setUndoTarget(null)}
                 aria-label="Close"
-                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400"
+                className="absolute top-4 right-4 w-11 h-11 rounded-full hover:bg-paper flex items-center justify-center text-ink-muted"
               >
                 <X size={20} />
               </button>
@@ -2495,9 +2495,9 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-4">
                 <Undo2 className="text-amber-600" size={22} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 pr-10">Undo this cash record?</h3>
-              <p className="text-sm text-gray-500 mt-2 leading-relaxed user-text">
-                <span className="font-bold text-gray-700">{undoTarget.userName || 'This devotee'}</span> goes back to
+              <h3 className="text-xl font-bold text-ink pr-10">Undo this cash record?</h3>
+              <p className="text-sm text-ink-muted mt-2 leading-relaxed user-text">
+                <span className="font-bold text-ink-soft">{undoTarget.userName || 'This devotee'}</span> goes back to
                 <span className="font-bold"> cash pending collection</span>, and
                 the {formatINR(undoTarget.cashAmount ?? undoTarget.amountDue)} comes straight back out of the Collected total.
                 Only do this if the money was never actually received.
@@ -2513,14 +2513,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 <button
                   onClick={() => setUndoTarget(null)}
                   disabled={cashSaving}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-gray-100 text-gray-500 text-xs font-black uppercase tracking-label hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-paper-dark text-ink-muted text-xs font-bold uppercase tracking-label hover:bg-paper-dark transition-colors disabled:opacity-50"
                 >
                   Keep it
                 </button>
                 <button
                   onClick={confirmUndoCash}
                   disabled={cashSaving}
-                  className="flex-1 min-h-[44px] rounded-2xl bg-amber-500 text-white text-xs font-black uppercase tracking-label hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[44px] rounded-2xl bg-amber-500 text-white text-xs font-bold uppercase tracking-label hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {cashSaving ? <Loader2 size={15} className="animate-spin" /> : <Undo2 size={15} />}
                   Undo record

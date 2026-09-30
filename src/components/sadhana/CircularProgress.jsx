@@ -28,8 +28,8 @@ const CircularProgress = ({ current, total, label }) => {
       </svg>
       {label && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-black text-saffron-dark leading-none">{Math.round(percentage * 100)}%</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-label mt-2">{label}</span>
+          <span className="text-4xl font-bold text-saffron-dark leading-none">{Math.round(percentage * 100)}%</span>
+          <span className="text-[10px] font-bold text-ink-muted uppercase tracking-label mt-2">{label}</span>
         </div>
       )}
     </div>

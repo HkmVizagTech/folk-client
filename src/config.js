@@ -21,7 +21,7 @@ export const ROOT_ADMIN_UID = 'wRbvUaFiBOYeXEEtF8OuXnzGWXs2';
 
 export const CONFIG = {
   BACKEND_URL: withScheme(
-    import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || 'https://folkvizag-backend-production.up.railway.app'
+    import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || 'https://folk-server-main-production.up.railway.app'
   ),
   RAZORPAY_KEY: import.meta.env.VITE_RAZORPAY_KEY || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_your_key_here', // Update with actual key in production
 };

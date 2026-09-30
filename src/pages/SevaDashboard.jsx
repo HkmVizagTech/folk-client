@@ -183,7 +183,7 @@ const SevaDashboard = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="w-12 h-12 text-saffron animate-spin" />
-        <p className="text-gray-500 font-medium">Loading seva opportunities...</p>
+        <p className="text-ink-muted font-medium">Loading seva opportunities...</p>
       </div>
     );
   }
@@ -193,17 +193,17 @@ const SevaDashboard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
         <div>
-          <h1 className="text-4xl md:text-5xl font-black bg-saffron bg-clip-text text-transparent font-cinzel tracking-tight drop-shadow-sm">
+          <h1 className="text-4xl md:text-5xl font-bold bg-saffron bg-clip-text text-transparent font-cinzel tracking-tight drop-shadow-sm">
             Seva Portal
           </h1>
-           <p className="text-gray-500 font-medium mt-1 font-playfair">&ldquo;Service is the highest form of worship.&rdquo;</p>
+           <p className="text-ink-muted font-medium mt-1 font-playfair">&ldquo;Service is the highest form of worship.&rdquo;</p>
         </div>
         {isAdmin && (
           <motion.button
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowCreateModal(true)}
-            className="bg-saffron text-white px-6 py-4 rounded-xl shadow-premium-xl flex items-center gap-3 font-black text-xs uppercase tracking-label transition-all"
+            className="bg-saffron text-white px-6 py-4 rounded-xl shadow-premium-xl flex items-center gap-3 font-bold text-xs uppercase tracking-label transition-all"
           >
             <Plus size={20} />
             <span>Add Seva</span>
@@ -214,10 +214,10 @@ const SevaDashboard = () => {
       {/* Seva List */}
       <div className="grid gap-4">
         {sevas.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-gray-100">
-            <Heart className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-800 mb-2">No Active Sevas</h3>
-            <p className="text-gray-500">Check back later for new opportunities to serve.</p>
+          <div className="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-line">
+            <Heart className="w-16 h-16 text-ink-muted/40 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-ink mb-2">No Active Sevas</h3>
+            <p className="text-ink-muted">Check back later for new opportunities to serve.</p>
           </div>
         ) : (
           sevas.map((seva) => {
@@ -248,30 +248,30 @@ const SevaDashboard = () => {
                       <span className="px-3 py-1 bg-saffron/10 text-saffron text-xs font-bold rounded-full uppercase tracking-wider">
                         {seva.sevaType}
                       </span>
-                      <span className="text-gray-400 text-xs">•</span>
-                      <div className="flex items-center gap-1 text-gray-500 text-xs">
+                      <span className="text-ink-muted text-xs">•</span>
+                      <div className="flex items-center gap-1 text-ink-muted text-xs">
                         <Users size={12} />
                         {seva.countRegistered} / {seva.maxVolunteers} Joined
                       </div>
                     </div>
                     
-                    <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight font-cinzel uppercase">{seva.title}</h3>
-                    <p className="text-gray-500 font-medium text-sm mb-6 line-clamp-2 leading-relaxed">{seva.description}</p>
+                    <h3 className="text-2xl font-bold text-ink mb-3 tracking-tight font-cinzel uppercase">{seva.title}</h3>
+                    <p className="text-ink-muted font-medium text-sm mb-6 line-clamp-2 leading-relaxed">{seva.description}</p>
 
                     <div className="flex flex-wrap gap-6 text-sm">
-                      <div className="flex items-center gap-3 text-gray-600 font-bold">
+                      <div className="flex items-center gap-3 text-ink-muted font-bold">
                         <div className="w-8 h-8 rounded-xl bg-saffron/10 flex items-center justify-center text-saffron">
                            <CalendarIcon size={16} />
                         </div>
                         {seva.date ? new Date(seva.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date TBD'}
                       </div>
-                      <div className="flex items-center gap-3 text-gray-600 font-bold">
+                      <div className="flex items-center gap-3 text-ink-muted font-bold">
                         <div className="w-8 h-8 rounded-xl bg-gold/10 flex items-center justify-center text-gold">
                            <Clock size={16} />
                         </div>
                         {seva.time}
                       </div>
-                      <div className="flex items-center gap-3 text-gray-600 font-bold w-full sm:w-auto min-w-0">
+                      <div className="flex items-center gap-3 text-ink-muted font-bold w-full sm:w-auto min-w-0">
                         <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
                            <MapPin size={16} />
                         </div>
@@ -281,11 +281,11 @@ const SevaDashboard = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-col sm:flex-row md:flex-col justify-center gap-3 pt-6 md:pt-0 md:pl-8 border-t md:border-t-0 md:border-l border-gray-100 min-w-[200px]">
+                  <div className="flex flex-col sm:flex-row md:flex-col justify-center gap-3 pt-6 md:pt-0 md:pl-8 border-t md:border-t-0 md:border-l border-line min-w-[200px]">
                     {isAdmin && (
                       <button
                         onClick={() => viewParticipants(seva.id)}
-                        className="flex-1 py-4 rounded-2xl bg-gray-50 text-gray-600 font-black text-[10px] uppercase tracking-label hover:bg-gray-100 transition-all flex items-center justify-center gap-2 border border-transparent shadow-sm"
+                        className="flex-1 py-4 rounded-2xl bg-paper text-ink-muted font-bold text-[10px] uppercase tracking-label hover:bg-paper transition-all flex items-center justify-center gap-2 border border-transparent shadow-sm"
                       >
                         <Users size={16} />
                         Volunteers
@@ -296,13 +296,13 @@ const SevaDashboard = () => {
                       <button
                         disabled={isLoading}
                         onClick={() => handleCancelSeva(seva.id)}
-                        className="flex-1 py-4 rounded-2xl bg-red-50 text-red-600 font-black text-[10px] uppercase tracking-label hover:bg-red-100 transition-all flex items-center justify-center gap-2 shadow-sm"
+                        className="flex-1 py-4 rounded-2xl bg-red-50 text-red-600 font-bold text-[10px] uppercase tracking-label hover:bg-red-100 transition-all flex items-center justify-center gap-2 shadow-sm"
                       >
                         {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                         Cancel Submission
                       </button>
                     ) : status === 'completed' ? (
-                      <div className="flex-1 py-4 rounded-2xl bg-green-50 text-green-600 font-black text-[10px] uppercase tracking-label flex items-center justify-center gap-2 border border-green-100">
+                      <div className="flex-1 py-4 rounded-2xl bg-green-50 text-green-600 font-bold text-[10px] uppercase tracking-label flex items-center justify-center gap-2 border border-green-100">
                         <UserCheck size={18} className="animate-bounce" />
                         Blessed Service
                       </div>
@@ -310,9 +310,9 @@ const SevaDashboard = () => {
                       <button
                         disabled={isFull || isLoading}
                         onClick={() => handleJoinSeva(seva.id)}
-                        className={`flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-label transition-all flex items-center justify-center gap-3 ${
+                        className={`flex-1 py-4 rounded-xl font-bold text-[10px] uppercase tracking-label transition-all flex items-center justify-center gap-3 ${
                           isFull 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                            ? 'bg-paper-dark text-ink-muted cursor-not-allowed' 
                             : 'bg-saffron text-white shadow-premium-xl hover:-translate-y-1'
                         }`}
                       >
@@ -347,42 +347,42 @@ const SevaDashboard = () => {
               className="bg-white backdrop-hidden rounded-xl p-8 w-full max-w-xl relative z-10 shadow-premium-xl max-h-[90vh] overflow-y-auto border border-white"
             >
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-black text-gray-900 font-cinzel tracking-tight uppercase drop-shadow-sm">Open New Seva</h2>
-                 <p className="text-gray-400 font-medium font-playfair mt-1">&ldquo;Opportunities to serve are blessings.&rdquo;</p>
+                <h2 className="text-3xl font-bold text-ink font-cinzel tracking-tight uppercase drop-shadow-sm">Open New Seva</h2>
+                 <p className="text-ink-muted font-medium font-playfair mt-1">&ldquo;Opportunities to serve are blessings.&rdquo;</p>
               </div>
 
               <form onSubmit={handleCreateSeva} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Service Title</label>
+                  <label className="text-[10px] font-bold text-ink-muted uppercase tracking-label ml-2">Service Title</label>
                   <input
                     required
                     type="text"
                     value={formData.title}
                     onChange={e => setFormData({...formData, title: e.target.value})}
-                    className="w-full p-5 bg-gray-50/50 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-gray-800 placeholder:text-gray-300"
+                    className="w-full p-5 bg-paper/60 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-ink placeholder:text-ink-muted/50"
                     placeholder="e.g. Temple Cleaning"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Description</label>
+                  <label className="text-[10px] font-bold text-ink-muted uppercase tracking-label ml-2">Description</label>
                   <textarea
                     required
                     rows="3"
                     value={formData.description}
                     onChange={e => setFormData({...formData, description: e.target.value})}
-                    className="w-full p-5 bg-gray-50/50 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-gray-800 placeholder:text-gray-300"
+                    className="w-full p-5 bg-paper/60 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-ink placeholder:text-ink-muted/50"
                     placeholder="Describe the seva details..."
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Seva Type</label>
+                    <label className="text-[10px] font-bold text-ink-muted uppercase tracking-label ml-2">Seva Type</label>
                     <select
                       value={formData.sevaType}
                       onChange={e => setFormData({...formData, sevaType: e.target.value})}
-                      className="w-full p-5 bg-gray-50/50 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-gray-800 appearance-none"
+                      className="w-full p-5 bg-paper/60 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-ink appearance-none"
                     >
                       <option value="cleaning">🧹 Cleaning</option>
                       <option value="cooking">👨‍🍳 Cooking</option>
@@ -393,48 +393,48 @@ const SevaDashboard = () => {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Max Slots</label>
+                    <label className="text-[10px] font-bold text-ink-muted uppercase tracking-label ml-2">Max Slots</label>
                     <input
                       required
                       type="number"
                       value={formData.maxVolunteers}
                       onChange={e => setFormData({...formData, maxVolunteers: e.target.value})}
-                      className="w-full p-5 bg-gray-50/50 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-gray-800"
+                      className="w-full p-5 bg-paper/60 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-ink"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Date</label>
+                    <label className="text-[10px] font-bold text-ink-muted uppercase tracking-label ml-2">Date</label>
                     <input
                       required
                       type="date"
                       value={formData.date}
                       onChange={e => setFormData({...formData, date: e.target.value})}
-                      className="w-full p-5 bg-gray-50/50 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-gray-800"
+                      className="w-full p-5 bg-paper/60 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-ink"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Time</label>
+                    <label className="text-[10px] font-bold text-ink-muted uppercase tracking-label ml-2">Time</label>
                     <input
                       required
                       type="time"
                       value={formData.time}
                       onChange={e => setFormData({...formData, time: e.target.value})}
-                      className="w-full p-5 bg-gray-50/50 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-gray-800"
+                      className="w-full p-5 bg-paper/60 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-ink"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-2">Location</label>
+                  <label className="text-[10px] font-bold text-ink-muted uppercase tracking-label ml-2">Location</label>
                   <input
                     required
                     type="text"
                     value={formData.location}
                     onChange={e => setFormData({...formData, location: e.target.value})}
-                    className="w-full p-5 bg-gray-50/50 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-gray-800 placeholder:text-gray-300"
+                    className="w-full p-5 bg-paper/60 rounded-2xl border-2 border-transparent focus:border-saffron/30 focus:bg-white outline-none transition-all font-bold text-ink placeholder:text-ink-muted/50"
                     placeholder="e.g. Main Temple Hall"
                   />
                 </div>
@@ -443,14 +443,14 @@ const SevaDashboard = () => {
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 py-5 bg-gray-100/50 text-gray-500 rounded-xl font-black text-xs uppercase tracking-label hover:bg-gray-100 transition-all"
+                    className="flex-1 py-5 bg-paper-dark/60 text-ink-muted rounded-xl font-bold text-xs uppercase tracking-label hover:bg-paper transition-all"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={actionLoading === 'create'}
-                    className="flex-[2] py-5 bg-saffron text-white rounded-xl font-black text-xs uppercase tracking-label shadow-premium-xl hover:-translate-y-1 transition-all disabled:opacity-50 flex items-center justify-center"
+                    className="flex-[2] py-5 bg-saffron text-white rounded-xl font-bold text-xs uppercase tracking-label shadow-premium-xl hover:-translate-y-1 transition-all disabled:opacity-50 flex items-center justify-center"
                   >
                     {actionLoading === 'create' ? <Loader2 size={24} className="animate-spin" /> : 'Deploy Seva'}
                   </button>
@@ -480,19 +480,19 @@ const SevaDashboard = () => {
               className="bg-white backdrop-hidden rounded-xl p-8 w-full max-w-xl relative z-10 shadow-premium-xl max-h-[80vh] flex flex-col border border-white"
             >
               <div className="mb-8 text-center">
-                <h2 className="text-3xl font-black text-gray-900 font-cinzel tracking-tight uppercase drop-shadow-sm">Volunteer Roster</h2>
-                <p className="text-gray-400 font-medium font-playfair mt-1 truncate px-4">{selectedSeva.title}</p>
+                <h2 className="text-3xl font-bold text-ink font-cinzel tracking-tight uppercase drop-shadow-sm">Volunteer Roster</h2>
+                <p className="text-ink-muted font-medium font-playfair mt-1 truncate px-4">{selectedSeva.title}</p>
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-2 custom-scrollbar">
                 {loadingParticipants ? (
                   <div className="flex flex-col items-center justify-center h-full gap-4">
                     <Loader2 className="w-10 h-10 text-saffron animate-spin" />
-                    <p className="text-gray-400 font-bold text-xs uppercase tracking-label">Retrieving Souls...</p>
+                    <p className="text-ink-muted font-bold text-xs uppercase tracking-label">Retrieving Souls...</p>
                   </div>
                 ) : participants.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-300">
-                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                  <div className="flex flex-col items-center justify-center h-full text-ink-muted/50">
+                    <div className="w-20 h-20 bg-paper rounded-full flex items-center justify-center mb-4">
                        <Users size={32} className="opacity-20" />
                     </div>
                     <p className="font-bold uppercase tracking-label text-xs">No volunteers listed yet</p>
@@ -503,15 +503,15 @@ const SevaDashboard = () => {
                       key={reg.id} 
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="bg-gray-50/50 p-5 rounded-2xl flex items-center justify-between border border-transparent hover:border-saffron/10 transition-all group"
+                      className="bg-paper/60 p-5 rounded-2xl flex items-center justify-between border border-transparent hover:border-saffron/10 transition-all group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm font-black text-saffron">
+                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm font-bold text-saffron">
                           {reg.userName?.charAt(0) || <UserCheck size={20} />}
                         </div>
                         <div>
-                          <p className="font-black text-gray-800 text-sm tracking-tight">{reg.userName || `Devotee ${reg.userId?.substring(0, 5) || '...'}`}</p> 
-                          <span className={`text-[10px] font-black uppercase tracking-label ${
+                          <p className="font-bold text-ink text-sm tracking-tight">{reg.userName || `Devotee ${reg.userId?.substring(0, 5) || '...'}`}</p> 
+                          <span className={`text-[10px] font-bold uppercase tracking-label ${
                             reg.status === 'completed' ? 'text-green-500' : 
                             reg.status === 'cancelled' ? 'text-red-400' : 'text-saffron'
                           }`}>
@@ -552,7 +552,7 @@ const SevaDashboard = () => {
 
               <button
                 onClick={() => setSelectedSeva(null)}
-                className="mt-8 w-full py-5 bg-gray-100/50 text-gray-500 rounded-xl font-black text-xs uppercase tracking-label hover:bg-gray-100 transition-all border border-transparent"
+                className="mt-8 w-full py-5 bg-paper-dark/60 text-ink-muted rounded-xl font-bold text-xs uppercase tracking-label hover:bg-paper transition-all border border-transparent"
               >
                 Close Roster
               </button>

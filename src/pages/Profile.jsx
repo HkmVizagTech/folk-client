@@ -9,6 +9,7 @@ import { db, storage } from '../lib/firebase';
 import { compressImage } from '../lib/performance';
 import { toDate, formatDay } from '../lib/dates';
 import { stageOf, stageLabel } from '../content/journey';
+import { Lotus } from '../components/site/Ornament';
 import { normalizePhone } from '../lib/phone';
 import { Field, inputClass } from '../components/ui/Modal';
 
@@ -119,9 +120,9 @@ const Profile = () => {
       const x = c.getContext('2d');
       x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
       x.drawImage(img, 30, 30, 360, 360);
-      x.fillStyle = '#101217'; x.font = 'bold 22px Montserrat, sans-serif'; x.textAlign = 'center';
+      x.fillStyle = '#2B1F17'; x.font = 'bold 22px Lora, Georgia, serif'; x.textAlign = 'center';
       x.fillText(form.name || 'Member', c.width / 2, 440);
-      x.fillStyle = '#5B6170'; x.font = '15px sans-serif';
+      x.fillStyle = '#6E5E52'; x.font = '15px "Source Sans 3", sans-serif';
       x.fillText('FOLK Vizag member ID', c.width / 2, 472);
       const a = document.createElement('a');
       a.download = `FOLK-ID-${(form.name || 'member').replace(/\s+/g, '-')}.png`;
@@ -144,9 +145,13 @@ const Profile = () => {
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Identity + QR */}
-        <section className="card p-6 lg:row-span-2 flex flex-col items-center text-center">
-          <div className="relative">
-            <span className="w-24 h-24 rounded-full bg-navy text-white font-display text-3xl font-bold inline-flex items-center justify-center overflow-hidden">
+        <section className="card p-0 lg:row-span-2 flex flex-col items-center text-center overflow-hidden">
+          <div className="relative w-full h-24 hero-devotional">
+            <Lotus className="absolute right-4 bottom-3 text-marigold/40" aria-hidden="true" />
+            <span className="absolute left-5 bottom-3 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-marigold-light/90">FOLK Vizag · Member</span>
+          </div>
+          <div className="relative -mt-12">
+            <span className="w-24 h-24 rounded-full bg-navy text-white font-display text-3xl font-bold inline-flex items-center justify-center overflow-hidden ring-4 ring-white shadow-premium-xl">
               {isRealPhoto(photo) ? <img src={photo} alt="" className="w-full h-full object-cover" /> : initials(form.name || user?.displayName)}
             </span>
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Change photo"
@@ -155,11 +160,11 @@ const Profile = () => {
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={onPhoto} />
           </div>
-          <h1 className="mt-4 font-display text-2xl font-bold user-text">{form.name || 'Member'}</h1>
-          <p className="mt-1 inline-flex items-center gap-2 h-7 px-3 rounded-full bg-navy-50 text-navy-700 font-sans text-[12px] font-bold uppercase tracking-label">{stageLabel(stage)}</p>
+          <h1 className="mt-4 px-6 font-display text-2xl font-bold user-text">{form.name || 'Member'}</h1>
+          <p className="mt-1.5 inline-flex items-center gap-2 h-7 px-3 rounded-full border border-marigold/50 bg-marigold/10 text-navy-800 font-sans text-[12px] font-bold uppercase tracking-label">{stageLabel(stage)}</p>
           {memberSince && <p className="mt-2 text-[14px] text-ink-muted">Member since {memberSince.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</p>}
 
-          <div className="mt-6 w-full border-t border-line pt-6">
+          <div className="mt-6 w-full border-t border-line pt-6 px-6 pb-6">
             <p className="font-sans text-[13px] font-bold uppercase tracking-label text-ink-muted">Check-in QR</p>
             {user?.qrToken ? (
               <>

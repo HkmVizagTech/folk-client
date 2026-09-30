@@ -244,7 +244,7 @@ const Hostels = () => {
     switch ((status || '').toLowerCase()) {
       case 'approved': return 'text-green-600 bg-green-100 border-green-200';
       case 'rejected': return 'text-red-600 bg-red-100 border-red-200';
-      case 'cancelled': return 'text-gray-500 bg-gray-100 border-gray-200';
+      case 'cancelled': return 'text-ink-muted bg-paper-dark border-line';
       default: return 'text-saffron bg-saffron/10 border-saffron/20';
     }
   };
@@ -278,7 +278,7 @@ const Hostels = () => {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold font-poppins text-saffron-dark underline decoration-gold/20">Folk Hostels</h1>
-          <p className="text-gray-500 mt-1">Ongoing rooms & beds for youth devotees — browse and request your stay.</p>
+          <p className="text-ink-muted mt-1">Ongoing rooms & beds for youth devotees — browse and request your stay.</p>
         </div>
         {isStaff && (
           <Button
@@ -292,7 +292,7 @@ const Hostels = () => {
 
       {/* --------- Listings Grid --------- */}
       <section>
-        <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-3">
+        <h2 className="text-lg font-bold text-ink mb-5 flex items-center gap-3">
           <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center shrink-0">
             <Building2 className="text-saffron" size={20} />
           </div>
@@ -301,7 +301,7 @@ const Hostels = () => {
 
         {activeListings.length === 0 ? (
           <Card className="p-10 text-center border-none shadow-sm bg-white">
-            <p className="text-gray-400 text-sm">No hostel listings available right now. Please check back soon.</p>
+            <p className="text-ink-muted text-sm">No hostel listings available right now. Please check back soon.</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -323,18 +323,18 @@ const Hostels = () => {
                           <BedDouble size={48} className="text-saffron/30" />
                         </div>
                       )}
-                      <div className="absolute top-4 right-4 bg-white px-3 py-1.5 rounded-xl text-[10px] font-black text-gray-700 shadow-md flex items-center gap-1.5">
+                      <div className="absolute top-4 right-4 bg-white px-3 py-1.5 rounded-xl text-[10px] font-bold text-ink-soft shadow-md flex items-center gap-1.5">
                         <Users size={12} className="text-saffron" /> {listing.capacity || 1}
                       </div>
                       {isStaff && listing.active === false && (
-                        <div className="absolute top-4 left-4 bg-gray-900/80 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-label">
+                        <div className="absolute top-4 left-4 bg-ink/80 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-label">
                           Hidden
                         </div>
                       )}
                     </div>
                     <div className="p-5 sm:p-6 flex-1 flex flex-col gap-3">
-                      <h3 className="font-bold text-gray-800 text-base">{listing.name}</h3>
-                      <p className="text-sm text-gray-500 leading-relaxed line-clamp-3">{listing.description}</p>
+                      <h3 className="font-bold text-ink text-base">{listing.name}</h3>
+                      <p className="text-sm text-ink-muted leading-relaxed line-clamp-3">{listing.description}</p>
                       {Array.isArray(listing.amenities) && listing.amenities.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-1">
                           {listing.amenities.map((a, i) => (
@@ -357,7 +357,7 @@ const Hostels = () => {
                             <button
                               onClick={() => openEditListingModal(listing)}
                               aria-label={`Edit ${listing.name}`}
-                              className="flex-1 min-h-[40px] py-2 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
+                              className="flex-1 min-h-[40px] py-2 bg-paper-dark text-ink-muted text-xs font-bold rounded-lg hover:bg-paper-dark transition-colors flex items-center justify-center gap-1.5"
                             >
                               <Edit3 size={13} /> Edit
                             </button>
@@ -365,7 +365,7 @@ const Hostels = () => {
                               disabled={listingToggleLoading === listing.id}
                               onClick={() => handleToggleActive(listing)}
                               aria-label={listing.active === false ? `Show ${listing.name}` : `Hide ${listing.name}`}
-                              className="flex-1 min-h-[40px] py-2 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
+                              className="flex-1 min-h-[40px] py-2 bg-paper-dark text-ink-muted text-xs font-bold rounded-lg hover:bg-paper-dark transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
                             >
                               {listingToggleLoading === listing.id ? (
                                 <Loader2 size={13} className="animate-spin" />
@@ -389,7 +389,7 @@ const Hostels = () => {
 
       {/* --------- My Bookings --------- */}
       <section>
-        <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-3">
+        <h2 className="text-lg font-bold text-ink mb-5 flex items-center gap-3">
           <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center shrink-0">
             <Calendar className="text-saffron" size={20} />
           </div>
@@ -397,7 +397,7 @@ const Hostels = () => {
         </h2>
         {(myBookings || []).length === 0 ? (
           <Card className="p-8 text-center border-none shadow-sm bg-white">
-            <p className="text-gray-400 text-sm">You haven&apos;t requested a hostel stay yet.</p>
+            <p className="text-ink-muted text-sm">You haven&apos;t requested a hostel stay yet.</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -406,15 +406,15 @@ const Hostels = () => {
                 <motion.div key={b.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
                   <Card className="p-5 border-none shadow-sm bg-white">
                     <div className="flex justify-between items-start gap-2 mb-2">
-                      <h4 className="font-bold text-gray-800 text-sm truncate">{b.listingName}</h4>
-                      <span className={`shrink-0 text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-label border whitespace-nowrap flex items-center gap-1 ${getStatusColor(b.status)}`}>
+                      <h4 className="font-bold text-ink text-sm truncate">{b.listingName}</h4>
+                      <span className={`shrink-0 text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-label border whitespace-nowrap flex items-center gap-1 ${getStatusColor(b.status)}`}>
                         {getStatusIcon(b.status)} {b.status}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 font-medium">{b.checkIn} &rarr; {b.checkOut}</p>
-                    <p className="text-xs text-gray-400 font-medium mt-1">{b.guestCount} guest{b.guestCount > 1 ? 's' : ''}</p>
+                    <p className="text-xs text-ink-muted font-medium">{b.checkIn} &rarr; {b.checkOut}</p>
+                    <p className="text-xs text-ink-muted font-medium mt-1">{b.guestCount} guest{b.guestCount > 1 ? 's' : ''}</p>
                     {b.staffNotes && (
-                      <p className="text-xs text-gray-500 mt-2 bg-cream/50 rounded-lg p-2">&quot;{b.staffNotes}&quot;</p>
+                      <p className="text-xs text-ink-muted mt-2 bg-cream/50 rounded-lg p-2">&quot;{b.staffNotes}&quot;</p>
                     )}
                     {(b.status || '').toLowerCase() === 'pending' && (
                       <button
@@ -436,13 +436,13 @@ const Hostels = () => {
       {/* --------- Staff: All Bookings Management --------- */}
       {isStaff && (
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-3">
+          <h2 className="text-lg font-bold text-ink mb-5 flex items-center gap-3">
             <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center shrink-0">
               <Users className="text-saffron" size={20} />
             </div>
             Manage Bookings
             {pendingBookings.length > 0 && (
-              <span className="text-[10px] font-black px-2 py-1 rounded-md bg-saffron text-white uppercase tracking-label">
+              <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-saffron text-white uppercase tracking-label">
                 {pendingBookings.length} pending
               </span>
             )}
@@ -452,7 +452,7 @@ const Hostels = () => {
             <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-saffron" size={28} /></div>
           ) : (allBookings || []).length === 0 ? (
             <Card className="p-8 text-center border-none shadow-sm bg-white">
-              <p className="text-gray-400 text-sm">No bookings yet.</p>
+              <p className="text-ink-muted text-sm">No bookings yet.</p>
             </Card>
           ) : (
             <div className="space-y-3">
@@ -460,15 +460,15 @@ const Hostels = () => {
                 <Card key={b.id} className="p-5 border-none shadow-sm bg-white flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-bold text-gray-800 text-sm">{b.listingName}</h4>
-                      <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-label border flex items-center gap-1 ${getStatusColor(b.status)}`}>
+                      <h4 className="font-bold text-ink text-sm">{b.listingName}</h4>
+                      <span className={`text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-label border flex items-center gap-1 ${getStatusColor(b.status)}`}>
                         {getStatusIcon(b.status)} {b.status}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 font-medium mt-1">
+                    <p className="text-xs text-ink-muted font-medium mt-1">
                       {b.userName || 'Devotee'} &middot; {b.checkIn} &rarr; {b.checkOut} &middot; {b.guestCount} guest{b.guestCount > 1 ? 's' : ''}
                     </p>
-                    {b.notes && <p className="text-xs text-gray-500 mt-1">&quot;{b.notes}&quot;</p>}
+                    {b.notes && <p className="text-xs text-ink-muted mt-1">&quot;{b.notes}&quot;</p>}
                   </div>
                   {(b.status || '').toLowerCase() === 'pending' && (
                     <div className="flex gap-2 shrink-0">
@@ -502,7 +502,7 @@ const Hostels = () => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={closeBookingModal}
-              className="absolute inset-0 bg-gray-900/60"
+              className="absolute inset-0 bg-ink/60"
             />
             <motion.div
               initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}
@@ -511,7 +511,7 @@ const Hostels = () => {
               <button
                 onClick={closeBookingModal}
                 aria-label="Close"
-                className="absolute top-5 right-5 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-all"
+                className="absolute top-5 right-5 w-11 h-11 rounded-full hover:bg-paper flex items-center justify-center text-ink-muted transition-all"
               >
                 <X size={22} />
               </button>
@@ -520,14 +520,14 @@ const Hostels = () => {
                 <div className="w-14 h-14 bg-saffron rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                   <BedDouble className="text-white" size={26} />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Book: {bookingListing.name}</h2>
-                <p className="text-gray-400 text-sm mt-1">Submit a request — staff will confirm your stay.</p>
+                <h2 className="text-2xl font-bold text-ink">Book: {bookingListing.name}</h2>
+                <p className="text-ink-muted text-sm mt-1">Submit a request — staff will confirm your stay.</p>
               </div>
 
               <form onSubmit={handleBookingSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Check-in</label>
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-label ml-1">Check-in</label>
                     <input
                       required
                       type="date"
@@ -537,7 +537,7 @@ const Hostels = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Check-out</label>
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-label ml-1">Check-out</label>
                     <input
                       required
                       type="date"
@@ -549,7 +549,7 @@ const Hostels = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Number of Guests</label>
+                  <label className="text-xs font-bold text-ink-muted uppercase tracking-label ml-1">Number of Guests</label>
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
@@ -559,7 +559,7 @@ const Hostels = () => {
                     >
                       <Minus size={18} />
                     </button>
-                    <span className="flex-1 text-center text-lg font-bold text-gray-800">{bookingForm.guestCount}</span>
+                    <span className="flex-1 text-center text-lg font-bold text-ink">{bookingForm.guestCount}</span>
                     <button
                       type="button"
                       aria-label="Increase guest count"
@@ -572,7 +572,7 @@ const Hostels = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Notes (optional)</label>
+                  <label className="text-xs font-bold text-ink-muted uppercase tracking-label ml-1">Notes (optional)</label>
                   <textarea
                     rows={3}
                     value={bookingForm.notes}
@@ -602,7 +602,7 @@ const Hostels = () => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={closeListingModal}
-              className="absolute inset-0 bg-gray-900/60"
+              className="absolute inset-0 bg-ink/60"
             />
             <motion.div
               initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}
@@ -611,7 +611,7 @@ const Hostels = () => {
               <button
                 onClick={closeListingModal}
                 aria-label="Close"
-                className="absolute top-5 right-5 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-all"
+                className="absolute top-5 right-5 w-11 h-11 rounded-full hover:bg-paper flex items-center justify-center text-ink-muted transition-all"
               >
                 <X size={22} />
               </button>
@@ -620,13 +620,13 @@ const Hostels = () => {
                 <div className="w-14 h-14 bg-saffron rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                   <Sparkles className="text-white" size={26} />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">{editingListingId ? 'Edit Listing' : 'New Hostel Listing'}</h2>
-                <p className="text-gray-400 text-sm mt-1">Add a room or bed available for youth stays.</p>
+                <h2 className="text-2xl font-bold text-ink">{editingListingId ? 'Edit Listing' : 'New Hostel Listing'}</h2>
+                <p className="text-ink-muted text-sm mt-1">Add a room or bed available for youth stays.</p>
               </div>
 
               <form onSubmit={handleListingSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Name</label>
+                  <label className="text-xs font-bold text-ink-muted uppercase tracking-label ml-1">Name</label>
                   <input
                     required
                     type="text"
@@ -638,7 +638,7 @@ const Hostels = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Description</label>
+                  <label className="text-xs font-bold text-ink-muted uppercase tracking-label ml-1">Description</label>
                   <textarea
                     rows={3}
                     value={listingForm.description}
@@ -650,7 +650,7 @@ const Hostels = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Capacity (beds)</label>
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-label ml-1">Capacity (beds)</label>
                     <input
                       required
                       type="number"
@@ -661,7 +661,7 @@ const Hostels = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Amenities (comma-separated)</label>
+                    <label className="text-xs font-bold text-ink-muted uppercase tracking-label ml-1">Amenities (comma-separated)</label>
                     <input
                       type="text"
                       value={listingForm.amenities}
@@ -673,12 +673,12 @@ const Hostels = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-label ml-1">Photo</label>
+                  <label className="text-xs font-bold text-ink-muted uppercase tracking-label ml-1">Photo</label>
                   <label className="flex items-center gap-4 cursor-pointer w-full p-5 bg-cream/30 border-2 border-dashed border-saffron/20 rounded-2xl hover:bg-cream/50 transition-all overflow-hidden">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                      <ImageIcon className="text-gray-400" size={20} />
+                      <ImageIcon className="text-ink-muted" size={20} />
                     </div>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-label truncate">
+                    <span className="text-xs font-bold text-ink-muted uppercase tracking-label truncate">
                       {listingForm.img ? 'Image selected' : 'Choose an image'}
                     </span>
                     <input type="file" accept="image/*" onChange={handleListingImageUpload} className="hidden" />

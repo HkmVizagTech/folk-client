@@ -181,12 +181,12 @@ const Landing = ({ onLoginClick }) => {
       </section>
 
       {/* ======================== FACTS BAND ========================= */}
-      <div className="bg-[#F6E9CC] border-y border-[#EAD7AE]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 grid gap-6 sm:grid-cols-3">
+      <div className="hero-devotional text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid gap-6 sm:grid-cols-3 sm:divide-x sm:divide-white/15">
           {facts.map((f) => (
-            <div key={f.label} className="flex items-baseline gap-3">
-              <span className="font-display text-4xl font-semibold text-navy">{f.value}</span>
-              <span className="text-[15px] font-semibold text-ink-muted">{f.label}</span>
+            <div key={f.label} className="flex items-baseline gap-3 sm:justify-center sm:px-4">
+              <span className="font-display text-4xl font-semibold text-marigold-light">{f.value}</span>
+              <span className="text-[15px] font-semibold text-white/85">{f.label}</span>
             </div>
           ))}
         </div>

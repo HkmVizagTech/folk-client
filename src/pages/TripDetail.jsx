@@ -69,14 +69,14 @@ const STATUS_PILL = {
   ongoing: 'bg-emerald-500 text-white',
   completed: 'bg-white/15 text-white border border-white/25',
   cancelled: 'bg-red-500 text-white',
-  draft: 'bg-gray-500 text-white',
+  draft: 'bg-ink-muted text-white',
 }
 
 const REG_STATUS = {
   pending: { label: 'Pending confirmation', cls: 'text-saffron-dark bg-saffron/10 border-saffron/20', icon: <Clock3 size={13} /> },
   confirmed: { label: 'Confirmed', cls: 'text-green-600 bg-green-100 border-green-200', icon: <CheckCircle2 size={13} /> },
   waitlisted: { label: 'Waitlisted', cls: 'text-blue-600 bg-blue-100 border-blue-200', icon: <Users size={13} /> },
-  cancelled: { label: 'Cancelled', cls: 'text-gray-500 bg-gray-100 border-gray-200', icon: <Ban size={13} /> },
+  cancelled: { label: 'Cancelled', cls: 'text-ink-muted bg-paper-dark border-line', icon: <Ban size={13} /> },
 }
 
 /** +91 normalisation so a bare 10-digit number still opens WhatsApp. */
@@ -118,7 +118,7 @@ const PublicTopBar = ({ onLoginClick }) => (
         <button
           type="button"
           onClick={() => onLoginClick && onLoginClick()}
-          className="min-h-[44px] px-5 sm:px-7 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-saffron transition-colors whitespace-nowrap"
+          className="min-h-[44px] px-5 sm:px-7 rounded-full bg-ink text-white text-sm font-bold hover:bg-saffron transition-colors whitespace-nowrap"
         >
           Sign in
         </button>
@@ -129,10 +129,10 @@ const PublicTopBar = ({ onLoginClick }) => (
 
 const SectionHeading = ({ icon, eyebrow, title }) => (
   <div className="mb-5 sm:mb-6 user-text-box">
-    <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-label sm:tracking-label text-saffron-dark">
+    <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-label sm:tracking-label text-saffron-dark">
       <span className="shrink-0">{icon}</span> {eyebrow}
     </span>
-    <h2 className="mt-2 text-lg sm:text-2xl font-black text-gray-900 tracking-tight leading-tight">{title}</h2>
+    <h2 className="mt-2 text-lg sm:text-2xl font-bold text-ink tracking-tight leading-tight">{title}</h2>
   </div>
 )
 
@@ -546,15 +546,15 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
           <div className="w-16 h-16 mx-auto rounded-3xl bg-saffron/10 text-saffron flex items-center justify-center mb-6">
             <Compass size={28} />
           </div>
-          <h1 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">This yatra isn&apos;t here</h1>
-          <p className="mt-3 text-[13px] sm:text-sm text-gray-500 font-medium leading-relaxed">
+          <h1 className="text-lg sm:text-2xl font-bold text-ink tracking-tight">This yatra isn&apos;t here</h1>
+          <p className="mt-3 text-[13px] sm:text-sm text-ink-muted font-medium leading-relaxed">
             The trip you&apos;re looking for doesn&apos;t exist, or it may have been removed.
             Have a look at what&apos;s coming up instead.
           </p>
           <button
             type="button"
             onClick={() => setActiveTab && setActiveTab('trips')}
-            className="mt-7 w-full min-h-[48px] rounded-2xl bg-gray-900 text-white font-black uppercase tracking-label text-[11px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
+            className="mt-7 w-full min-h-[48px] rounded-2xl bg-ink text-white font-bold uppercase tracking-label text-[11px] hover:bg-saffron transition-colors inline-flex items-center justify-center gap-2"
           >
             <ArrowLeft size={16} /> All trips &amp; yatras
           </button>
@@ -600,20 +600,20 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
           <div className="min-w-0">
             {price > 0 ? (
               <>
-                <p className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">{inr(price)}</p>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.14em] mt-1.5">Per person</p>
+                <p className="font-display text-3xl sm:text-4xl font-bold text-navy leading-none">{inr(price)}</p>
+                <p className="text-[10px] font-bold text-ink-muted uppercase tracking-[0.14em] mt-1.5">Per person</p>
               </>
             ) : (
               <>
-                <p className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight leading-none">By seva</p>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.14em] mt-1.5">No fixed fee</p>
+                <p className="text-xl sm:text-2xl font-bold text-emerald-600 tracking-tight leading-none">By seva</p>
+                <p className="text-[10px] font-bold text-ink-muted uppercase tracking-[0.14em] mt-1.5">No fixed fee</p>
               </>
             )}
           </div>
           {advance > 0 && (
             <div className="text-right shrink-0">
-              <p className="text-sm font-black text-saffron-dark tracking-tight">{inr(advance)}</p>
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em] mt-1">Advance / person</p>
+              <p className="text-sm font-bold text-saffron-dark tracking-tight">{inr(advance)}</p>
+              <p className="text-[9px] font-bold text-ink-muted uppercase tracking-[0.14em] mt-1">Advance / person</p>
             </div>
           )}
         </div>
@@ -622,12 +622,12 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
         {(onlineAvailable || cashAvailable) && (
           <div className="mt-4 flex flex-wrap gap-2">
             {onlineAvailable && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-saffron/15 text-[9px] font-black uppercase tracking-[0.12em] text-gray-600">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-saffron/15 text-[9px] font-bold uppercase tracking-[0.12em] text-ink-muted">
                 <CreditCard size={11} className="text-saffron shrink-0" /> Pay online
               </span>
             )}
             {cashAvailable && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-700">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-700">
                 <Banknote size={11} className="shrink-0" /> Cash at office
               </span>
             )}
@@ -640,16 +640,16 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
           <div className="flex items-start gap-3 user-text-box">
             <span className="w-9 h-9 shrink-0 rounded-xl bg-cream/70 text-saffron flex items-center justify-center"><Calendar size={16} /></span>
             <div className="min-w-0">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Dates</p>
-              <p className="text-[13px] sm:text-sm font-bold text-gray-800 user-text">{formatDateRange(trip.startDate, trip.endDate)}</p>
+              <p className="text-[9px] font-bold text-ink-muted uppercase tracking-[0.14em]">Dates</p>
+              <p className="text-[13px] sm:text-sm font-bold text-ink user-text">{formatDateRange(trip.startDate, trip.endDate)}</p>
             </div>
           </div>
           {trip.durationLabel && (
             <div className="flex items-start gap-3 user-text-box">
               <span className="w-9 h-9 shrink-0 rounded-xl bg-cream/70 text-saffron flex items-center justify-center"><Clock size={16} /></span>
               <div className="min-w-0">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Duration</p>
-                <p className="text-[13px] sm:text-sm font-bold text-gray-800 user-text">{trip.durationLabel}</p>
+                <p className="text-[9px] font-bold text-ink-muted uppercase tracking-[0.14em]">Duration</p>
+                <p className="text-[13px] sm:text-sm font-bold text-ink user-text">{trip.durationLabel}</p>
               </div>
             </div>
           )}
@@ -657,8 +657,8 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <div className="flex items-start gap-3 user-text-box">
               <span className="w-9 h-9 shrink-0 rounded-xl bg-cream/70 text-saffron flex items-center justify-center"><MapPin size={16} /></span>
               <div className="min-w-0">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Destination</p>
-                <p className="text-[13px] sm:text-sm font-bold text-gray-800 user-text">{trip.location}</p>
+                <p className="text-[9px] font-bold text-ink-muted uppercase tracking-[0.14em]">Destination</p>
+                <p className="text-[13px] sm:text-sm font-bold text-ink user-text">{trip.location}</p>
               </div>
             </div>
           )}
@@ -666,8 +666,8 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <div className="flex items-start gap-3 user-text-box">
               <span className="w-9 h-9 shrink-0 rounded-xl bg-cream/70 text-saffron flex items-center justify-center"><Users size={16} /></span>
               <div className="min-w-0">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Seats</p>
-                <p className={`text-[13px] sm:text-sm font-bold user-text ${seatsLeft === 0 ? 'text-red-500' : 'text-gray-800'}`}>
+                <p className="text-[9px] font-bold text-ink-muted uppercase tracking-[0.14em]">Seats</p>
+                <p className={`text-[13px] sm:text-sm font-bold user-text ${seatsLeft === 0 ? 'text-red-500' : 'text-ink'}`}>
                   {seatsLeft === 0 ? 'Fully booked' : `${seatsLeft} of ${capacity} left`}
                 </p>
               </div>
@@ -679,7 +679,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
         {capacity > 0 && (
           <div className="pt-1 space-y-1.5">
             <div
-              className="h-2 w-full rounded-full bg-gray-100 overflow-hidden"
+              className="h-2 w-full rounded-full bg-paper-dark overflow-hidden"
               role="progressbar"
               aria-valuenow={Math.min(100, Math.round((seatsTaken / capacity) * 100))}
               aria-valuemin={0}
@@ -693,7 +693,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 style={{ width: `${Math.min(100, Math.round((seatsTaken / capacity) * 100))}%` }}
               />
             </div>
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400">
+            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-ink-muted">
               {seatsTaken} of {capacity} booked
             </p>
           </div>
@@ -706,11 +706,11 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               <button
                 type="button"
                 onClick={() => { markResume(trip?.slug || slug); onLoginClick && onLoginClick() }}
-                className="w-full min-h-[52px] rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
+                className="w-full min-h-[52px] rounded-2xl bg-saffron text-white font-bold uppercase tracking-[0.14em] text-[11px] shadow-lg hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
               >
                 <Ticket size={16} /> Sign in to register
               </button>
-              <p className="text-[11px] text-gray-400 font-medium text-center leading-relaxed">
+              <p className="text-[11px] text-ink-muted font-medium text-center leading-relaxed">
                 A free FOLK account keeps your seat, receipts and trip updates in one place.
               </p>
             </>
@@ -718,10 +718,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <div className="space-y-3">
               <div className={`rounded-2xl border p-4 user-text-box ${regMeta.cls}`}>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em]">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em]">
                     <span className="shrink-0">{regMeta.icon}</span> {regMeta.label}
                   </span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.14em] opacity-80 shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-80 shrink-0">
                     {myRegistration.seats || 1} seat{(myRegistration.seats || 1) === 1 ? '' : 's'}
                   </span>
                 </div>
@@ -746,14 +746,14 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   {isSettled ? <ShieldCheck size={17} /> : isCashRegistration ? <Banknote size={17} /> : <Clock3 size={17} />}
                 </span>
                 <div className="min-w-0">
-                  <p className={`text-[11px] font-black uppercase tracking-[0.12em] user-text ${
+                  <p className={`text-[11px] font-bold uppercase tracking-[0.12em] user-text ${
                     isSettled ? 'text-green-700' : isCashRegistration ? 'text-emerald-800' : 'text-amber-700'
                   }`}>
                     {isCashRegistration
                       ? (isCashCollected ? 'Cash received' : 'Cash — pending collection')
                       : (isPaid ? 'Payment received' : 'Payment pending')}
                   </p>
-                  <p className="text-[11px] font-medium text-gray-500 mt-0.5 leading-snug user-text">
+                  <p className="text-[11px] font-medium text-ink-muted mt-0.5 leading-snug user-text">
                     {isCashRegistration
                       ? (isCashCollected
                         ? 'The yatra team has recorded your cash payment.'
@@ -769,7 +769,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   {isCashRegistration && !isCashCollected && trip.contactPhone && (
                     <a
                       href={`tel:${String(trip.contactPhone).replace(/\s/g, '')}`}
-                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-black text-emerald-800 hover:underline user-text"
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 hover:underline user-text"
                     >
                       <Phone size={12} className="shrink-0" /> {trip.contactPhone}
                     </a>
@@ -796,7 +796,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     type="button"
                     onClick={handleCancel}
                     disabled={cancelling}
-                    className="w-full min-h-[44px] rounded-2xl bg-red-50 text-red-500 font-black uppercase tracking-[0.14em] text-[10px] hover:bg-red-100 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                    className="w-full min-h-[44px] rounded-2xl bg-red-50 text-red-500 font-bold uppercase tracking-[0.14em] text-[10px] hover:bg-red-100 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
                   >
                     {cancelling ? <Loader2 size={15} className="animate-spin shrink-0" /> : <X size={15} className="shrink-0" />}
                     {cancelling ? 'Cancelling…' : 'Cancel registration'}
@@ -805,27 +805,27 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               )}
 
               {myRegistration.staffNotes && (
-                <p className="text-xs text-gray-500 bg-cream/60 rounded-xl p-3 leading-relaxed user-text">
+                <p className="text-xs text-ink-muted bg-cream/60 rounded-xl p-3 leading-relaxed user-text">
                   &ldquo;{myRegistration.staffNotes}&rdquo;
                 </p>
               )}
             </div>
           ) : blockedReason ? (
-            <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 flex items-start gap-3 user-text-box">
-              <AlertTriangle size={17} className="text-gray-400 shrink-0 mt-0.5" />
-              <p className="text-xs font-semibold text-gray-500 leading-relaxed user-text">{blockedReason}</p>
+            <div className="rounded-2xl bg-paper border border-line p-4 flex items-start gap-3 user-text-box">
+              <AlertTriangle size={17} className="text-ink-muted shrink-0 mt-0.5" />
+              <p className="text-xs font-semibold text-ink-muted leading-relaxed user-text">{blockedReason}</p>
             </div>
           ) : (
             <>
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
-                className="w-full min-h-[52px] rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
+                className="w-full min-h-[52px] rounded-2xl bg-saffron text-white font-bold uppercase tracking-[0.14em] text-[11px] shadow-lg hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
               >
                 <Ticket size={16} className="shrink-0" />
                 {noPaymentAvailable ? 'Request a seat' : cashAvailable && !onlineAvailable ? 'Register & pay cash' : 'Book & pay online'}
               </button>
-              <p className="text-[11px] text-gray-400 font-medium text-center leading-relaxed">
+              <p className="text-[11px] text-ink-muted font-medium text-center leading-relaxed">
                 {noPaymentAvailable
                   ? 'Your request goes to the yatra team, who confirm your seat and arrange payment with you.'
                   : advance > 0
@@ -845,7 +845,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             href={waHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full min-h-[44px] rounded-2xl border border-saffron/20 text-saffron-dark font-black uppercase tracking-[0.14em] text-[10px] hover:bg-saffron/5 transition-colors inline-flex items-center justify-center gap-2"
+            className="w-full min-h-[44px] rounded-2xl border border-saffron/20 text-saffron-dark font-bold uppercase tracking-[0.14em] text-[10px] hover:bg-saffron/5 transition-colors inline-flex items-center justify-center gap-2"
           >
             <MessageCircle size={15} /> Ask a question
           </a>
@@ -881,7 +881,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <button
               type="button"
               onClick={() => setActiveTab && setActiveTab('trips')}
-              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full bg-white/10 border border-white/20 text-white/85 text-[10px] font-black uppercase tracking-label hover:bg-white/20 transition-colors"
+              className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full bg-white/10 border border-white/20 text-white/85 text-[10px] font-bold uppercase tracking-label hover:bg-white/20 transition-colors"
             >
               <ArrowLeft size={15} /> All trips
             </button>
@@ -893,23 +893,23 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               className="mt-5 sm:mt-6 max-w-3xl min-w-0"
             >
               <div className="flex flex-wrap items-center gap-2 user-text-box">
-                <span className={`px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-label ${STATUS_PILL[tripStatus] || STATUS_PILL.upcoming}`}>
+                <span className={`px-3.5 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-label ${STATUS_PILL[tripStatus] || STATUS_PILL.upcoming}`}>
                   {statusLabel(tripStatus)}
                 </span>
                 {trip.durationLabel && (
-                  <span className="max-w-full px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/85 text-[9px] font-black uppercase tracking-label user-text">
+                  <span className="max-w-full px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/85 text-[9px] font-bold uppercase tracking-label user-text">
                     {trip.durationLabel}
                   </span>
                 )}
                 {trip.registrationOpen === false && tripStatus !== 'completed' && tripStatus !== 'cancelled' && (
-                  <span className="px-3.5 py-1.5 rounded-full bg-white text-gray-800 text-[9px] font-black uppercase tracking-label">
+                  <span className="px-3.5 py-1.5 rounded-full bg-white text-ink text-[9px] font-bold uppercase tracking-label">
                     Registration closed
                   </span>
                 )}
               </div>
 
               <h1
-                className="mt-4 sm:mt-5 font-black tracking-[-0.03em] leading-[1.02] sm:leading-[0.96] text-white user-text"
+                className="mt-4 sm:mt-5 font-display font-semibold tracking-[-0.01em] leading-[1.06] sm:leading-[1.02] text-white user-text"
                 style={{ fontSize: 'clamp(1.75rem, 6.6vw, 4.25rem)' }}
               >
                 {trip.title}
@@ -925,8 +925,8 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     <Calendar size={17} className="text-gold" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-black text-white/45 uppercase tracking-[0.14em]">When</p>
-                    <p className="text-[13px] sm:text-sm font-black text-white tracking-tight user-text">{formatDateRange(trip.startDate, trip.endDate)}</p>
+                    <p className="text-[9px] font-bold text-white/45 uppercase tracking-[0.14em]">When</p>
+                    <p className="text-[13px] sm:text-sm font-bold text-white tracking-tight user-text">{formatDateRange(trip.startDate, trip.endDate)}</p>
                   </div>
                 </div>
                 {trip.location && (
@@ -935,8 +935,8 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                       <MapPin size={17} className="text-saffron" />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black text-white/45 uppercase tracking-[0.14em]">Where</p>
-                      <p className="text-[13px] sm:text-sm font-black text-white tracking-tight truncate user-text">{trip.location}</p>
+                      <p className="text-[9px] font-bold text-white/45 uppercase tracking-[0.14em]">Where</p>
+                      <p className="text-[13px] sm:text-sm font-bold text-white tracking-tight truncate user-text">{trip.location}</p>
                     </div>
                   </div>
                 )}
@@ -946,8 +946,8 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                       <Ticket size={17} className="text-gold" />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black text-white/45 uppercase tracking-[0.14em]">From</p>
-                      <p className="text-[13px] sm:text-sm font-black text-white tracking-tight user-text">{inr(price)} / person</p>
+                      <p className="text-[9px] font-bold text-white/45 uppercase tracking-[0.14em]">From</p>
+                      <p className="text-[13px] sm:text-sm font-bold text-white tracking-tight user-text">{inr(price)} / person</p>
                     </div>
                   </div>
                 )}
@@ -972,7 +972,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     ? 'bg-green-50 border-green-200 text-green-700'
                     : notice.tone === 'warn'
                       ? 'bg-amber-50 border-amber-200 text-amber-800'
-                      : 'bg-white border-saffron/20 text-gray-600'
+                      : 'bg-white border-saffron/20 text-ink-muted'
                 }`}
               >
                 {notice.tone === 'success' ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" /> : <Info size={18} className="shrink-0 mt-0.5" />}
@@ -1008,8 +1008,8 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                       <Compass size={26} />
                     </span>
                   </div>
-                  <h2 className="text-[15px] sm:text-lg font-black text-gray-800 tracking-tight">Full details coming soon</h2>
-                  <p className="mt-2 text-[13px] sm:text-sm text-gray-400 font-medium leading-relaxed max-w-sm mx-auto">
+                  <h2 className="text-[15px] sm:text-lg font-bold text-ink tracking-tight">Full details coming soon</h2>
+                  <p className="mt-2 text-[13px] sm:text-sm text-ink-muted font-medium leading-relaxed max-w-sm mx-auto">
                     The itinerary and inclusions for this yatra are still being written up.
                     The dates and price beside this are confirmed — reserve your seat, or ask the team anything.
                   </p>
@@ -1020,7 +1020,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               {trip.description && (
                 <section className="bg-white rounded-xl sm:rounded-xl shadow-premium border border-saffron/5 p-5 sm:p-9 user-text-box">
                   <SectionHeading icon={<Compass size={13} />} eyebrow="About this yatra" title="The journey" />
-                  <p className="text-[14px] sm:text-[15px] text-gray-600 leading-[1.8] sm:leading-[1.85] font-medium whitespace-pre-line user-text">
+                  <p className="text-[14px] sm:text-[15px] text-ink-muted leading-[1.8] sm:leading-[1.85] font-medium whitespace-pre-line user-text">
                     {trip.description}
                   </p>
                 </section>
@@ -1036,7 +1036,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                         <span className="w-7 h-7 shrink-0 rounded-lg bg-saffron text-white flex items-center justify-center mt-0.5">
                           <Check size={14} />
                         </span>
-                        <p className="text-[13px] sm:text-sm font-semibold text-gray-700 leading-relaxed min-w-0 user-text">{h}</p>
+                        <p className="text-[13px] sm:text-sm font-semibold text-ink-soft leading-relaxed min-w-0 user-text">{h}</p>
                       </div>
                     ))}
                   </div>
@@ -1053,13 +1053,13 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     {itinerary.map((item, i) => (
                       <li key={i} className="relative flex gap-4 sm:gap-5 min-w-0">
                         <span className="relative z-10 w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl bg-saffron text-white flex flex-col items-center justify-center shadow-lg">
-                          <span className="text-[7px] font-black uppercase tracking-[0.1em] leading-none opacity-80">Day</span>
-                          <span className="max-w-full px-1 text-sm sm:text-base font-black leading-none mt-0.5 truncate">{item.day ?? i + 1}</span>
+                          <span className="text-[7px] font-bold uppercase tracking-[0.1em] leading-none opacity-80">Day</span>
+                          <span className="max-w-full px-1 text-sm sm:text-base font-bold leading-none mt-0.5 truncate">{item.day ?? i + 1}</span>
                         </span>
                         <div className="min-w-0 max-w-full pt-1 pb-1">
-                          <h3 className="text-[14px] sm:text-base font-black text-gray-900 tracking-tight leading-snug user-text">{item.title || `Day ${item.day ?? i + 1}`}</h3>
+                          <h3 className="text-[14px] sm:text-base font-bold text-ink tracking-tight leading-snug user-text">{item.title || `Day ${item.day ?? i + 1}`}</h3>
                           {item.details && (
-                            <p className="mt-1.5 text-[13px] sm:text-sm text-gray-500 font-medium leading-[1.75] sm:leading-[1.8] whitespace-pre-line user-text">{item.details}</p>
+                            <p className="mt-1.5 text-[13px] sm:text-sm text-ink-muted font-medium leading-[1.75] sm:leading-[1.8] whitespace-pre-line user-text">{item.details}</p>
                           )}
                         </div>
                       </li>
@@ -1074,15 +1074,15 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   <SectionHeading icon={<Info size={13} />} eyebrow="The fine print" title="What's included" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
                     <div className="min-w-0">
-                      <h3 className="text-[10px] font-black uppercase tracking-label text-green-600 mb-4 flex items-center gap-2">
+                      <h3 className="text-[10px] font-bold uppercase tracking-label text-green-600 mb-4 flex items-center gap-2">
                         <CheckCircle2 size={14} className="shrink-0" /> Included
                       </h3>
                       {inclusions.length === 0 ? (
-                        <p className="text-[13px] sm:text-sm text-gray-400">Details shared on confirmation.</p>
+                        <p className="text-[13px] sm:text-sm text-ink-muted">Details shared on confirmation.</p>
                       ) : (
                         <ul className="space-y-2.5">
                           {inclusions.map((item, i) => (
-                            <li key={i} className="flex items-start gap-2.5 text-[13px] sm:text-sm text-gray-600 font-medium leading-relaxed min-w-0">
+                            <li key={i} className="flex items-start gap-2.5 text-[13px] sm:text-sm text-ink-muted font-medium leading-relaxed min-w-0">
                               <Check size={16} className="text-green-500 shrink-0 mt-0.5" />
                               <span className="min-w-0 user-text">{item}</span>
                             </li>
@@ -1090,16 +1090,16 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                         </ul>
                       )}
                     </div>
-                    <div className="min-w-0 pt-5 border-t border-gray-100 sm:pt-0 sm:border-t-0 sm:border-l sm:border-gray-100 sm:pl-8">
-                      <h3 className="text-[10px] font-black uppercase tracking-label text-red-500 mb-4 flex items-center gap-2">
+                    <div className="min-w-0 pt-5 border-t border-line sm:pt-0 sm:border-t-0 sm:border-l sm:border-line sm:pl-8">
+                      <h3 className="text-[10px] font-bold uppercase tracking-label text-red-500 mb-4 flex items-center gap-2">
                         <XCircle size={14} className="shrink-0" /> Not included
                       </h3>
                       {exclusions.length === 0 ? (
-                        <p className="text-[13px] sm:text-sm text-gray-400">Nothing listed.</p>
+                        <p className="text-[13px] sm:text-sm text-ink-muted">Nothing listed.</p>
                       ) : (
                         <ul className="space-y-2.5">
                           {exclusions.map((item, i) => (
-                            <li key={i} className="flex items-start gap-2.5 text-[13px] sm:text-sm text-gray-600 font-medium leading-relaxed min-w-0">
+                            <li key={i} className="flex items-start gap-2.5 text-[13px] sm:text-sm text-ink-muted font-medium leading-relaxed min-w-0">
                               <X size={16} className="text-red-400 shrink-0 mt-0.5" />
                               <span className="min-w-0 user-text">{item}</span>
                             </li>
@@ -1138,14 +1138,14 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   <SectionHeading icon={<MapPin size={13} />} eyebrow="Logistics" title="Where we meet" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 sm:p-5 rounded-2xl bg-cream/60 border border-saffron/10 min-w-0">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Meeting point</p>
-                      <p className="mt-2 text-[13px] sm:text-sm font-bold text-gray-800 leading-relaxed user-text">
+                      <p className="text-[9px] font-bold text-ink-muted uppercase tracking-[0.14em]">Meeting point</p>
+                      <p className="mt-2 text-[13px] sm:text-sm font-bold text-ink leading-relaxed user-text">
                         {trip.meetingPoint || 'Shared with confirmed travellers.'}
                       </p>
                     </div>
                     <div className="p-4 sm:p-5 rounded-2xl bg-cream/60 border border-saffron/10 min-w-0">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Departure &amp; return</p>
-                      <p className="mt-2 text-[13px] sm:text-sm font-bold text-gray-800 leading-relaxed user-text">
+                      <p className="text-[9px] font-bold text-ink-muted uppercase tracking-[0.14em]">Departure &amp; return</p>
+                      <p className="mt-2 text-[13px] sm:text-sm font-bold text-ink leading-relaxed user-text">
                         {formatLong(trip.startDate)} &rarr; {formatLong(trip.endDate)}
                       </p>
                     </div>
@@ -1158,7 +1158,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,153,51,0.32),transparent_60%)]" aria-hidden="true" />
                 <div className="relative z-10 p-5 sm:p-10 flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 justify-between">
                   <div className="min-w-0">
-                    <h3 className="text-base sm:text-xl font-black tracking-tight">Questions before you book?</h3>
+                    <h3 className="text-base sm:text-xl font-bold tracking-tight">Questions before you book?</h3>
                     <p className="mt-2 text-[13px] sm:text-sm text-white/60 font-medium leading-relaxed max-w-md user-text">
                       The yatra team can help with travel, rooms, dietary needs and group bookings.
                       {trip.contactPhone ? ` Call or WhatsApp ${trip.contactPhone}.` : ''}
@@ -1170,7 +1170,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                         href={waHref}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="min-h-[48px] px-6 rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.14em] text-[10px] hover:brightness-110 transition-all inline-flex items-center justify-center gap-2"
+                        className="min-h-[48px] px-6 rounded-2xl bg-saffron text-white font-bold uppercase tracking-[0.14em] text-[10px] hover:brightness-110 transition-all inline-flex items-center justify-center gap-2"
                       >
                         <MessageCircle size={15} /> WhatsApp us
                       </a>
@@ -1178,7 +1178,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     {trip.contactPhone && (
                       <a
                         href={`tel:${String(trip.contactPhone).replace(/\s/g, '')}`}
-                        className="min-h-[48px] px-6 rounded-2xl border border-white/25 bg-white/5 text-white font-black uppercase tracking-[0.14em] text-[10px] hover:bg-white hover:text-gray-900 transition-all inline-flex items-center justify-center gap-2"
+                        className="min-h-[48px] px-6 rounded-2xl border border-white/25 bg-white/5 text-white font-bold uppercase tracking-[0.14em] text-[10px] hover:bg-white hover:text-ink transition-all inline-flex items-center justify-center gap-2"
                       >
                         <Phone size={15} /> Call
                       </a>
@@ -1206,12 +1206,12 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                           )}
                         </div>
                         <div className="p-4 min-w-0">
-                          <p className="text-[13px] sm:text-sm font-black text-gray-900 tracking-tight line-clamp-2 user-text">{t.title}</p>
-                          <p className="mt-1.5 text-[10px] font-black text-gray-400 uppercase tracking-[0.12em] flex items-center gap-1.5 min-w-0">
+                          <p className="text-[13px] sm:text-sm font-bold text-ink tracking-tight line-clamp-2 user-text">{t.title}</p>
+                          <p className="mt-1.5 text-[10px] font-bold text-ink-muted uppercase tracking-[0.12em] flex items-center gap-1.5 min-w-0">
                             <Calendar size={11} className="text-saffron shrink-0" />
                             <span className="truncate min-w-0">{formatDateRange(t.startDate, t.endDate)}</span>
                           </p>
-                          <span className="mt-3 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.14em] text-saffron-dark">
+                          <span className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-saffron-dark">
                             View <ArrowRight size={12} />
                           </span>
                         </div>
@@ -1235,17 +1235,17 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
           >
             <div className="min-w-0 shrink">
-              <p className="text-base sm:text-lg font-black text-gray-900 leading-none tracking-tight truncate">
+              <p className="text-base sm:text-lg font-bold text-ink leading-none tracking-tight truncate">
                 {price > 0 ? inr(price) : 'By seva'}
               </p>
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.12em] mt-1 truncate">
+              <p className="text-[9px] font-bold text-ink-muted uppercase tracking-[0.12em] mt-1 truncate">
                 {price > 0 ? 'Per person' : 'No fixed fee'}
               </p>
             </div>
             <button
               type="button"
               onClick={() => (user ? setModalOpen(true) : (markResume(trip?.slug || slug), onLoginClick && onLoginClick()))}
-              className="flex-1 min-w-0 min-h-[48px] px-3 rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.12em] text-[10px] xs:text-[11px] shadow-lg inline-flex items-center justify-center gap-2"
+              className="flex-1 min-w-0 min-h-[48px] px-3 rounded-2xl bg-saffron text-white font-bold uppercase tracking-[0.12em] text-[10px] xs:text-[11px] shadow-lg inline-flex items-center justify-center gap-2"
             >
               <Ticket size={16} className="shrink-0" />
               <span className="truncate">
@@ -1269,7 +1269,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !submitting && setModalOpen(false)}
-              className="absolute inset-0 bg-gray-900/60"
+              className="absolute inset-0 bg-ink/60"
             />
             <motion.div
               initial={{ scale: 0.94, y: 28, opacity: 0 }}
@@ -1281,7 +1281,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 type="button"
                 onClick={() => !submitting && setModalOpen(false)}
                 aria-label="Close registration form"
-                className="absolute top-3 right-3 sm:top-4 sm:right-4 w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 w-11 h-11 rounded-full hover:bg-paper flex items-center justify-center text-ink-muted transition-colors"
               >
                 <X size={21} />
               </button>
@@ -1290,10 +1290,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 <div className="w-12 h-12 sm:w-[52px] sm:h-[52px] bg-saffron rounded-2xl flex items-center justify-center mb-4 shadow-lg">
                   <Ticket className="text-white" size={24} />
                 </div>
-                <h2 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">
+                <h2 className="text-lg sm:text-2xl font-bold text-ink tracking-tight">
                   {noPaymentAvailable ? 'Request a seat' : onlineAvailable ? 'Book your seat' : 'Reserve your seat'}
                 </h2>
-                <p className="text-gray-400 text-[13px] sm:text-sm font-medium mt-1.5 user-text">{trip.title}</p>
+                <p className="text-ink-muted text-[13px] sm:text-sm font-medium mt-1.5 user-text">{trip.title}</p>
               </div>
 
               <form
@@ -1306,7 +1306,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               >
                 {/* Seats */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Travellers</label>
+                  <label className="text-[10px] font-bold text-ink-muted uppercase tracking-label ml-1">Travellers</label>
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
@@ -1316,7 +1316,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     >
                       <Minus size={18} />
                     </button>
-                    <span className="flex-1 text-center text-2xl font-black text-gray-900 tracking-tight">{seats}</span>
+                    <span className="flex-1 text-center text-2xl font-bold text-ink tracking-tight">{seats}</span>
                     <button
                       type="button"
                       aria-label="Increase number of travellers"
@@ -1327,7 +1327,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     </button>
                   </div>
                   {seatsLeft !== null && (
-                    <p className="text-[11px] text-gray-400 font-semibold ml-1">{seatsLeft} seat{seatsLeft === 1 ? '' : 's'} left · up to 20 per registration</p>
+                    <p className="text-[11px] text-ink-muted font-semibold ml-1">{seatsLeft} seat{seatsLeft === 1 ? '' : 's'} left · up to 20 per registration</p>
                   )}
                 </div>
 
@@ -1393,7 +1393,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 {/* ---- Payment method: only a real choice gets a chooser ---- */}
                 {bothAvailable && (
                   <fieldset className="space-y-2">
-                    <legend className="text-[10px] font-black text-gray-400 uppercase tracking-label ml-1 mb-2">How would you like to pay?</legend>
+                    <legend className="text-[10px] font-bold text-ink-muted uppercase tracking-label ml-1 mb-2">How would you like to pay?</legend>
                     <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                       {[
                         {
@@ -1419,7 +1419,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                             className={`text-left min-h-[44px] p-4 rounded-2xl border-2 transition-all min-w-0 ${
                               active
                                 ? 'border-saffron bg-saffron/5 shadow-md'
-                                : 'border-gray-200 bg-white hover:border-saffron/40'
+                                : 'border-line bg-white hover:border-saffron/40'
                             }`}
                           >
                             <span className="flex items-center gap-2.5">
@@ -1428,10 +1428,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                               }`}>
                                 {opt.icon}
                               </span>
-                              <span className="text-[12px] font-black text-gray-900 tracking-tight leading-tight min-w-0 user-text">{opt.title}</span>
+                              <span className="text-[12px] font-bold text-ink tracking-tight leading-tight min-w-0 user-text">{opt.title}</span>
                               {active && <Check size={16} className="ml-auto shrink-0 text-saffron" />}
                             </span>
-                            <span className="block mt-2 text-[11px] font-medium text-gray-500 leading-snug user-text">{opt.body}</span>
+                            <span className="block mt-2 text-[11px] font-medium text-ink-muted leading-snug user-text">{opt.body}</span>
                           </button>
                         )
                       })}
@@ -1442,7 +1442,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 {/* Contact */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 min-w-0">
-                    <label htmlFor="trip-phone" className="block text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Phone</label>
+                    <label htmlFor="trip-phone" className="block text-[10px] font-bold text-ink-muted uppercase tracking-label ml-1">Phone</label>
                     <input
                       id="trip-phone"
                       type="tel"
@@ -1455,7 +1455,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     />
                   </div>
                   <div className="space-y-2 min-w-0">
-                    <label htmlFor="trip-email" className="block text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Email</label>
+                    <label htmlFor="trip-email" className="block text-[10px] font-bold text-ink-muted uppercase tracking-label ml-1">Email</label>
                     <input
                       id="trip-email"
                       type="email"
@@ -1469,7 +1469,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 </div>
 
                 <div className="space-y-2 min-w-0">
-                  <label htmlFor="trip-emergency" className="block text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Emergency contact</label>
+                  <label htmlFor="trip-emergency" className="block text-[10px] font-bold text-ink-muted uppercase tracking-label ml-1">Emergency contact</label>
                   <input
                     id="trip-emergency"
                     type="text"
@@ -1483,7 +1483,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 </div>
 
                 <div className="space-y-2 min-w-0">
-                  <label htmlFor="trip-notes" className="block text-[10px] font-black text-gray-400 uppercase tracking-label ml-1">Traveller notes (optional)</label>
+                  <label htmlFor="trip-notes" className="block text-[10px] font-bold text-ink-muted uppercase tracking-label ml-1">Traveller notes (optional)</label>
                   <textarea
                     id="trip-notes"
                     rows={3}
@@ -1497,27 +1497,27 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 {/* Price breakdown */}
                 <div className="rounded-2xl bg-cream/60 border border-saffron/10 p-4 sm:p-5 space-y-2.5 user-text-box">
                   <div className="flex items-center justify-between gap-3 text-[13px] sm:text-sm">
-                    <span className="text-gray-500 font-semibold min-w-0">{inr(price)} × {seats} traveller{seats === 1 ? '' : 's'}</span>
-                    <span className="font-black text-gray-800 shrink-0">{inr(total)}</span>
+                    <span className="text-ink-muted font-semibold min-w-0">{inr(price)} × {seats} traveller{seats === 1 ? '' : 's'}</span>
+                    <span className="font-bold text-ink shrink-0">{inr(total)}</span>
                   </div>
                   {advance > 0 && (
                     <>
                       <div className="flex items-center justify-between gap-3 text-[13px] sm:text-sm">
-                        <span className="text-gray-500 font-semibold min-w-0">Advance now ({inr(advance)} / person)</span>
-                        <span className="font-black text-saffron-dark shrink-0">{inr(payNow)}</span>
+                        <span className="text-ink-muted font-semibold min-w-0">Advance now ({inr(advance)} / person)</span>
+                        <span className="font-bold text-saffron-dark shrink-0">{inr(payNow)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3 text-[13px] sm:text-sm pt-2.5 border-t border-saffron/10">
-                        <span className="text-gray-500 font-semibold min-w-0">Balance before departure</span>
-                        <span className="font-black text-gray-800 shrink-0">{inr(balance)}</span>
+                        <span className="text-ink-muted font-semibold min-w-0">Balance before departure</span>
+                        <span className="font-bold text-ink shrink-0">{inr(balance)}</span>
                       </div>
                     </>
                   )}
                   {advance === 0 && (
                     <div className="flex items-center justify-between gap-3 text-sm pt-2.5 border-t border-saffron/10">
-                      <span className="text-gray-600 font-black uppercase tracking-[0.1em] text-[10px] min-w-0">
+                      <span className="text-ink-muted font-bold uppercase tracking-[0.1em] text-[10px] min-w-0">
                         {noPaymentAvailable ? 'Total' : effectiveMethod === 'cash' ? 'Payable at the office' : 'Payable now'}
                       </span>
-                      <span className="font-black text-saffron-dark text-base shrink-0">{inr(total)}</span>
+                      <span className="font-bold text-saffron-dark text-base shrink-0">{inr(total)}</span>
                     </div>
                   )}
                 </div>
@@ -1527,9 +1527,9 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3 user-text-box">
                     <Building2 size={17} className="text-emerald-600 shrink-0 mt-0.5" />
                     <div className="min-w-0">
-                      <p className="text-xs font-black text-emerald-900 uppercase tracking-[0.1em]">Paying in cash</p>
+                      <p className="text-xs font-bold text-emerald-900 uppercase tracking-[0.1em]">Paying in cash</p>
                       <p className="mt-1 text-xs font-semibold text-emerald-800 leading-relaxed user-text">
-                        Your seat is held as <span className="font-black">pending</span> the moment you register.
+                        Your seat is held as <span className="font-bold">pending</span> the moment you register.
                         Hand {inr(payNow)} to the yatra team at the FOLK office — they confirm the seat once the cash is received.
                         {trip.contactPhone ? ` Call ${trip.contactPhone} if you need directions.` : ''}
                       </p>
@@ -1545,14 +1545,14 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     {total > 0
                       ? <AlertTriangle size={17} className="text-amber-500 shrink-0 mt-0.5" />
                       : <Info size={17} className="text-saffron shrink-0 mt-0.5" />}
-                    <p className={`text-xs font-semibold leading-relaxed user-text ${total > 0 ? 'text-amber-800' : 'text-gray-600'}`}>
+                    <p className={`text-xs font-semibold leading-relaxed user-text ${total > 0 ? 'text-amber-800' : 'text-ink-muted'}`}>
                       {total === 0
                         ? 'There is nothing to pay for this yatra. '
                         : isOnlineEnabled(trip) && !razorpayReady
                           ? 'Online payment isn’t switched on for this site yet. '
                           : 'No payment method is open for this yatra right now. '}
                       Your registration is saved as
-                      <span className="font-black"> pending</span> and the yatra team will confirm your
+                      <span className="font-bold"> pending</span> and the yatra team will confirm your
                       seat{total > 0 ? ' and arrange payment with you directly' : ''}.
                       {trip.contactPhone ? ` Call or WhatsApp ${trip.contactPhone}.` : ''}
                     </p>
@@ -1570,7 +1570,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   <button
                     type="submit"
                     disabled={!!submitting}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.13em] text-[11px] shadow-lg hover:brightness-105 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                    className="w-full min-h-[52px] px-4 rounded-2xl bg-saffron text-white font-bold uppercase tracking-[0.13em] text-[11px] shadow-lg hover:brightness-105 transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2"
                   >
                     {submitting
                       ? <Loader2 size={17} className="animate-spin shrink-0" />
@@ -1613,7 +1613,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setLightbox(null)}
-              className="absolute inset-0 bg-gray-900/85"
+              className="absolute inset-0 bg-ink/85"
             />
             <motion.div
               initial={{ scale: 0.94, opacity: 0 }}

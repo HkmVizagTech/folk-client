@@ -7,13 +7,13 @@ const TaskItem = ({ label, done }) => {
     <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-saffron/5">
       <div className={cn(
         "w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors",
-        done ? 'bg-saffron border-saffron text-white' : 'border-gray-200'
+        done ? 'bg-saffron border-saffron text-white' : 'border-line'
       )}>
         {done && <CheckSquare size={12} />}
       </div>
       <span className={cn(
         "text-sm",
-        done ? 'text-gray-400 line-through' : 'font-medium'
+        done ? 'text-ink-muted line-through' : 'font-medium'
       )}>
         {label}
       </span>

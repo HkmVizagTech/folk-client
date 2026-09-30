@@ -41,13 +41,13 @@ const Donate = () => {
     <div className="min-h-screen bg-cream">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-4 max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-black uppercase tracking-label">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-saffron/10 text-saffron-dark text-[11px] font-bold uppercase tracking-label">
             <Gift size={14} /> Donations
           </span>
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight uppercase leading-[0.95]">
-            Give with <span className="bg-saffron bg-clip-text text-transparent">devotion</span>
+          <h1 className="display-lg">
+            Give with <span className="text-saffron-dark italic">devotion</span>
           </h1>
-          <p className="text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
+          <p className="text-ink-muted font-medium leading-relaxed max-w-2xl mx-auto">
             Every contribution keeps the temple programs, prasadam distribution and Gita education
             flourishing. Choose a cause and give securely via UPI or card.
           </p>
@@ -67,10 +67,10 @@ const Donate = () => {
                 <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-105 transition-transform`}>
                   {c.icon}
                 </div>
-                <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm">{c.title}</h3>
-                <p className="text-xs text-gray-400 font-medium mt-2 leading-relaxed">{c.desc}</p>
+                <h3 className="font-bold text-ink uppercase tracking-tight text-sm">{c.title}</h3>
+                <p className="text-xs text-ink-muted font-medium mt-2 leading-relaxed">{c.desc}</p>
                 {selected === c.id && (
-                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 inline-flex items-center gap-1 text-[10px] font-black text-saffron uppercase tracking-label">
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 inline-flex items-center gap-1 text-[10px] font-bold text-saffron uppercase tracking-label">
                     <Check size={12} /> Selected
                   </motion.span>
                 )}
@@ -84,18 +84,18 @@ const Donate = () => {
             <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${cause.gradient} flex items-center justify-center text-white mb-5 shadow-lg`}>
               {cause.icon}
             </div>
-            <h3 className="font-black text-gray-900 uppercase tracking-tight">{cause.title}</h3>
-            <p className="text-sm text-gray-400 font-medium mt-1 mb-6">{cause.desc}</p>
+            <h3 className="font-bold text-ink uppercase tracking-tight">{cause.title}</h3>
+            <p className="text-sm text-ink-muted font-medium mt-1 mb-6">{cause.desc}</p>
 
             <div className="grid grid-cols-3 gap-3 mb-4">
               {presets.map(p => (
                 <button
                   key={p}
                   onClick={() => setAmount(String(p))}
-                  className={`py-3 rounded-2xl font-black text-sm transition-all ${
+                  className={`py-3 rounded-2xl font-bold text-sm transition-all ${
                     amount === String(p)
                       ? 'bg-saffron text-white shadow-lg scale-[1.03]'
-                      : 'bg-gray-50 text-gray-500 hover:bg-saffron/10 hover:text-saffron-dark border border-gray-100'
+                      : 'bg-paper text-ink-muted hover:bg-saffron/10 hover:text-saffron-dark border border-line'
                   }`}
                 >
                   ₹{p.toLocaleString('en-IN')}
@@ -104,14 +104,14 @@ const Donate = () => {
             </div>
 
             <div className="relative mb-6">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-sm">₹</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted font-bold text-sm">₹</span>
               <input
                 type="number"
                 min="1"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="Enter custom amount"
-                className="w-full pl-9 pr-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-100 focus:border-saffron focus:outline-none text-sm font-bold text-gray-700 placeholder-gray-300"
+                className="w-full pl-9 pr-4 py-3.5 rounded-2xl bg-paper border border-line focus:border-saffron focus:outline-none text-sm font-bold text-ink-soft placeholder-ink-muted/50"
               />
             </div>
 

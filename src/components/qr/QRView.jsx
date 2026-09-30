@@ -66,15 +66,15 @@ const QRView = ({ value, name = 'Devotee', size = 200 }) => {
       </div>
 
       <div className="text-center">
-        <h3 className="font-cinzel font-black text-xl text-gray-900 uppercase tracking-tight">{name}</h3>
-        <p className="text-gray-400 text-xs font-bold uppercase tracking-label mt-1">Permanent Pass</p>
+        <h3 className="font-cinzel font-bold text-xl text-ink uppercase tracking-tight">{name}</h3>
+        <p className="text-ink-muted text-xs font-bold uppercase tracking-label mt-1">Permanent Pass</p>
       </div>
 
       <motion.button
         whileHover={{ scale: 1.05, y: -2 }}
         whileTap={{ scale: 0.95 }}
         onClick={downloadQR}
-        className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl font-bold text-sm shadow-lg hover:bg-black transition-all"
+        className="flex items-center gap-2 px-6 py-3 bg-ink text-white rounded-2xl font-bold text-sm shadow-lg hover:bg-black transition-all"
       >
         <Download size={18} />
         <span>Save to Phone</span>
