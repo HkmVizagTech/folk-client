@@ -15,6 +15,20 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import QRView from '../components/qr/QRView'
 import { QrCode } from 'lucide-react'
 
+// A chain lives or dies by the last day the member actually hit their target,
+// which is what `lastCompletedSadhanaDate` records. `lastSadhanaDate` means
+// "last logged anything" — MyMembers and Reports read it as a contact gap —
+// so a half-finished morning logged at lunchtime must not read as a day done.
+const streakState = (uData, today, yesterday) => {
+  const streak = uData.streak || 0;
+  // One-time backfill: nobody carries lastCompletedSadhanaDate until their
+  // first log after this ships, and a streak still standing means the day in
+  // lastSadhanaDate was one they completed.
+  const lastCompleted = uData.lastCompletedSadhanaDate || (streak > 0 ? uData.lastSadhanaDate : null) || null;
+  if (lastCompleted !== today && lastCompleted !== yesterday) return { streak: 0, lastCompleted: null };
+  return { streak, lastCompleted };
+};
+
 const SadhanaTracker = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -43,10 +57,7 @@ const SadhanaTracker = () => {
 
       const yesterdayStr = yesterdayIST();
 
-      let displayStreak = uData.streak || 0;
-      if (uData.lastSadhanaDate && uData.lastSadhanaDate !== today && uData.lastSadhanaDate !== yesterdayStr) {
-        displayStreak = 0;
-      }
+      const displayStreak = streakState(uData, today, yesterdayStr).streak;
 
       const profileStats = {
         name: uData.name || uData.fullName || user.displayName || 'Devotee',
@@ -169,9 +180,11 @@ const SadhanaTracker = () => {
     setSubmitting(true);
     const logId = `${user.uid}_${today}`;
     const logRef = doc(db, 'sadhana_logs', logId);
+    const userRef = doc(db, 'users', user.uid);
 
     try {
       await runTransaction(db, async (transaction) => {
+        const uDoc = await transaction.get(userRef);
         const logDoc = await transaction.get(logRef);
         if (logDoc.exists()) throw new Error("Target already set for today.");
 
@@ -181,7 +194,9 @@ const SadhanaTracker = () => {
           target: targetInput,
           roundsCompleted: 0,
           progressPercentage: 0,
-          streak: 0,
+          // Taking a vow for today does not end the chain the member walked in
+          // with; a 0 here would report a broken streak on a day still ahead.
+          streak: streakState(uDoc.data() || {}, today, yesterdayIST()).streak,
           score: 0,
           status: 'locked',
           createdAt: serverTimestamp()
@@ -227,24 +242,23 @@ const SadhanaTracker = () => {
           target = 16;
         }
 
-        let currentStreak = uData.streak || 0;
         const yesterdayString = yesterdayIST();
+        const carried = streakState(uData, today, yesterdayString);
 
-        if (uData.lastSadhanaDate && uData.lastSadhanaDate !== today && uData.lastSadhanaDate !== yesterdayString) {
-          currentStreak = 0;
-        }
+        let currentStreak = carried.streak;
+        let lastCompleted = carried.lastCompleted;
 
-        if (rounds >= target) {
-          if (!oldLogData.completed) {
-            if (uData.lastSadhanaDate === yesterdayString || currentStreak === 0) {
-              currentStreak = (currentStreak) + 1;
-            } else if (uData.lastSadhanaDate !== today) {
-              currentStreak = 1;
-            }
-          }
-        } else {
-           currentStreak = 0;
+        if (rounds >= target && !oldLogData.completed) {
+          currentStreak = currentStreak + 1;
+          lastCompleted = today;
+        } else if (rounds < target && oldLogData.completed) {
+          // Correcting today's number back down takes today's credit away, and
+          // nothing more: what is left of the chain ended yesterday.
+          currentStreak = Math.max(0, currentStreak - 1);
+          lastCompleted = currentStreak > 0 ? yesterdayString : null;
         }
+        // Anything else — more partial rounds, or a second log once the target
+        // is already met — leaves days the member earned earlier alone.
 
         let logScore = rounds * 2;
         if (rounds >= target) {
@@ -271,6 +285,7 @@ const SadhanaTracker = () => {
           longestStreak: newLongestStreak,
           score: Math.max(0, (uData.score || 0) + scoreDiff),
           lastSadhanaDate: today,
+          lastCompletedSadhanaDate: lastCompleted,
           updatedAt: serverTimestamp()
         });
       });

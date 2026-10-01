@@ -584,16 +584,26 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
   const isStaff = user?.role === 'admin' || user?.role === 'folks_head'
 
   // Staff can read every registration for this trip (real seat counts);
-  // everyone else is scoped to their own, mirroring Hostels.jsx.
+  // a signed-in devotee is scoped to their own, mirroring Hostels.jsx.
+  //
+  // A logged-out visitor reads NEITHER. This page is deliberately public (a
+  // /trip/<slug> link gets shared on WhatsApp), and both of these are
+  // user-scoped collections, so asking as a guest is a read the server must
+  // refuse - and because listeners re-poll the change feed, that refusal
+  // repeated forever. Passing a null collection turns the subscription off
+  // instead; it switches on by itself the moment someone signs in.
   const registrationsQuery = React.useMemo(() => {
     if (isStaff && trip?.id) return [where('tripId', '==', trip.id)]
-    return [where('userId', '==', user?.uid || 'guest')]
+    return [where('userId', '==', user?.uid || '__none__')]
   }, [isStaff, trip?.id, user?.uid])
-  const { data: registrations } = useFirestore('trip_registrations', registrationsQuery)
+  const { data: registrations } = useFirestore(
+    user?.uid ? 'trip_registrations' : null,
+    registrationsQuery
+  )
 
   // Payment truth lives in `payments`, written only by the server webhook.
-  const paymentsQuery = React.useMemo(() => [where('userId', '==', user?.uid || 'guest')], [user?.uid])
-  const { data: payments } = useFirestore('payments', paymentsQuery)
+  const paymentsQuery = React.useMemo(() => [where('userId', '==', user?.uid || '__none__')], [user?.uid])
+  const { data: payments } = useFirestore(user?.uid ? 'payments' : null, paymentsQuery)
 
   /* ---------------- Derived ---------------- */
   const tripRegistrations = React.useMemo(

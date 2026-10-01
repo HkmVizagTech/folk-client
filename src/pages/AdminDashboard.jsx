@@ -12,6 +12,7 @@ import { useFirestore } from '../hooks/useFirestore'
 import { where } from '../lib/pgstore'
 import { getSafeProfileImage } from '../lib/imageUtils'
 import { callApi } from '../lib/api'
+import { STAGES, stageOf, stageLabel } from '../content/journey'
 import AdminPasswordFields from '../components/auth/AdminPasswordFields'
 import { provisionAdminLogin, validateAdminPassword } from '../lib/adminLogin'
 
@@ -122,8 +123,11 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
   const [adminPasswordConfirm, setAdminPasswordConfirm] = useState('');
 
   const generateGrowthAudit = () => {
-    const headers = ['Name', 'Role', 'Level', 'Streak', 'Longest Streak', 'Score', 'Phone', 'QR Token'];
-    const rows = allUsers.map((u) => [u.name, u.role, u.level, u.streak || 0, u.longestStreak || 0, u.score || 0, u.phone || '', u.qrToken || '']);
+    // Level stays exactly as stored so the audit still shows what is in the
+    // column (a text label, or a legacy '1'-'5' on rows nobody has edited yet);
+    // Stage is the comparable value, so a growth audit can be grouped at all.
+    const headers = ['Name', 'Role', 'Level', 'Stage', 'Streak', 'Longest Streak', 'Score', 'Phone', 'QR Token'];
+    const rows = allUsers.map((u) => [u.name, u.role, u.level, stageLabel(stageOf(u)), u.streak || 0, u.longestStreak || 0, u.score || 0, u.phone || '', u.qrToken || '']);
     const csv = [headers, ...rows]
       .map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
@@ -674,26 +678,30 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             </div>
 
             <div className="mt-8 pt-8 border-t border-gray-50">
-               <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-4">Devotee Levels (1-5)</h4>
+               {/* Profile and Devotees both write text labels ('FOLK New', 'Initiated', ...)
+                   into users.level, so matching '1'-'5' counted only the rows nobody has
+                   edited since. stageOf() folds the labels, an explicit stage and the
+                   legacy numbers onto the one journey, the way Reports does. */}
+               <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-4">Devotees by Journey Stage</h4>
                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((lvl) => {
-                    const count = allUsers.filter(u => u.level === String(lvl)).length;
+                  {STAGES.map((s, i) => {
+                    const count = allUsers.filter(u => stageOf(u) === s.id).length;
                     const pct = (count / (allUsers.length || 1)) * 100;
                     return (
                       <div
-                        key={lvl}
+                        key={s.id}
                         className={`h-1.5 rounded-full transition-all duration-700 ${
-                          lvl === 1 ? 'bg-saffron' : lvl === 2 ? 'bg-gold' : lvl === 3 ? 'bg-celestial' : lvl === 4 ? 'bg-purple-400' : 'bg-green-400'
+                          i === 0 ? 'bg-saffron' : i === 1 ? 'bg-gold' : i === 2 ? 'bg-celestial' : i === 3 ? 'bg-purple-400' : 'bg-green-400'
                         }`}
                         style={{ width: `${pct}%`, minWidth: count > 0 ? '4px' : '0' }}
-                        title={`Level ${lvl}: ${count} devotees`}
+                        title={`${s.label}: ${count} devotees`}
                       />
                     )
                   })}
                </div>
                <div className="flex justify-between mt-3">
-                  <span className="text-[9px] font-bold text-gray-300 uppercase">Foundation</span>
-                  <span className="text-[9px] font-bold text-gray-300 uppercase">Expert</span>
+                  <span className="text-[9px] font-bold text-gray-300 uppercase">{STAGES[0].label}</span>
+                  <span className="text-[9px] font-bold text-gray-300 uppercase">{STAGES[STAGES.length - 1].label}</span>
                </div>
             </div>
             <div className="mt-8 pt-6 border-t border-gray-50">

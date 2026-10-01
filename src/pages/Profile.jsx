@@ -8,18 +8,27 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
-import { db, storage } from '../lib/firebase';
+import { db } from '../lib/firebase';
 // Postgres-backed shim, NOT the real Firebase SDK: `db` is only a marker
 // object now, so firebase/firestore helpers throw on it - and useFirestore
 // swallows that, leaving the screen silently empty instead of erroring.
 import { doc, getDoc, setDoc, serverTimestamp, where } from '../lib/pgstore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getSafeProfileImage } from '../lib/imageUtils';
 import { cn } from '../components/ui/Card';
-import { compressImage } from '../lib/performance';
+import { uploadImage, deleteUploadedImage, isUploadedUrl } from '../lib/uploads';
+
+// Mirrors STAFF_MANAGED_FIELDS in server/db/policies.js. The users-update rule
+// rejects the *whole* save when someone editing their own profile touches any
+// of these, so round-tripping `level` back from the form made a devotee's city
+// edit fail with permission-denied - and the old `level: user.level || 'FOLK
+// New'` default meant a first save failed for every devotee staff had not
+// levelled yet.
+const STAFF_MANAGED_FIELDS = ['stage', 'level', 'guideId', 'guideName', 'guidePhone',
+  'nextFollowUpDate', 'lastFollowUpAt', 'lastFollowUpNote'];
 
 const Profile = () => {
   const { user, logout } = useAuth();
+  const isStaff = user?.role === 'admin' || user?.role === 'folks_head';
   const [isEditing, setIsEditing] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('profile');
   const [loading, setLoading] = useState(false);
@@ -60,7 +69,7 @@ const Profile = () => {
       email: user.email || '',
       phone: user.phone || '',
       gender: user.gender || '',
-      level: user.level || 'FOLK New',
+      level: user.level || '',
       occupation: user.occupation || '',
       qualification: user.qualification || '',
       city: user.city || '',
@@ -81,7 +90,7 @@ const Profile = () => {
         email: user.email || '',
         phone: user.phone || '',
         gender: user.gender || '',
-        level: user.level || 'FOLK New',
+        level: user.level || '',
         occupation: user.occupation || '',
         qualification: user.qualification || '',
         city: user.city || '',
@@ -120,27 +129,29 @@ const Profile = () => {
       return;
     }
 
+    const previous = formData.profileImage;
+
     try {
       setUploading(true);
-      
-      // Fallback if compression fails
-      let fileToUpload = file;
-      try {
-        console.log("Compressing image...");
-        fileToUpload = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.7 });
-      } catch (e) {
-        console.warn("Compression failed, using original file:", e);
-      }
 
-      const storageRef = ref(storage, `profileImages/${user.uid}`);
-      await uploadBytes(storageRef, fileToUpload);
-      const downloadURL = await getDownloadURL(storageRef);
-      
+      // uploadImage() compresses and POSTs the bytes to our server, which puts
+      // them in R2 under avatars/<uid>/ - the folder here only picks the
+      // member-allowed route; the key comes from the verified token, not us.
+      // 512px is plenty for a picture that is never shown larger than 160px,
+      // even on a 3x screen.
+      const downloadURL = await uploadImage(file, { folder: 'avatar', maxWidth: 512, quality: 0.8 });
+
       setFormData(prev => ({ ...prev, profileImage: downloadURL }));
+      // Every R2 upload gets its own key, so a new avatar no longer lands on
+      // top of the old one the way the fixed Firebase path did - the previous
+      // object has to be let go by hand, and only once its replacement is
+      // safely stored. A legacy Firebase URL is not ours to delete; the server
+      // refuses it and deleteUploadedImage swallows that, so the save stands.
+      if (previous && previous !== downloadURL && isUploadedUrl(previous)) deleteUploadedImage(previous);
       showToast('Image uploaded successfully!');
     } catch (error) {
       console.error("Upload error:", error);
-      showToast('Failed to upload image', 'error');
+      showToast(error?.message || 'That photo could not be uploaded', 'error');
     } finally {
       setUploading(false);
     }
@@ -154,11 +165,17 @@ const Profile = () => {
 
     try {
       setLoading(true);
-      console.log("Saving profile for UID:", user?.uid, formData);
+      // Send only what this user is allowed to write: one staff-managed key in
+      // the payload - even at its unchanged value - costs the entire save.
+      const payload = { ...formData };
+      if (!isStaff) STAFF_MANAGED_FIELDS.forEach((f) => delete payload[f]);
+      delete payload.role; // denied for everyone here; the form never edits it
+
+      console.log("Saving profile for UID:", user?.uid, payload);
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, {
-        ...formData,
-        photo: formData.profileImage, // Sync legacy photo field
+        ...payload,
+        photo: payload.profileImage, // Sync legacy photo field
         updatedAt: serverTimestamp()
       }, { merge: true });
       
@@ -173,7 +190,7 @@ const Profile = () => {
     }
   };
 
-  const renderDetailItem = (icon, label, value, name, type = "text", options = null) => {
+  const renderDetailItem = (icon, label, value, name, type = "text", options = null, readOnly = false) => {
     const Icon = icon;
     return (
       <div className="flex items-center gap-4 p-4 bg-white/50 rounded-2xl border border-saffron/5 hover:border-saffron/20 transition-all group">
@@ -182,7 +199,7 @@ const Profile = () => {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-          {isEditing ? (
+          {isEditing && !readOnly ? (
             options ? (
               <select
                 name={name}
@@ -211,7 +228,9 @@ const Profile = () => {
     );
   };
 
-  const completionFields = ['name', 'phone', 'gender', 'level', 'occupation', 'qualification', 'city', 'country', 'fatherName'];
+  // `level` is assigned by staff, not by the member, so counting it here parked
+  // every devotee it was never set for below 100% with no way to move the bar.
+  const completionFields = ['name', 'phone', 'gender', 'occupation', 'qualification', 'city', 'country', 'fatherName'];
   const completionPercent = Math.round(
     (completionFields.filter((f) => formData[f] && String(formData[f]).trim() !== '').length / completionFields.length) * 100
   );
@@ -375,7 +394,10 @@ const Profile = () => {
             {renderDetailItem(Mail, "Email Address", formData.email, "email", "email")}
             {renderDetailItem(Phone, "Mobile Number", formData.phone, "phone", "tel")}
             {renderDetailItem(Users, "Gender", formData.gender, "gender", "select", ["Male", "Female", "Other"])}
-            {renderDetailItem(Award, "Level", formData.level, "level", "select", ["FOLK New", "FOLK Enhanced", "Pre-Initiated", "Initiated"])}
+            {/* Shown to everyone, editable only by staff - the server refuses a
+                member's own write to `level`, so an editable control here could
+                only ever produce a failed save. */}
+            {renderDetailItem(Award, "Level", formData.level, "level", "select", ["FOLK New", "FOLK Enhanced", "Pre-Initiated", "Initiated"], !isStaff)}
             {renderDetailItem(Briefcase, "Occupation", formData.occupation, "occupation")}
             {renderDetailItem(GraduationCap, "Higher Qualification", formData.qualification, "qualification")}
             

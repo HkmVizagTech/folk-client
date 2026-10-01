@@ -8,8 +8,20 @@ export const STAGES = [
   { id: 'resident', label: 'Resident', desc: 'Lives in the FOLK residency' },
 ];
 
+// The text `level` labels the app actually writes (the Level <select> on the
+// Profile page), lined up with the journey. This is the one place to adjust if
+// the club renames a level or draws the line between stages differently.
+const LEVEL_STAGES = {
+  'folk new': 'new',
+  'folk enhanced': 'regular',
+  'pre-initiated': 'practising',
+  'initiated': 'committed',
+};
+
 export const stageOf = (user) => {
   if (user?.stage && STAGES.some((s) => s.id === user.stage)) return user.stage;
+  const fromLabel = LEVEL_STAGES[String(user?.level ?? '').trim().toLowerCase()];
+  if (fromLabel) return fromLabel;
   const n = parseInt(user?.level, 10);
   return Number.isInteger(n) && n >= 1 && n <= STAGES.length ? STAGES[n - 1].id : 'new';
 };

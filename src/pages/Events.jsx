@@ -11,8 +11,65 @@ import { useFirestore } from '../hooks/useFirestore'
 // Postgres-backed shim, NOT the real Firebase SDK: `db` is only a marker
 // object now, so firebase/firestore helpers throw on it - and useFirestore
 // swallows that, leaving the screen silently empty instead of erroring.
-import { collection, addDoc, serverTimestamp, setDoc, doc, where, updateDoc, increment } from '../lib/pgstore'
+import { collection, addDoc, serverTimestamp, setDoc, doc, where, runTransaction } from '../lib/pgstore'
 import { v4 as uuidv4 } from 'uuid'
+
+const ATTENDING = 'Attending';
+const DECLINED = 'Not Attending';
+const CANCELLED = 'Cancelled';
+
+// Which head-count on the event each answer belongs to. `Cancelled` is a
+// withdrawal, so it is deliberately absent here: it sits in neither count.
+const COUNTER_FIELD = { [ATTENDING]: 'attendingCount', [DECLINED]: 'declinedCount' };
+
+/**
+ * The member's current answer and the ways to change it. The featured banner
+ * and the grid cards offer exactly the same three moves, so they share this and
+ * differ only in colour.
+ */
+const RsvpChoice = ({ status, busy, onChoose, dark = false }) => {
+  const answered = status === ATTENDING || status === DECLINED;
+  const shape = dark ? 'rounded-3xl px-8' : 'rounded-2xl px-6';
+  const btn = `min-h-[44px] min-w-[44px] py-3 ${shape} font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2`;
+  const tone = dark
+    ? {
+        label: 'text-gray-400',
+        yes: 'bg-white text-gray-900 hover:bg-cream shadow-2xl',
+        no: 'bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white/20',
+        quiet: 'text-gray-400 hover:text-white'
+      }
+    : {
+        label: 'text-gray-300',
+        yes: 'bg-saffron text-white shadow-lg hover:shadow-saffron/20',
+        no: 'bg-gray-50 text-gray-500 border border-gray-100 hover:bg-gray-100',
+        quiet: 'text-gray-400 hover:text-gray-900'
+      };
+
+  return (
+    <div className="w-full flex flex-col gap-3">
+      <span className={`text-[10px] font-black uppercase tracking-widest text-left ${tone.label}`}>
+        {status === ATTENDING ? 'You are going' : status === DECLINED ? 'You are not going' : 'Will you be there?'}
+      </span>
+      <div className="flex flex-wrap items-center gap-3">
+        {status !== ATTENDING && (
+          <button type="button" disabled={busy} onClick={() => onChoose(ATTENDING)} className={`${btn} ${tone.yes}`}>
+            {busy ? <Loader2 className="animate-spin" size={14} /> : <><CheckCircle2 size={14} /> I will attend</>}
+          </button>
+        )}
+        {status !== DECLINED && (
+          <button type="button" disabled={busy} onClick={() => onChoose(DECLINED)} className={`${btn} ${tone.no}`}>
+            {busy ? <Loader2 className="animate-spin" size={14} /> : <><XCircle size={14} /> Can&apos;t make it</>}
+          </button>
+        )}
+        {answered && (
+          <button type="button" disabled={busy} onClick={() => onChoose(CANCELLED)} className={`${btn} ${tone.quiet}`}>
+            {busy ? <Loader2 className="animate-spin" size={14} /> : 'Withdraw'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Events = () => {
   const { user } = useAuth();
@@ -62,6 +119,12 @@ const Events = () => {
         ...formData,
         date: formattedDate,
         dateISO: rawDate.toISOString(),
+        // Seed both RSVP counters at zero. A member's RSVP may only move a
+        // counter by one, so starting from a missing key means the very first
+        // "not attending" has nothing to count from - and an event with no
+        // replies yet should read 0, not blank.
+        attendingCount: 0,
+        declinedCount: 0,
         groupId: auth.currentUser?.uid || 'system',
         createdAt: serverTimestamp()
       });
@@ -96,34 +159,30 @@ const Events = () => {
     }
   };
 
-  const handleRSVP = async (event, isAttending) => {
+  const handleRSVP = async (event, nextStatus) => {
     if (!user) {
       alert("Please login to RSVP");
       return;
     }
+    // A second tap before the first write lands would read the same stale
+    // answer and move the same counter a second time.
+    if (rsvpLoading[event.id]) return;
+
+    const prevStatus = registrations?.find(r => r.eventId === event.id)?.status || null;
+    if (prevStatus === nextStatus) return;
+    // Nothing to withdraw from, so there is no counter to give back and no
+    // reason to leave a "Cancelled" row behind for someone who never answered.
+    if (nextStatus === CANCELLED && !COUNTER_FIELD[prevStatus]) return;
+
     setRsvpLoading(prev => ({ ...prev, [event.id]: true }));
     try {
-      const token = isAttending ? uuidv4().slice(0, 8).toUpperCase() : null;
-      const status = isAttending ? 'Attending' : 'Not Attending';
+      const token = nextStatus === ATTENDING ? uuidv4().slice(0, 8).toUpperCase() : null;
       const registrationRef = doc(db, 'registrations', `${event.id}_${user.uid}`);
-      
-      const prevState = registrations?.find(r => r.eventId === event.id)?.status;
-      if (prevState === status) {
-        setRsvpLoading(prev => ({ ...prev, [event.id]: false }));
-        return;
-      }
-      
-      let attendingDiff = isAttending ? 1 : (prevState === 'Attending' ? -1 : 0);
-      let declinedDiff = !isAttending ? 1 : (prevState === 'Not Attending' ? -1 : 0);
-
       const eventRef = doc(db, 'events', event.id);
+      const leaving = COUNTER_FIELD[prevStatus];
+      const joining = COUNTER_FIELD[nextStatus];
 
-      // The registration is the RSVP; the counters on the event are a
-      // convenience. Write the registration FIRST: bumping the counter first
-      // meant that a member who may not write the events document (or any
-      // transient failure there) lost the RSVP entirely, and a counter that
-      // was bumped before a failed registration drifted up for good.
-      await setDoc(registrationRef, {
+      const registration = {
         eventId: event.id,
         eventTitle: event.title,
         userId: user.uid,
@@ -131,28 +190,38 @@ const Events = () => {
         // `fullName` never existed, so every roster and every attendance scan
         // showed this person as a nameless "Devotee".
         userName: user.name || user.fullName || auth.currentUser?.displayName || 'Devotee',
+        // Cleared on anything but "attending" so a withdrawn member's old token
+        // can no longer be scanned through at the gate.
         token: token,
-        status: status,
+        status: nextStatus,
         updatedAt: serverTimestamp()
-      }, { merge: true });
+      };
 
-      // If it's a real event, update its counts
-      if (!event.id.startsWith('mock') && (attendingDiff || declinedDiff)) {
-        try {
-          await updateDoc(eventRef, {
-            attendingCount: increment(attendingDiff),
-            declinedCount: increment(declinedDiff)
-          });
-        } catch (countError) {
-          console.error('RSVP saved, but the event head-count could not be updated:', countError);
-        }
+      // Mock events live only in this page, so there is no document to count on.
+      if (event.id.startsWith('mock')) {
+        await setDoc(registrationRef, registration, { merge: true });
+      } else {
+        // The answer and the counters it moves go up in one commit: a counter
+        // written separately could fail on its own and leave the event
+        // miscounted for good, and the server only accepts a move of one per
+        // counter, which is exactly what a single change of answer is.
+        await runTransaction(db, async (transaction) => {
+          const counts = (await transaction.get(eventRef)).data() || {};
+          const patch = {};
+          // Absolute values rather than increment(): events created before the
+          // counters existed read as 0, and a blind -1 would send one negative,
+          // which the server refuses - taking the whole commit down with it.
+          if (leaving) patch[leaving] = Math.max(0, (Number(counts[leaving]) || 0) - 1);
+          if (joining) patch[joining] = (Number(counts[joining]) || 0) + 1;
+          transaction.set(registrationRef, registration, { merge: true });
+          transaction.update(eventRef, patch);
+        });
       }
 
-
-      if (isAttending) alert(`Successfully registered! Your Attendance Token: ${token}`);
+      if (nextStatus === ATTENDING) alert(`Successfully registered! Your Attendance Token: ${token}`);
     } catch (error) {
       console.error("Registration error:", error);
-      alert("Failed to RSVP: " + error.message);
+      alert("Your RSVP could not be saved: " + error.message);
     } finally {
       setRsvpLoading(prev => ({ ...prev, [event.id]: false }));
     }
@@ -280,31 +349,36 @@ const Events = () => {
                    </div>
                 </div>
 
-                 <div className="pt-6 sm:pt-8 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                 <div className="pt-6 sm:pt-8 border-t border-white/10 flex flex-col gap-6">
                     {(() => {
                         const event = filteredEvents[0];
                         const reg = registrations?.find(r => r.eventId === event.id);
-                        if (reg?.status === 'Attending') return (
-                          <div className="px-10 py-5 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 flex items-center gap-4">
-                             <CheckCircle2 size={24} className="text-green-400" />
-                             <div className="flex flex-col">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Your Token</span>
-                                <span className="text-lg font-black text-white tracking-widest">{reg.token}</span>
-                             </div>
-                          </div>
-                        );
                         return (
-                          <Button 
-                            disabled={rsvpLoading[event.id]}
-                            onClick={() => handleRSVP(event, true)} 
-                            className="w-full sm:w-auto px-10 py-5 bg-white text-gray-900 font-black rounded-3xl hover:bg-cream transition-all uppercase tracking-[0.2em] text-[11px] shadow-2xl disabled:opacity-50"
-                          >
-                             {rsvpLoading[event.id] ? <Loader2 className="animate-spin mx-auto" size={18} /> : "I will Attend"}
-                          </Button>
+                          <>
+                            {reg?.status === 'Attending' && (
+                              <div className="self-start px-10 py-5 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 flex items-center gap-4">
+                                 <CheckCircle2 size={24} className="text-green-400" />
+                                 <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Your Token</span>
+                                    <span className="text-lg font-black text-white tracking-widest">{reg.token}</span>
+                                 </div>
+                              </div>
+                            )}
+                            <RsvpChoice
+                              dark
+                              status={reg?.status}
+                              busy={rsvpLoading[event.id]}
+                              onChoose={(next) => handleRSVP(event, next)}
+                            />
+                          </>
                         );
                     })()}
                     <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic">
-                        {filteredEvents[0].attendingCount || filteredEvents[0].attendees || 0} Devotees expected
+                        {/* ?? not ||: now that the last attendee can withdraw,
+                            attendingCount: 0 is a real answer, and || would
+                            fall through to the number staff typed at creation
+                            and claim people are coming who are not. */}
+                        {filteredEvents[0].attendingCount ?? filteredEvents[0].attendees ?? 0} Devotees expected
                     </p>
                  </div>
              </div>
@@ -324,7 +398,7 @@ const Events = () => {
                        <div className="absolute bottom-6 right-6">
                           <div className="flex items-center gap-2 bg-gray-900/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
                              <Users size={12} className="text-gold" />
-                             <span className="text-[10px] font-black text-white uppercase">{event.attendingCount || event.attendees || 0}</span>
+                             <span className="text-[10px] font-black text-white uppercase">{event.attendingCount ?? event.attendees ?? 0}</span>
                           </div>
                        </div>
                     </div>
@@ -336,32 +410,29 @@ const Events = () => {
                        <h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-tight italic uppercase group-hover:text-saffron transition-colors text-left">{event.title}</h3>
                        <p className="text-sm text-gray-400 font-bold leading-relaxed line-clamp-3 text-left">{event.description}</p>
                        
-                       <div className="pt-8 mt-auto border-t border-gray-100 flex items-center justify-between">
-                          <div className="flex flex-col text-left">
-                             <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest text-left">Venue</span>
-                             <span className="text-xs font-bold text-gray-900 truncate max-w-[120px] text-left">{event.location}</span>
-                          </div>
-                          
+                       <div className="pt-8 mt-auto border-t border-gray-100 space-y-5">
                           {(() => {
                              const reg = registrations?.find(r => r.eventId === event.id);
-                             if (reg?.status === 'Attending') return (
-                               <div className="p-3 bg-green-50 rounded-2xl flex items-center gap-3">
-                                  <CheckCircle2 size={16} className="text-green-500" />
-                                  <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">{reg.token}</span>
-                               </div>
-                             );
                              return (
-                               <Button
-                                 disabled={rsvpLoading[event.id]}
-                                 onClick={() => handleRSVP(event, true)}
-                                 className="py-3.5 px-6 min-h-[44px] bg-saffron text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-saffron/20 group disabled:opacity-50"
-                               >
-                                  {rsvpLoading[event.id] ? <Loader2 className="animate-spin mx-auto" size={14} /> : (
-                                    <div className="flex items-center">
-                                      JOIN <ChevronRight size={14} className="ml-1 group-hover:translate-x-1" />
+                               <>
+                                 <div className="flex items-center justify-between gap-3">
+                                    <div className="flex flex-col text-left">
+                                       <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest text-left">Venue</span>
+                                       <span className="text-xs font-bold text-gray-900 truncate max-w-[120px] text-left">{event.location}</span>
                                     </div>
-                                  )}
-                               </Button>
+                                    {reg?.status === 'Attending' && (
+                                      <div className="p-3 bg-green-50 rounded-2xl flex items-center gap-3">
+                                         <CheckCircle2 size={16} className="text-green-500" />
+                                         <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">{reg.token}</span>
+                                      </div>
+                                    )}
+                                 </div>
+                                 <RsvpChoice
+                                   status={reg?.status}
+                                   busy={rsvpLoading[event.id]}
+                                   onChoose={(next) => handleRSVP(event, next)}
+                                 />
+                               </>
                              );
                           })()}
                        </div>

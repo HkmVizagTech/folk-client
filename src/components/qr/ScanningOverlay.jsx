@@ -187,12 +187,12 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 50, opacity: 0 }}
-          className="relative w-full max-w-xl bg-white rounded-xl sm:rounded-xl shadow-2xl overflow-x-hidden overflow-y-auto max-h-[90vh]"
+          className="relative w-full max-w-xl bg-white rounded-xl sm:rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
         >
           {!verifyResult ? (
             <>
               {/* Header */}
-              <div className="p-5 sm:p-8 border-b border-line flex items-center justify-between gap-3">
+              <div className="shrink-0 p-5 sm:p-8 border-b border-line flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shrink-0" />
@@ -211,8 +211,11 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
                 </button>
               </div>
 
-              {/* Mode Toggle */}
-              <div className="px-5 sm:px-8 mt-6">
+              {/* Mode Toggle - pinned, never scrolled out of reach. On a phone
+                  the camera box plus its hint and Reset button are taller than
+                  the 90vh modal, so only the scanner area below scrolls; staff
+                  can always switch Attendance/Prasadam mid-queue. */}
+              <div className="shrink-0 px-5 sm:px-8 mt-6">
                 <div className="flex gap-2 p-1.5 bg-paper-dark rounded-2xl">
                   <button
                     onClick={() => setScanMode('attendance')}
@@ -234,9 +237,9 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
               </div>
 
               {/* Scanner Area */}
-              <div className="p-5 sm:p-8">
-                <div className="relative rounded-xl overflow-hidden border-4 border-line/60 bg-paper aspect-square">
-                  <QRScanner onScan={handleScan} onClose={onClose} mode={scanMode} />
+              <div className="flex-1 overflow-y-auto p-5 sm:p-8">
+                <div className="relative">
+                  <QRScanner onScan={handleScan} />
                   {verifying && (
                     <div className="absolute inset-0 bg-white flex flex-col items-center justify-center gap-4 z-50">
                       <Zap className="text-saffron animate-bounce" size={40} />
@@ -248,7 +251,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
             </>
           ) : (
             /* Verification Result (ALLOWED Modal) */
-            <div className={`p-6 sm:p-10 text-center ${verifyResult.success ? 'bg-white' : 'bg-red-50'}`}>
+            <div className={`flex-1 overflow-y-auto p-6 sm:p-10 text-center ${verifyResult.success ? 'bg-white' : 'bg-red-50'}`}>
               <div className="flex justify-center mb-8">
                 {verifyResult.success ? (
                   <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center shadow-lg shadow-green-100">

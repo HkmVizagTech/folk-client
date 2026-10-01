@@ -25,17 +25,31 @@ import { db } from '../lib/firebase';
 // Postgres-backed shim, NOT the real Firebase SDK: `db` is only a marker
 // object now, so firebase/firestore helpers throw on it - and useFirestore
 // swallows that, leaving the screen silently empty instead of erroring.
-import { 
-  collection, 
-  query, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp 
+import {
+  collection,
+  query,
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp
 } from '../lib/pgstore';
 import Card from '../components/ui/Card';
+
+// The same `level` values Profile.jsx offers. Both pages write the one
+// users.level column, so the numeric "Auth Level" this page used to write
+// ('1'-'5') meant a devotee levelled here and a devotee levelled on Profile
+// could not be compared at all.
+const LEVELS = ['FOLK New', 'FOLK Enhanced', 'Pre-Initiated', 'Initiated'];
+
+// Rows levelled before this page switched still hold '1'-'5'; "Level 3" reads
+// right for those and "Pre-Initiated" for the rest.
+const levelLabel = (level) => {
+  const value = String(level ?? '').trim();
+  if (!value) return LEVELS[0];
+  return /^\d+$/.test(value) ? `Level ${value}` : value;
+};
 
 const Devotees = () => {
   const { user: currentUser } = useAuth();
@@ -53,7 +67,7 @@ const Devotees = () => {
     phone: '',
     address: '',
     role: 'devotee',
-    level: '1'
+    level: LEVELS[0]
   });
   const [qrModalDevotee, setQrModalDevotee] = useState(null);
   const [roleFilter, setRoleFilter] = useState('All');
@@ -136,8 +150,17 @@ const Devotees = () => {
         });
       } else {
         const qrToken = `FOLK-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-        await addDoc(collection(db, 'users'), {
+        // A staff-entered record for someone who has not signed in yet. addDoc
+        // minted a random id and no `uid` field at all, so the QR scan's UID
+        // fallback, guide assignment and every other uid-keyed lookup simply
+        // never found these people. The id is self-assigned here and stored as
+        // `uid` too, so doc.id === doc.uid like every signed-up profile - it is
+        // not a Firebase Auth uid, and the `manual_` prefix keeps it from ever
+        // colliding with one, so this person still cannot sign in as this row.
+        const uid = `manual_${globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`}`;
+        await setDoc(doc(db, 'users', uid), {
           ...payload,
+          uid,
           role: isAdmin ? formData.role : 'devotee',
           qrToken,
           createdAt: serverTimestamp(),
@@ -173,7 +196,7 @@ const Devotees = () => {
       phone: devotee.phone || '',
       address: devotee.address || '',
       role: devotee.role || 'devotee',
-      level: devotee.level || '1'
+      level: devotee.level || LEVELS[0]
     });
     setIsModalOpen(true);
   };
@@ -182,7 +205,7 @@ const Devotees = () => {
     setIsModalOpen(false);
     setEditingDevotee(null);
     setFormError('');
-    setFormData({ name: '', phone: '', address: '', role: 'devotee', level: '1' });
+    setFormData({ name: '', phone: '', address: '', role: 'devotee', level: LEVELS[0] });
   };
 
   // An empty search box must mean "everyone". The old condition required a
@@ -364,7 +387,7 @@ const Devotees = () => {
                   <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
                     <div className="flex items-center gap-2 text-purple-600 bg-purple-50 px-3 py-1 rounded-lg">
                       <Shield size={14} />
-                      <span>Level {devotee.level || '1'}</span>
+                      <span>{levelLabel(devotee.level)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-400">
                       <MapPin size={14} />
@@ -489,13 +512,19 @@ const Devotees = () => {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 ml-1">Auth Level</label>
-                    <select 
+                    <label className="text-sm font-semibold text-gray-700 ml-1">Level</label>
+                    <select
                       value={formData.level}
                       onChange={(e) => setFormData({...formData, level: e.target.value})}
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-saffron outline-none transition-all appearance-none"
                     >
-                      {[1, 2, 3, 4, 5].map(l => <option key={l} value={l}>Level {l}</option>)}
+                      {/* Editing a devotee still on the old numeric scale would
+                          otherwise open a blank select, and saving would quietly
+                          re-level them to the first label. */}
+                      {formData.level && !LEVELS.includes(formData.level) && (
+                        <option value={formData.level}>{levelLabel(formData.level)}</option>
+                      )}
+                      {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                     </select>
                   </div>
                 </div>

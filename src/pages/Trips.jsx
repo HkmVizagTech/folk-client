@@ -570,9 +570,15 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
   // to their own. Public visitors read none and simply see full capacity.
   const registrationsQuery = React.useMemo(() => {
     if (isStaff) return []
-    return [where('userId', '==', user?.uid || 'guest')]
+    return [where('userId', '==', user?.uid || '__none__')]
   }, [isStaff, user?.uid])
-  const { data: registrations } = useFirestore('trip_registrations', registrationsQuery)
+  // "Public visitors read none" was the intent all along, but the query still
+  // went out as `userId == guest` and was refused on every poll. A null
+  // collection turns the subscription off instead; signing in switches it on.
+  const { data: registrations } = useFirestore(
+    user?.uid ? 'trip_registrations' : null,
+    registrationsQuery
+  )
 
   const [tab, setTab] = useState('upcoming')
   const [search, setSearch] = useState('')
