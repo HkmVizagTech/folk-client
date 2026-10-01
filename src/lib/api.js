@@ -48,7 +48,11 @@ export const callApi = async (functionName, data = {}) => {
         `The backend rejected ${functionName} (HTTP ${response.status}). ` +
         `${response.status === 405
           ? 'The API URL is pointing at a static site — check VITE_BACKEND_URL.'
-          : 'The server is running an outdated build without this route — redeploy the backend.'}`
+          // A 404 cuts both ways and the direction matters: either the server
+          // predates this route, or THIS PAGE is a stale bundle still calling a
+          // route the server has since dropped. Say both, because blaming the
+          // backend alone sends people redeploying the wrong half.
+          : 'Either the server predates this route, or this page is a stale build calling a route that no longer exists. Redeploy whichever side is behind — and on a phone, reload once more to clear the cached app.'}`
       );
     }
     throw new Error(errorData.error?.message || `API Error: ${response.status} ${response.statusText}`);
