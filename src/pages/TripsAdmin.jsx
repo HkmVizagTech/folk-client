@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Bus, Plus, X, Loader2, Edit3, Copy, Trash2, ExternalLink, Search, Download,
@@ -15,6 +15,9 @@ import { auth, db } from '../lib/firebase'
 import {
   collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp
 } from '../lib/pgstore'
+import {
+  uploadImage, deleteUploadedImage, getUploadConfig, isUploadedUrl
+} from '../lib/uploads'
 
 /* ------------------------------------------------------------------ *
  *  Constants & small helpers
@@ -23,19 +26,32 @@ import {
 const TRIP_STATUSES = ['draft', 'upcoming', 'ongoing', 'completed', 'cancelled']
 const REG_STATUSES = ['pending', 'confirmed', 'waitlisted', 'cancelled']
 
-// Firestore hard-caps a document at 1 MiB. Cover + gallery images live inline
-// as data URIs in the same doc, so a fat image is a real save failure.
-const DOC_LIMIT_BYTES = 1048576
-const DOC_WARN_BYTES = 700 * 1024
-const DOC_BLOCK_BYTES = 1000 * 1024
+// Images now live in the R2 bucket and the trip document only ever holds their
+// URLs, so there is no document-size ceiling to police here any more.
+const GALLERY_MAX = 3
 
 const MODAL_SECTIONS = [
   { key: 'basics', label: 'Basics', icon: FileText },
   { key: 'dates', label: 'Dates & Pricing', icon: Calendar },
   { key: 'media', label: 'Media', icon: ImageIcon },
   { key: 'itinerary', label: 'Itinerary', icon: ListOrdered },
+  { key: 'locations', label: 'Locations', icon: MapPin },
   { key: 'inclusions', label: 'Inclusions', icon: Layers },
 ]
+
+// What the upload helper's onProgress phases are called in the UI.
+const UPLOAD_PHASE_LABEL = {
+  compressing: 'Compressing…',
+  requesting: 'Preparing…',
+  uploading: 'Uploading…',
+}
+
+// Stable key for a location row — React keys and reordering both depend on it.
+const newLocationId = () => {
+  const uuid = globalThis.crypto?.randomUUID?.()
+  if (uuid) return uuid
+  return `loc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
 
 const EMPTY_FORM = {
   slug: '',
@@ -59,6 +75,8 @@ const EMPTY_FORM = {
   cashPaymentEnabled: false,
   highlights: [],
   itinerary: [],
+  // The places this yatra visits — each with its own photo and a line or two.
+  locations: [],
   inclusions: [],
   exclusions: [],
   meetingPoint: '',
@@ -114,48 +132,7 @@ const formatStamp = (ts) => {
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-const byteSize = (str) => {
-  try {
-    return new Blob([str]).size
-  } catch {
-    return String(str || '').length
-  }
-}
-
-const formatBytes = (bytes) => {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
-}
-
-// Events.jsx canvas-resize pattern — this app has no storage bucket, every
-// image is an inline data URI, so it must be shrunk before it ever hits state.
-const resizeToDataUri = (file, maxWidth, quality) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error('Could not read that file'))
-    reader.onload = (event) => {
-      const img = new Image()
-      img.onerror = () => reject(new Error('That file is not a readable image'))
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        let width = img.width
-        let height = img.height
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width)
-          width = maxWidth
-        }
-        canvas.width = width
-        canvas.height = height
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
-        resolve(canvas.toDataURL('image/jpeg', quality))
-      }
-      img.src = event.target.result
-    }
-    reader.readAsDataURL(file)
-  })
-
-const downloadCsv = (headers, rows, filename) => {
+const downloadCsv =(headers, rows, filename) => {
   const csv = [headers, ...rows]
     .map((r) => r.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
     .join('\n')
@@ -262,6 +239,26 @@ const Field = ({ label, error, hint, children, className = '' }) => (
     )}
   </div>
 )
+
+/* Per-image upload state. One component so the cover, the gallery and every
+ * location row report progress and failure in exactly the same words. */
+const UploadStatus = ({ phase, error, className = '' }) => {
+  if (!phase && !error) return null
+  return (
+    <div className={`user-text-box ${className}`}>
+      {phase && (
+        <p className="text-[10px] font-bold uppercase tracking-label text-saffron-dark flex items-center gap-1.5">
+          <Loader2 size={12} className="animate-spin shrink-0" /> {UPLOAD_PHASE_LABEL[phase] || 'Working…'}
+        </p>
+      )}
+      {!phase && error && (
+        <p className="text-[11px] font-bold text-red-500 flex items-start gap-1.5 user-text-box">
+          <AlertTriangle size={12} className="shrink-0 mt-0.5" /> <span className="user-text">{error}</span>
+        </p>
+      )}
+    </div>
+  )
+}
 
 const StringListEditor = ({ label, hint, items, onChange, placeholder }) => {
   const [draft, setDraft] = useState('')
@@ -520,8 +517,82 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
   const [section, setSection] = useState('basics')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [imageError, setImageError] = useState('')
   const [showErrors, setShowErrors] = useState(false)
+
+  /* ---------------- image uploads (R2, via src/lib/uploads.js) ---------------- *
+   * Every slot that can hold an image has a key: 'cover', 'gallery', or
+   * `loc:<row id>`. Both maps are keyed by it, so two slots can be uploading at
+   * once without their progress or their error message bleeding together. */
+  const [uploads, setUploads] = useState({})            // key -> phase string
+  const [uploadErrors, setUploadErrors] = useState({})  // key -> message
+  const [galleryQueue, setGalleryQueue] = useState(null) // { index, total }
+  const [uploadConfig, setUploadConfig] = useState(null)
+
+  // Ask the server once whether R2 is wired up, so the UI can say so up front
+  // rather than letting staff pick a file and fail at the last step.
+  useEffect(() => {
+    let alive = true
+    getUploadConfig()
+      .then((cfg) => { if (alive) setUploadConfig(cfg || { configured: false }) })
+      .catch(() => { if (alive) setUploadConfig({ configured: false }) })
+    return () => { alive = false }
+  }, [])
+
+  // Treat "not answered yet" as fine — only a definite `false` disables the
+  // pickers, so a slow config call never blocks a staff member mid-edit.
+  const uploadsConfigured = uploadConfig ? uploadConfig.configured !== false : true
+  // A multi-file gallery pick uploads one image at a time, so the `gallery`
+  // phase briefly clears between files — the queue keeps "busy" honest across
+  // that gap rather than letting Save flicker back on mid-batch.
+  const uploadsBusy = Object.keys(uploads).length > 0 || !!galleryQueue
+  const galleryBusy = !!uploads.gallery || !!galleryQueue
+
+  const setUploadPhase = useCallback((key, phase) => {
+    setUploads((prev) => {
+      if (!phase) {
+        if (!(key in prev)) return prev
+        const next = { ...prev }
+        delete next[key]
+        return next
+      }
+      return { ...prev, [key]: phase }
+    })
+  }, [])
+
+  // Compress → presign → PUT. Resolves with the stored URL, or null once the
+  // failure has been recorded against this slot.
+  const runUpload = useCallback(async (key, file, opts) => {
+    setUploadErrors((prev) => ({ ...prev, [key]: '' }))
+    try {
+      const url = await uploadImage(file, {
+        ...opts,
+        onProgress: (phase) => setUploadPhase(key, phase === 'done' ? null : phase),
+      })
+      return url
+    } catch (err) {
+      console.error('Image upload failed:', err)
+      setUploadErrors((prev) => ({ ...prev, [key]: err?.message || 'That image could not be uploaded' }))
+      return null
+    } finally {
+      setUploadPhase(key, null)
+    }
+  }, [setUploadPhase])
+
+  /* Best-effort bucket cleanup when staff remove or replace an image.
+   * Two guards: a legacy inline `data:` URI has no bucket object behind it, and
+   * a duplicated trip shares its image URLs with the original — deleting the
+   * object would blank the picture on a trip nobody was editing. */
+  const discardImage = useCallback((value) => {
+    if (!value || !isUploadedUrl(value)) return
+    const usedElsewhere = (trips || []).some((t) => {
+      if (t.id === editingId) return false
+      if (t.coverImage === value) return true
+      if (Array.isArray(t.gallery) && t.gallery.includes(value)) return true
+      if (Array.isArray(t.locations) && t.locations.some((l) => l?.image === value)) return true
+      return false
+    })
+    if (!usedElsewhere) deleteUploadedImage(value)
+  }, [trips, editingId])
 
   const setField = useCallback((key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -533,7 +604,9 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     setSlugTouched(false)
     setSection('basics')
     setSaveError('')
-    setImageError('')
+    setUploadErrors({})
+    setGalleryQueue(null)
+    setOpenLocation(null)
     setShowErrors(false)
     setModalOpen(true)
   }
@@ -544,8 +617,10 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     subtitle: trip.subtitle || '',
     location: trip.location || '',
     description: trip.description || '',
+    // Either an https URL (uploaded to R2) or a legacy inline data: URI. Both
+    // are valid <img src> values, so whatever is stored is simply rendered.
     coverImage: trip.coverImage || '',
-    gallery: Array.isArray(trip.gallery) ? trip.gallery.slice(0, 3) : [],
+    gallery: Array.isArray(trip.gallery) ? trip.gallery.slice(0, GALLERY_MAX) : [],
     startDate: trip.startDate || '',
     endDate: trip.endDate || '',
     durationLabel: trip.durationLabel || '',
@@ -566,6 +641,16 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
           details: d?.details || '',
         }))
       : [],
+    // A trip saved before locations existed simply has none. Rows keep the id
+    // they were stored with; anything missing one gets a fresh stable id.
+    locations: Array.isArray(trip.locations)
+      ? trip.locations.map((l) => ({
+          id: String(l?.id || '') || newLocationId(),
+          name: l?.name || '',
+          description: l?.description || '',
+          image: l?.image || '',
+        }))
+      : [],
     inclusions: Array.isArray(trip.inclusions) ? trip.inclusions : [],
     exclusions: Array.isArray(trip.exclusions) ? trip.exclusions : [],
     meetingPoint: trip.meetingPoint || '',
@@ -578,7 +663,9 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     setSlugTouched(true)
     setSection('basics')
     setSaveError('')
-    setImageError('')
+    setUploadErrors({})
+    setGalleryQueue(null)
+    setOpenLocation(null)
     setShowErrors(false)
     setModalOpen(true)
   }
@@ -605,13 +692,15 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     setSlugTouched(true)
     setSection('basics')
     setSaveError('')
-    setImageError('')
+    setUploadErrors({})
+    setGalleryQueue(null)
+    setOpenLocation(null)
     setShowErrors(false)
     setModalOpen(true)
   }
 
   const closeModal = () => {
-    if (saving) return
+    if (saving || uploadsBusy) return
     setModalOpen(false)
   }
 
@@ -623,50 +712,64 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     }))
   }
 
-  /* ---------------- images ---------------- */
-  const [uploading, setUploading] = useState('')
+  /* ---------------- images ---------------- *
+   * The file never reaches our API: uploadImage() compresses it, gets a
+   * presigned URL and PUTs the bytes straight to R2. Only the returned public
+   * URL goes into the form, so the saved document stays tiny. */
 
   const handleCoverUpload = async (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    setImageError('')
-    setUploading('cover')
-    try {
-      const uri = await resizeToDataUri(file, 1200, 0.7)
-      setField('coverImage', uri)
-    } catch (err) {
-      setImageError(err.message || 'Could not process that image')
-    } finally {
-      setUploading('')
-    }
+    const previous = form.coverImage
+    const url = await runUpload('cover', file, { folder: 'covers', maxWidth: 1600, quality: 0.82 })
+    if (!url) return
+    setField('coverImage', url)
+    // Only once the replacement is safely stored is the old one let go.
+    if (previous && previous !== url) discardImage(previous)
+  }
+
+  const removeCover = () => {
+    const previous = form.coverImage
+    setField('coverImage', '')
+    setUploadErrors((prev) => ({ ...prev, cover: '' }))
+    discardImage(previous)
   }
 
   const handleGalleryUpload = async (e) => {
     const files = Array.from(e.target.files || [])
     e.target.value = ''
     if (files.length === 0) return
-    setImageError('')
-    const room = 3 - (form.gallery || []).length
+    const room = GALLERY_MAX - (form.gallery || []).length
     if (room <= 0) {
-      setImageError('Gallery already holds the maximum of 3 images')
+      setUploadErrors((prev) => ({ ...prev, gallery: `The gallery already holds the maximum of ${GALLERY_MAX} images` }))
       return
     }
-    setUploading('gallery')
-    try {
-      const picked = files.slice(0, room)
-      const uris = []
-      for (const file of picked) {
-        // eslint-disable-next-line no-await-in-loop
-        uris.push(await resizeToDataUri(file, 800, 0.55))
-      }
-      setForm((prev) => ({ ...prev, gallery: [...(prev.gallery || []), ...uris].slice(0, 3) }))
-      if (files.length > room) setImageError(`Only ${room} more image${room === 1 ? '' : 's'} could be added (max 3)`)
-    } catch (err) {
-      setImageError(err.message || 'Could not process those images')
-    } finally {
-      setUploading('')
+    const picked = files.slice(0, room)
+    setUploadErrors((prev) => ({ ...prev, gallery: '' }))
+    // One at a time so a slow connection shows honest progress rather than
+    // three silent parallel uploads.
+    for (let i = 0; i < picked.length; i += 1) {
+      setGalleryQueue({ index: i + 1, total: picked.length })
+      // eslint-disable-next-line no-await-in-loop
+      const url = await runUpload('gallery', picked[i], { folder: 'gallery', maxWidth: 1200, quality: 0.8 })
+      if (!url) { setGalleryQueue(null); return }   // runUpload already recorded why
+      setForm((prev) => ({ ...prev, gallery: [...(prev.gallery || []), url].slice(0, GALLERY_MAX) }))
     }
+    setGalleryQueue(null)
+    if (files.length > room) {
+      setUploadErrors((prev) => ({
+        ...prev,
+        gallery: `Only ${room} more image${room === 1 ? '' : 's'} could be added (max ${GALLERY_MAX})`,
+      }))
+    }
+  }
+
+  const removeGalleryImage = (index) => {
+    const previous = (form.gallery || [])[index]
+    setForm((prev) => ({ ...prev, gallery: (prev.gallery || []).filter((_, i) => i !== index) }))
+    setUploadErrors((prev) => ({ ...prev, gallery: '' }))
+    discardImage(previous)
   }
 
   /* ---------------- itinerary builder ---------------- */
@@ -701,7 +804,83 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     })
   }
 
-  /* ---------------- validation + size ---------------- */
+  /* ---------------- locations builder ---------------- *
+   * The places a yatra visits — Govardhan Hill, Radha Kund, Keshi Ghat — each
+   * with a photo and a line or two. Rows carry a generated id so React keys
+   * and reordering survive every edit; the editor shows one row open at a
+   * time so a twenty-stop yatra is still navigable. */
+  const [openLocation, setOpenLocation] = useState(null)
+
+  const addLocation = () => {
+    const row = { id: newLocationId(), name: '', description: '', image: '' }
+    setForm((prev) => ({ ...prev, locations: [...(prev.locations || []), row] }))
+    setOpenLocation(row.id)
+  }
+
+  const updateLocation = (index, key, value) => {
+    setForm((prev) => {
+      const next = [...(prev.locations || [])]
+      if (!next[index]) return prev
+      next[index] = { ...next[index], [key]: value }
+      return { ...prev, locations: next }
+    })
+  }
+
+  const removeLocation = (index) => {
+    const row = (form.locations || [])[index]
+    setForm((prev) => ({ ...prev, locations: (prev.locations || []).filter((_, i) => i !== index) }))
+    if (row?.id) {
+      setOpenLocation((cur) => (cur === row.id ? null : cur))
+      setUploadErrors((prev) => {
+        const next = { ...prev }
+        delete next[`loc:${row.id}`]
+        return next
+      })
+    }
+    discardImage(row?.image)
+  }
+
+  const moveLocation = (index, delta) => {
+    setForm((prev) => {
+      const next = [...(prev.locations || [])]
+      const target = index + delta
+      if (target < 0 || target >= next.length) return prev
+      const tmp = next[index]
+      next[index] = next[target]
+      next[target] = tmp
+      return { ...prev, locations: next }
+    })
+  }
+
+  const handleLocationUpload = async (index, e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const row = (form.locations || [])[index]
+    if (!row) return
+    const previous = row.image
+    const url = await runUpload(`loc:${row.id}`, file, { folder: 'locations', maxWidth: 1000, quality: 0.8 })
+    if (!url) return
+    // Find the row by id, not by index — it may have been reordered mid-upload.
+    setForm((prev) => ({
+      ...prev,
+      locations: (prev.locations || []).map((l) => (l.id === row.id ? { ...l, image: url } : l)),
+    }))
+    if (previous && previous !== url) discardImage(previous)
+  }
+
+  const removeLocationImage = (index) => {
+    const row = (form.locations || [])[index]
+    if (!row) return
+    setForm((prev) => ({
+      ...prev,
+      locations: (prev.locations || []).map((l) => (l.id === row.id ? { ...l, image: '' } : l)),
+    }))
+    setUploadErrors((prev) => ({ ...prev, [`loc:${row.id}`]: '' }))
+    discardImage(row.image)
+  }
+
+  /* ---------------- validation ---------------- */
   const buildPayload = useCallback((f) => ({
     slug: (f.slug || '').trim(),
     title: (f.title || '').trim(),
@@ -709,7 +888,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     location: (f.location || '').trim(),
     description: f.description || '',
     coverImage: f.coverImage || '',
-    gallery: (f.gallery || []).slice(0, 3),
+    gallery: (f.gallery || []).slice(0, GALLERY_MAX),
     startDate: f.startDate || '',
     endDate: f.endDate || '',
     durationLabel: (f.durationLabel || '').trim(),
@@ -724,21 +903,21 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     itinerary: (f.itinerary || [])
       .map((d, i) => ({ day: toInt(d.day) || i + 1, title: String(d.title || '').trim(), details: String(d.details || '').trim() }))
       .filter((d) => d.title || d.details),
+    // A row that is completely blank is dropped; anything with a name, a line
+    // of description or a photo is kept, id and all.
+    locations: (f.locations || [])
+      .map((l, i) => ({
+        id: String(l?.id || '') || `loc-${i + 1}`,
+        name: String(l?.name || '').trim(),
+        description: String(l?.description || '').trim(),
+        image: String(l?.image || ''),
+      }))
+      .filter((l) => l.name || l.description || l.image),
     inclusions: (f.inclusions || []).map((s) => String(s).trim()).filter(Boolean),
     exclusions: (f.exclusions || []).map((s) => String(s).trim()).filter(Boolean),
     meetingPoint: (f.meetingPoint || '').trim(),
     contactPhone: (f.contactPhone || '').trim(),
   }), [])
-
-  const docBytes = useMemo(() => {
-    // Timestamps + createdBy are small; measuring the payload is a fair proxy
-    // for the stored doc, and the images dominate it anyway.
-    try {
-      return byteSize(JSON.stringify(buildPayload(form)))
-    } catch {
-      return 0
-    }
-  }, [form, buildPayload])
 
   const errors = useMemo(() => {
     const e = {}
@@ -765,17 +944,15 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       e.advanceAmount = 'Advance cannot exceed the full price'
     }
     if (form.capacity !== '' && toInt(form.capacity) < 0) e.capacity = 'Capacity cannot be negative'
-    if (docBytes > DOC_BLOCK_BYTES) {
-      e.media = `This trip is ${formatBytes(docBytes)} — Firestore rejects anything over 1 MB. Remove or re-upload an image.`
-    }
     return e
-  }, [form, trips, editingId, docBytes])
+  }, [form, trips, editingId])
 
   const sectionErrors = useMemo(() => ({
     basics: !!(errors.title || errors.slug),
     dates: !!(errors.startDate || errors.endDate || errors.price || errors.advanceAmount || errors.capacity),
-    media: !!errors.media,
+    media: false,
     itinerary: false,
+    locations: false,
     inclusions: false,
   }), [errors])
 
@@ -785,6 +962,12 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     e.preventDefault()
     setShowErrors(true)
     setSaveError('')
+    // Saving mid-upload would store a trip missing the picture that is still
+    // on its way to the bucket.
+    if (uploadsBusy) {
+      setSaveError('An image is still uploading — give it a moment, then save.')
+      return
+    }
     if (hasErrors) {
       const firstBad = MODAL_SECTIONS.find((s) => sectionErrors[s.key])
       if (firstBad) setSection(firstBad.key)
@@ -1209,6 +1392,21 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     </div>
   )
 
+  /* Said up front, in both image sections, so nobody picks a file only to be
+   * told at the last step that there is nowhere to put it. */
+  const uploadsNotice = uploadConfig && uploadConfig.configured === false ? (
+    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-3 user-text-box">
+      <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0 text-[11px] font-medium leading-relaxed">
+        <p className="font-bold uppercase tracking-label text-[10px] mb-1">Image uploads are not configured yet</p>
+        <p>
+          The server has no image storage set up, so new pictures cannot be added. Everything else on this trip
+          saves as normal, and any image already on it keeps showing.
+        </p>
+      </div>
+    </div>
+  ) : null
+
   /* ---------------- loading ---------------- */
   if (tripsLoading && (trips || []).length === 0) {
     return (
@@ -1316,6 +1514,9 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 {sortedTrips.map((trip) => {
                   const stats = regStatsByTrip.get(trip.id) || { count: 0, seats: 0 }
                   const busy = tripBusy === trip.id
+                  // Places this yatra visits — blank rows never reach the doc,
+                  // but an older trip has no `locations` field at all.
+                  const locationCount = Array.isArray(trip.locations) ? trip.locations.length : 0
                   return (
                     <motion.div key={trip.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}>
                       <Card hover={false} className="p-4 sm:p-5 border-none shadow-premium bg-white rounded-xl sm:rounded-xl">
@@ -1365,6 +1566,11 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                               {trip.location && <span className="flex items-center gap-1.5 min-w-0 max-w-full user-text-box"><MapPin size={12} className="text-saffron shrink-0" /> <span className="user-text">{trip.location}</span></span>}
                               <span className="flex items-center gap-1.5 whitespace-nowrap"><IndianRupee size={12} className="text-emerald-500 shrink-0" /> {formatINR(trip.price)}</span>
                               <span className="flex items-center gap-1.5"><Users size={12} className="text-celestial-dark shrink-0" /> {stats.count} registration{stats.count === 1 ? '' : 's'}{trip.capacity ? ` · ${stats.seats}/${trip.capacity} seats` : ''}</span>
+                              {locationCount > 0 && (
+                                <span className="flex items-center gap-1.5 whitespace-nowrap">
+                                  <MapPin size={12} className="text-gold shrink-0" /> {locationCount} place{locationCount === 1 ? '' : 's'}
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -2089,61 +2295,52 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                 {/* ---------- MEDIA ---------- */}
                 {section === 'media' && (
                   <div className="space-y-5">
-                    <div className={`p-4 rounded-2xl border font-bold text-[11px] flex items-start gap-3 ${
-                      docBytes > DOC_BLOCK_BYTES
-                        ? 'bg-red-50 border-red-200 text-red-600'
-                        : docBytes > DOC_WARN_BYTES
-                          ? 'bg-amber-50 border-amber-200 text-amber-700'
-                          : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                    }`}>
-                      {docBytes > DOC_WARN_BYTES ? <AlertTriangle size={16} className="shrink-0 mt-0.5" /> : <CheckCircle2 size={16} className="shrink-0 mt-0.5" />}
-                      <div className="flex-1 min-w-0">
-                        <p>Estimated document size: {formatBytes(docBytes)} of the 1 MB Firestore limit</p>
-                        <div className="w-full h-1.5 bg-white rounded-full mt-2 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              docBytes > DOC_BLOCK_BYTES ? 'bg-red-500' : docBytes > DOC_WARN_BYTES ? 'bg-amber-500' : 'bg-emerald-500'
-                            }`}
-                            style={{ width: `${Math.min(100, Math.round((docBytes / DOC_LIMIT_BYTES) * 100))}%` }}
-                          />
-                        </div>
-                        {docBytes > DOC_WARN_BYTES && (
-                          <p className="mt-2 font-medium">
-                            Images are stored inline in this document. Drop a gallery image or re-upload a smaller cover to get back under the limit.
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                    {uploadsNotice}
 
-                    {imageError && (
-                      <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold flex items-start gap-2 user-text-box">
-                        <AlertTriangle size={13} className="shrink-0" /> <span className="user-text">{imageError}</span>
-                      </div>
-                    )}
-
-                    <Field label="Cover Image" hint="resized to 1200px wide" error={showErrors ? errors.media : ''}>
+                    <Field
+                      label="Cover Image"
+                      hint="wide shot · shown on the card and the trip page"
+                      error={!uploads.cover ? uploadErrors.cover : ''}
+                    >
                       <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="w-full sm:w-52 h-32 rounded-2xl overflow-hidden bg-saffron flex items-center justify-center shrink-0">
+                        <div className="w-full sm:w-52 h-32 rounded-2xl overflow-hidden bg-cream/40 border border-saffron/10 flex items-center justify-center shrink-0">
                           {form.coverImage ? (
                             <img src={form.coverImage} alt="Trip cover" className="w-full h-full object-cover" />
                           ) : (
                             <ImageIcon size={30} className="text-saffron/30" />
                           )}
                         </div>
-                        <div className="flex-1 space-y-2">
-                          <label className="flex items-center gap-3 cursor-pointer w-full p-4 bg-cream/30 border-2 border-dashed border-saffron/20 rounded-2xl hover:bg-cream/50 transition-all min-h-[44px]">
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <label
+                            className={`flex items-center gap-3 w-full p-4 border-2 border-dashed rounded-2xl transition-all min-h-[44px] ${
+                              uploads.cover || !uploadsConfigured
+                                ? 'bg-paper border-line cursor-not-allowed opacity-70'
+                                : 'bg-cream/30 border-saffron/20 hover:bg-cream/50 cursor-pointer'
+                            }`}
+                          >
                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                              {uploading === 'cover' ? <Loader2 className="animate-spin text-saffron" size={18} /> : <ImageIcon className="text-ink-muted" size={18} />}
+                              {uploads.cover
+                                ? <Loader2 className="animate-spin text-saffron" size={18} />
+                                : <ImageIcon className="text-ink-muted" size={18} />}
                             </div>
                             <span className="text-[10px] font-bold text-ink-muted uppercase tracking-label">
-                              {uploading === 'cover' ? 'Processing…' : form.coverImage ? 'Replace cover' : 'Choose a cover'}
+                              {uploads.cover
+                                ? (UPLOAD_PHASE_LABEL[uploads.cover] || 'Working…')
+                                : form.coverImage ? 'Replace cover' : 'Choose a cover'}
                             </span>
-                            <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={!!uploads.cover || !uploadsConfigured}
+                              onChange={handleCoverUpload}
+                              className="hidden"
+                            />
                           </label>
-                          {form.coverImage && (
+                          {form.coverImage && !uploads.cover && (
                             <button
                               type="button"
-                              onClick={() => setField('coverImage', '')}
+                              onClick={removeCover}
+                              aria-label="Remove the cover image"
                               className="min-h-[44px] px-4 bg-red-50 text-red-500 text-[10px] font-bold uppercase tracking-label rounded-xl hover:bg-red-100 transition-colors"
                             >
                               Remove cover
@@ -2153,28 +2350,54 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                       </div>
                     </Field>
 
-                    <Field label="Gallery" hint={`${(form.gallery || []).length}/3 · resized to 800px`}>
-                      <div className="grid grid-cols-3 gap-3">
+                    <Field
+                      label="Gallery"
+                      hint={`${(form.gallery || []).length}/${GALLERY_MAX} images`}
+                      error={!galleryBusy ? uploadErrors.gallery : ''}
+                    >
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {(form.gallery || []).map((src, i) => (
-                          <div key={i} className="relative h-28 rounded-2xl overflow-hidden bg-cream/40">
+                          <div key={`${src}-${i}`} className="relative h-28 rounded-2xl overflow-hidden bg-cream/40 border border-saffron/10">
                             <img src={src} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" />
                             <button
                               type="button"
                               aria-label={`Remove gallery image ${i + 1}`}
-                              onClick={() => setField('gallery', form.gallery.filter((_, idx) => idx !== i))}
+                              onClick={() => removeGalleryImage(i)}
                               className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-ink/70 text-white flex items-center justify-center hover:bg-red-500 transition-colors"
                             >
                               <X size={14} />
                             </button>
                           </div>
                         ))}
-                        {(form.gallery || []).length < 3 && (
-                          <label className="h-28 cursor-pointer bg-cream/30 border-2 border-dashed border-saffron/20 rounded-2xl hover:bg-cream/50 transition-all flex flex-col items-center justify-center gap-1">
-                            {uploading === 'gallery'
+                        {(form.gallery || []).length < GALLERY_MAX && (
+                          <label
+                            className={`h-28 border-2 border-dashed rounded-2xl transition-all flex flex-col items-center justify-center gap-1 text-center px-2 ${
+                              galleryBusy || !uploadsConfigured
+                                ? 'bg-paper border-line cursor-not-allowed opacity-70'
+                                : 'bg-cream/30 border-saffron/20 hover:bg-cream/50 cursor-pointer'
+                            }`}
+                          >
+                            {galleryBusy
                               ? <Loader2 className="animate-spin text-saffron" size={18} />
                               : <Plus className="text-saffron/50" size={20} />}
-                            <span className="text-[9px] font-bold text-ink-muted uppercase tracking-label">Add</span>
-                            <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
+                            <span className="text-[9px] font-bold text-ink-muted uppercase tracking-label leading-tight">
+                              {galleryBusy
+                                ? (UPLOAD_PHASE_LABEL[uploads.gallery] || 'Uploading…')
+                                : 'Add'}
+                            </span>
+                            {galleryBusy && galleryQueue && galleryQueue.total > 1 && (
+                              <span className="text-[9px] font-bold text-ink-muted/70">
+                                {galleryQueue.index} of {galleryQueue.total}
+                              </span>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              disabled={galleryBusy || !uploadsConfigured}
+                              onChange={handleGalleryUpload}
+                              className="hidden"
+                            />
                           </label>
                         )}
                       </div>
@@ -2256,6 +2479,187 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   </div>
                 )}
 
+                {/* ---------- LOCATIONS ---------- */}
+                {section === 'locations' && (
+                  <div className="space-y-4">
+                    {uploadsNotice}
+
+                    <div className="p-4 rounded-2xl bg-cream/40 border border-saffron/10 text-[11px] text-ink-muted font-medium leading-relaxed">
+                      The places this yatra visits — Govardhan Hill, Radha Kund, Keshi Ghat — each with its own
+                      photo and a line or two about it. The arrows set the order devotees see them in.
+                    </div>
+
+                    {(form.locations || []).length === 0 ? (
+                      <div className="p-8 text-center bg-cream/30 rounded-2xl border border-dashed border-saffron/20">
+                        <MapPin className="mx-auto text-saffron/30 mb-3" size={30} />
+                        <p className="text-ink-muted text-xs">No places added yet — add the first stop of this yatra.</p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[10px] font-bold uppercase tracking-label text-ink-muted">
+                          {(form.locations || []).length} place{(form.locations || []).length === 1 ? '' : 's'}
+                        </p>
+                        {openLocation && (
+                          <button
+                            type="button"
+                            onClick={() => setOpenLocation(null)}
+                            className="min-h-[44px] px-3 rounded-lg text-[10px] font-bold uppercase tracking-label text-ink-muted hover:text-saffron hover:bg-cream/50 transition-colors shrink-0"
+                          >
+                            Collapse all
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* One row open at a time, so a twenty-stop yatra is still
+                        a list you can scan rather than a wall of inputs. */}
+                    <div className="space-y-3">
+                      {(form.locations || []).map((row, i) => {
+                        const slotKey = `loc:${row.id}`
+                        const phase = uploads[slotKey]
+                        const error = uploadErrors[slotKey]
+                        const expanded = openLocation === row.id
+                        const rowName = row.name || `place ${i + 1}`
+                        return (
+                          <div key={row.id} className="rounded-2xl bg-cream/25 border border-saffron/10 overflow-hidden">
+                            <div className="flex items-center gap-2 p-2.5">
+                              <button
+                                type="button"
+                                aria-expanded={expanded}
+                                aria-label={`${expanded ? 'Collapse' : 'Edit'} ${rowName}`}
+                                onClick={() => setOpenLocation(expanded ? null : row.id)}
+                                className="flex-1 min-w-0 min-h-[44px] flex items-center gap-2.5 text-left px-1 rounded-xl hover:bg-white/60 transition-colors"
+                              >
+                                <span className="w-9 h-9 rounded-xl overflow-hidden bg-white border border-saffron/10 flex items-center justify-center shrink-0">
+                                  {row.image ? (
+                                    <img src={row.image} alt="" className="w-full h-full object-cover" />
+                                  ) : phase ? (
+                                    <Loader2 size={14} className="animate-spin text-saffron" />
+                                  ) : (
+                                    <MapPin size={14} className="text-saffron/40" />
+                                  )}
+                                </span>
+                                <span className="min-w-0 flex-1 user-text-box">
+                                  <span className="block text-[9px] font-bold uppercase tracking-label text-ink-muted/70">
+                                    Stop {i + 1}
+                                  </span>
+                                  <span className="block text-sm font-bold text-ink truncate user-text">
+                                    {row.name || 'Untitled place'}
+                                  </span>
+                                </span>
+                                <ChevronDown
+                                  size={16}
+                                  className={`shrink-0 text-ink-muted transition-transform ${expanded ? 'rotate-180' : ''}`}
+                                />
+                              </button>
+                              <div className="flex gap-1 shrink-0">
+                                <button
+                                  type="button" aria-label={`Move ${rowName} up`} disabled={i === 0}
+                                  onClick={() => moveLocation(i, -1)}
+                                  className="w-11 h-11 rounded-xl bg-white border border-saffron/10 text-ink-muted hover:text-saffron flex items-center justify-center disabled:opacity-30"
+                                >
+                                  <ChevronUp size={16} />
+                                </button>
+                                <button
+                                  type="button" aria-label={`Move ${rowName} down`} disabled={i === (form.locations || []).length - 1}
+                                  onClick={() => moveLocation(i, 1)}
+                                  className="w-11 h-11 rounded-xl bg-white border border-saffron/10 text-ink-muted hover:text-saffron flex items-center justify-center disabled:opacity-30"
+                                >
+                                  <ChevronDown size={16} />
+                                </button>
+                                <button
+                                  type="button" aria-label={`Remove ${rowName}`}
+                                  onClick={() => removeLocation(i)}
+                                  className="w-11 h-11 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {expanded && (
+                              <div className="px-2.5 pb-3 pt-3 space-y-3 border-t border-saffron/10">
+                                <input
+                                  type="text"
+                                  value={row.name}
+                                  onChange={(e) => updateLocation(i, 'name', e.target.value)}
+                                  placeholder="Govardhan Hill"
+                                  aria-label={`Name of place ${i + 1}`}
+                                  className="w-full px-4 py-3 min-h-[44px] bg-white border border-saffron/10 rounded-xl outline-none focus:border-saffron/40 font-medium text-sm"
+                                />
+                                <textarea
+                                  rows={2}
+                                  value={row.description}
+                                  onChange={(e) => updateLocation(i, 'description', e.target.value)}
+                                  placeholder="The sacred hill Krishna lifted — devotees do the parikrama barefoot."
+                                  aria-label={`Description of place ${i + 1}`}
+                                  className="w-full bg-white border border-saffron/10 rounded-xl px-4 py-3 outline-none focus:border-saffron/40 text-sm font-medium resize-none"
+                                />
+
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                  <div className="w-full sm:w-36 h-24 rounded-xl overflow-hidden bg-white border border-saffron/10 flex items-center justify-center shrink-0">
+                                    {row.image ? (
+                                      <img src={row.image} alt={`Photo of ${rowName}`} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <ImageIcon size={22} className="text-saffron/30" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0 space-y-2">
+                                    <label
+                                      className={`flex items-center gap-2.5 w-full p-3 border-2 border-dashed rounded-xl transition-all min-h-[44px] ${
+                                        phase || !uploadsConfigured
+                                          ? 'bg-paper border-line cursor-not-allowed opacity-70'
+                                          : 'bg-white border-saffron/20 hover:bg-cream/40 cursor-pointer'
+                                      }`}
+                                    >
+                                      <span className="w-8 h-8 bg-cream/50 rounded-lg flex items-center justify-center shrink-0">
+                                        {phase
+                                          ? <Loader2 className="animate-spin text-saffron" size={15} />
+                                          : <ImageIcon className="text-ink-muted" size={15} />}
+                                      </span>
+                                      <span className="text-[10px] font-bold text-ink-muted uppercase tracking-label">
+                                        {phase
+                                          ? (UPLOAD_PHASE_LABEL[phase] || 'Working…')
+                                          : row.image ? 'Replace photo' : 'Add a photo'}
+                                      </span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        disabled={!!phase || !uploadsConfigured}
+                                        onChange={(e) => handleLocationUpload(i, e)}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                    {row.image && !phase && (
+                                      <button
+                                        type="button"
+                                        onClick={() => removeLocationImage(i)}
+                                        aria-label={`Remove the photo of ${rowName}`}
+                                        className="min-h-[44px] px-4 bg-red-50 text-red-500 text-[10px] font-bold uppercase tracking-label rounded-xl hover:bg-red-100 transition-colors"
+                                      >
+                                        Remove photo
+                                      </button>
+                                    )}
+                                    <UploadStatus phase={phase} error={error} />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={addLocation}
+                      className="w-full min-h-[44px] py-3 bg-saffron/10 text-saffron-dark text-xs font-bold uppercase tracking-label rounded-2xl hover:bg-saffron hover:text-white transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} /> Add Place
+                    </button>
+                  </div>
+                )}
+
                 {/* ---------- INCLUSIONS ---------- */}
                 {section === 'inclusions' && (
                   <div className="space-y-6">
@@ -2289,24 +2693,32 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                     </div>
                   )}
                   <div className="flex flex-col sm:flex-row gap-3 items-center">
-                    <p className="text-[10px] font-bold uppercase tracking-label text-ink-muted/50 flex-1 text-center sm:text-left">
-                      {formatBytes(docBytes)} / 1 MB
+                    {/* Where the document-size meter used to sit: now the page
+                        address being written, or why Save is waiting. */}
+                    <p className="text-[10px] font-bold uppercase tracking-label flex-1 min-w-0 text-center sm:text-left truncate user-text">
+                      {uploadsBusy ? (
+                        <span className="text-saffron-dark inline-flex items-center gap-1.5">
+                          <Loader2 size={12} className="animate-spin shrink-0" /> Uploading images…
+                        </span>
+                      ) : (
+                        <span className="text-ink-muted/50">/trip/{form.slug || '…'}</span>
+                      )}
                     </p>
                     <button
                       type="button"
                       onClick={closeModal}
-                      disabled={saving}
+                      disabled={saving || uploadsBusy}
                       className="w-full sm:w-auto min-h-[44px] px-6 rounded-2xl bg-paper-dark text-ink-muted text-xs font-bold uppercase tracking-label hover:bg-paper-dark transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <Button
                       type="submit"
-                      disabled={saving}
+                      disabled={saving || uploadsBusy}
                       className="w-full sm:w-auto py-3 px-8 bg-saffron shadow-lg font-bold rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50"
                     >
-                      {saving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
-                      {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Trip'}
+                      {saving || uploadsBusy ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
+                      {saving ? 'Saving…' : uploadsBusy ? 'Uploading…' : editingId ? 'Save Changes' : 'Create Trip'}
                     </Button>
                   </div>
                 </div>
