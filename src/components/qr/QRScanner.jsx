@@ -19,33 +19,58 @@ const QRScanner = ({ onScan, onClose, mode = 'attendance' }) => {
   }, [onScan]);
 
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0
-      },
-      /* verbose= */ false
-    );
+    // Without a camera API there is nothing for html5-qrcode to render into,
+    // and the box just sat there empty with no explanation. The usual cause is
+    // a page served over plain http:// (getUserMedia is a secure-context API),
+    // which is exactly how staff hit it on a phone on the venue wifi.
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setError(
+        window.isSecureContext === false
+          ? 'The camera needs a secure connection. Open this page over https:// (or on localhost) and try again.'
+          : 'This browser has no camera access. Use the manual token entry on the Attendance page instead.'
+      );
+      return undefined;
+    }
 
-    scanner.render(onScanSuccess, onScanFailure);
+    let scanner;
+    try {
+      scanner = new Html5QrcodeScanner(
+        "reader",
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        },
+        /* verbose= */ false
+      );
+
+      scanner.render(onScanSuccess, onScanFailure);
+    } catch (err) {
+      // A thrown render() left the scanner silently dead; surface it instead.
+      console.error("Scanner start failed", err);
+      setError(err?.message || 'Could not start the camera. Check camera permissions for this site, then reload.');
+      return undefined;
+    }
 
     function onScanSuccess(decodedText, decodedResult) {
       console.log(`Scan result: ${decodedText}`, decodedResult);
       onScanRef.current(decodedText);
-      scanner.clear(); // Stop scanning after success
+      // Stop scanning after success. Swallow the rejection: the unmount
+      // cleanup below may have cleared it already, and an unhandled rejection
+      // here would surface as a scary console error mid-check-in.
+      Promise.resolve(scanner.clear()).catch(() => {});
     }
 
     function onScanFailure(error) {
-      // console.warn(`Code scan error: ${error}`);
+      // Per-frame "no QR code in view" noise - deliberately ignored.
     }
 
     scannerRef.current = scanner;
 
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(err => console.error("Scanner cleanup error", err));
+        Promise.resolve(scannerRef.current.clear()).catch(err => console.error("Scanner cleanup error", err));
+        scannerRef.current = null;
       }
     };
   }, []);
@@ -83,7 +108,17 @@ const QRScanner = ({ onScan, onClose, mode = 'attendance' }) => {
         </div>
 
         <div className="p-4 sm:p-6">
-          <div id="reader" className="overflow-hidden rounded-3xl border-4 border-line/60 bg-paper min-h-[260px] sm:min-h-[300px]" />
+          {error ? (
+            <div
+              role="alert"
+              className="rounded-3xl border-4 border-red-100 bg-red-50 p-6 min-h-[260px] sm:min-h-[300px] flex flex-col items-center justify-center text-center gap-3"
+            >
+              <Camera size={28} className="text-red-500" />
+              <p className="text-sm font-bold text-red-700 leading-relaxed">{error}</p>
+            </div>
+          ) : (
+            <div id="reader" className="overflow-hidden rounded-3xl border-4 border-line/60 bg-paper min-h-[260px] sm:min-h-[300px]" />
+          )}
 
           <div className="mt-8 space-y-4">
              <div className="flex items-center gap-4 p-4 bg-saffron/5 rounded-2xl border border-saffron/10">

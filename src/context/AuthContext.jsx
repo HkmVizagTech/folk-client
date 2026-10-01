@@ -11,7 +11,7 @@ import {
   sendPasswordResetEmail,
   signOut
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from '../lib/pgstore';
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from '../lib/pgstore';
 import { getSafeProfileImage } from '../lib/imageUtils';
 import { callApi } from '../lib/api';
 import { ROOT_ADMIN_UID } from '../config';
@@ -129,6 +129,15 @@ const RealAuthProvider = ({ children }) => {
   // and verifies it — the client never sees the code.
   const otpPhoneRef = useRef(null);
 
+  // Live profile subscription (see the auth effect below).
+  const profileUnsubRef = useRef(null);
+  const stopProfileWatch = () => {
+    if (profileUnsubRef.current) {
+      profileUnsubRef.current();
+      profileUnsubRef.current = null;
+    }
+  };
+
   const sendOTP = async (phoneNumber) => {
     otpPhoneRef.current = phoneNumber;
     return await callApi('sendOtp', { phone: phoneNumber });
@@ -192,6 +201,7 @@ const RealAuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      stopProfileWatch();
       await signOut(auth);
       localStorage.removeItem('fast_load_cache');
     } catch (error) {
@@ -206,7 +216,37 @@ const RealAuthProvider = ({ children }) => {
     // threw away App's "user asked to sign in" state and the login screen's
     // errors — after signing in from a trip page people landed back on the
     // public trip, still being asked to sign in.
+
+    // Put a loaded profile into state + the fast-load cache. One place, so the
+    // first read and every later live update agree on the shape.
+    const applyProfile = (authUser, userData) => {
+      const finalUser = { ...authUser, ...userData, requiresRole: false };
+      setUser(finalUser);
+      try {
+        localStorage.setItem('fast_load_cache', JSON.stringify(finalUser));
+      } catch { /* private mode / quota */ }
+    };
+
+    // Keep watching users/{uid} after the first read. Roles are granted by an
+    // admin from another device, and onAuthStateChanged only fires on sign
+    // in/out — so without this a promotion to folks_head or admin (or a
+    // demotion) was invisible until the person fully reloaded the app, and the
+    // nav kept offering the old set of screens.
+    const watchProfile = (authUser) => {
+      stopProfileWatch();
+      profileUnsubRef.current = onSnapshot(
+        doc(db, 'users', authUser.uid),
+        (snap) => { if (snap.exists()) applyProfile(authUser, snap.data()); },
+        (watchError) => {
+          // Losing the live view must never sign anyone out; the profile we
+          // already have stays valid and the server still decides every read.
+          console.warn('Profile watch stopped:', watchError?.message);
+        }
+      );
+    };
+
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      stopProfileWatch();
       if (authUser) {
         try {
           const userDoc = await getProfileWithRetry(authUser.uid);
@@ -237,14 +277,20 @@ const RealAuthProvider = ({ children }) => {
                 console.error('Root admin promotion failed:', promoteError);
               }
             }
-            const finalUser = { ...authUser, ...userData, role: liveRole, requiresRole: false };
-            setUser(finalUser);
-            localStorage.setItem('fast_load_cache', JSON.stringify(finalUser));
+            applyProfile(authUser, { ...userData, role: liveRole });
+            watchProfile(authUser);
           } else {
+            // No profile row yet: this account must finish signing up. Drop any
+            // fast_load_cache from an earlier session - it would otherwise be
+            // replayed as `user` (with its old role) on the next page load,
+            // before onAuthStateChanged had a chance to contradict it.
+            localStorage.removeItem('fast_load_cache');
             setUser({ ...authUser, requiresRole: true });
+            watchProfile(authUser);
           }
         } catch (error) {
           if (error.code === 'permission-denied') {
+            localStorage.removeItem('fast_load_cache');
             setUser({ ...authUser, requiresRole: true });
           } else {
             // The profile couldn't be loaded (network/offline). Previously
@@ -257,6 +303,10 @@ const RealAuthProvider = ({ children }) => {
             setUser(cached && cached.uid === authUser.uid
               ? cached
               : { ...authUser, role: 'devotee', requiresRole: false, profileUnavailable: true });
+            // That fallback is a guess, not an answer. Keep watching so the
+            // real profile (and real role) replaces it as soon as the network
+            // comes back, instead of pinning staff to 'devotee' until reload.
+            watchProfile(authUser);
           }
         } finally {
           setProfileLoaded(true);
@@ -268,7 +318,7 @@ const RealAuthProvider = ({ children }) => {
       }
       setLoading(false);
     });
-    return () => unsubscribe();
+    return () => { stopProfileWatch(); unsubscribe(); };
   }, []);
 
   return (

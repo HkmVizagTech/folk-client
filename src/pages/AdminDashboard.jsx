@@ -22,9 +22,18 @@ import { provisionAdminLogin, validateAdminPassword } from '../lib/adminLogin'
  */
 const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
   const { user } = useAuth();
+  // App.jsx lets both admins and folks_heads in here, but the server's
+  // createAdmin only accepts an existing admin (or the root UID / setup code).
+  // A folks_head clicking "Create / Reset Admin Login" could therefore only
+  // ever get a raw rejection, so the control is offered to admins only.
+  const canProvisionAdmin = user?.role === 'admin';
 
   // Real-time data hooks (Memoized to prevent SDK crashes)
-  const requestsQuery = React.useMemo(() => [where('status', '==', 'Pending')], []);
+  // Accommodation.jsx writes `status: 'pending'` (lowercase) and every reader
+  // there lowercases before comparing. Querying for 'Pending' matched nothing,
+  // so this card and the table below always read as "All caught up!" no matter
+  // how many stay requests were waiting.
+  const requestsQuery = React.useMemo(() => [where('status', '==', 'pending')], []);
 
   const { data: allUsers, loading: usersLoading } = useFirestore('users');
   const { data: allEvents, loading: eventsLoading } = useFirestore('events');
@@ -713,25 +722,34 @@ const AdminDashboard = ({ setActiveTab, onOpenScanner }) => {
             <div className="flex flex-wrap gap-2 mb-4">
                <span className="px-3 py-1.5 rounded-full bg-celestial/10 text-celestial text-[10px] font-black uppercase tracking-widest">Username: admin</span>
             </div>
-            <div className="mb-6">
-              <AdminPasswordFields
-                password={adminPassword}
-                confirm={adminPasswordConfirm}
-                onPasswordChange={setAdminPassword}
-                onConfirmChange={setAdminPasswordConfirm}
-                disabled={adminSetupState.status === 'working'}
-              />
-            </div>
-            <Button
-              onClick={createSiteAdmin}
-              disabled={adminSetupState.status === 'working'}
-              className="w-full bg-gradient-to-r from-celestial to-purple-500 border-none font-bold py-4 rounded-xl shadow-lg"
-            >
-              {adminSetupState.status === 'working' ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Create / Reset Admin Login'}
-            </Button>
-            {adminSetupState.status !== 'idle' && (
-              <p className={`mt-4 text-xs font-bold text-center ${adminSetupState.status === 'error' ? 'text-red-500' : 'text-green-600'}`}>
-                {adminSetupState.message}
+            {canProvisionAdmin ? (
+              <>
+                <div className="mb-6">
+                  <AdminPasswordFields
+                    password={adminPassword}
+                    confirm={adminPasswordConfirm}
+                    onPasswordChange={setAdminPassword}
+                    onConfirmChange={setAdminPasswordConfirm}
+                    disabled={adminSetupState.status === 'working'}
+                  />
+                </div>
+                <Button
+                  onClick={createSiteAdmin}
+                  disabled={adminSetupState.status === 'working'}
+                  className="w-full bg-gradient-to-r from-celestial to-purple-500 border-none font-bold py-4 rounded-xl shadow-lg"
+                >
+                  {adminSetupState.status === 'working' ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Create / Reset Admin Login'}
+                </Button>
+                {adminSetupState.status !== 'idle' && (
+                  <p className={`mt-4 text-xs font-bold text-center ${adminSetupState.status === 'error' ? 'text-red-500' : 'text-green-600'}`}>
+                    {adminSetupState.message}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-xs font-bold text-gray-500 bg-gray-50 rounded-xl px-4 py-3 leading-relaxed">
+                Only a site administrator can create or reset the shared admin login.
+                Ask an admin to do this from their Command Center.
               </p>
             )}
           </Card>

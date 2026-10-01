@@ -1,4 +1,4 @@
-import { callApi } from './api';
+import { callApi, waitForAuthReady } from './api';
 import { auth } from './firebase';
 import { CONFIG } from '../config';
 
@@ -87,6 +87,11 @@ export const uploadImage = async (file, opts = {}) => {
   if (onProgress) onProgress('compressing');
   const blob = await compressImage(file, maxWidth, quality);
 
+  // Firebase restores the session asynchronously, so auth.currentUser is null
+  // for the first moments after a page load. Reading it straight away made an
+  // upload started right after a reload fail with "Please sign in again" at a
+  // signed-in person — wait for auth to settle first (same fix as callApi).
+  await waitForAuthReady();
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('Please sign in again before uploading.');
 
@@ -139,9 +144,14 @@ export const deleteUploadedImage = async (urlOrKey) => {
 /** Whether the server has R2 configured, so the UI can say so up front. */
 export const getUploadConfig = async () => {
   try {
-    return await callApi('uploadConfig');
+    const result = await callApi('uploadConfig');
+    return { reachable: true, missing: [], ...result };
   } catch (error) {
-    return { configured: false, error: error?.message };
+    // Distinguish "the server says it has no storage configured" from "we
+    // couldn't ask it at all". Collapsing both into configured:false hides a
+    // broken/outdated backend behind a message about missing settings, which
+    // sends you to the wrong dashboard.
+    return { configured: false, reachable: false, missing: [], error: error?.message };
   }
 };
 

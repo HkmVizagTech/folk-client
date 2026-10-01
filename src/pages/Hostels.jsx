@@ -70,13 +70,22 @@ const Hostels = () => {
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
     if (!user || !bookingListing) return;
+    // A stay that ends before it starts is never what the member meant, and
+    // staff had no way to tell it was a typo rather than a real request.
+    if (bookingForm.checkOut < bookingForm.checkIn) {
+      alert('Check-out must be on or after the check-in date.');
+      return;
+    }
     setSubmittingBooking(true);
     try {
+      // The profile field is `name` (see AuthContext.completeProfile);
+      // `fullName` never existed, so staff saw "Devotee" against every booking.
+      const memberName = user.name || user.fullName || auth.currentUser?.displayName || 'Devotee';
       await addDoc(collection(db, 'hostel_bookings'), {
         listingId: bookingListing.id,
         listingName: bookingListing.name,
         userId: user.uid,
-        userName: user.fullName || auth.currentUser?.displayName || 'Devotee',
+        userName: memberName,
         checkIn: bookingForm.checkIn,
         checkOut: bookingForm.checkOut,
         guestCount: parseInt(bookingForm.guestCount, 10) || 1,
@@ -86,14 +95,21 @@ const Hostels = () => {
         updatedAt: serverTimestamp()
       });
 
-      await addDoc(collection(db, 'notifications'), {
-        type: 'new_hostel_booking',
-        title: `New Hostel Booking Request`,
-        message: `${user.fullName || 'A devotee'} requested "${bookingListing.name}" from ${bookingForm.checkIn} to ${bookingForm.checkOut}.`,
-        link: '/hostels',
-        createdAt: serverTimestamp(),
-        createdBy: auth.currentUser?.uid || 'system'
-      });
+      // Best effort: the booking is already saved, so a failed announcement
+      // must not be reported as a failed booking - members resubmitted and
+      // ended up with duplicate requests.
+      try {
+        await addDoc(collection(db, 'notifications'), {
+          type: 'new_hostel_booking',
+          title: `New Hostel Booking Request`,
+          message: `${memberName} requested "${bookingListing.name}" from ${bookingForm.checkIn} to ${bookingForm.checkOut}.`,
+          link: '/hostels',
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser?.uid || 'system'
+        });
+      } catch (notifyError) {
+        console.error('Booking saved, but staff could not be notified:', notifyError);
+      }
 
       setBookingListing(null);
     } catch (error) {
@@ -126,9 +142,10 @@ const Hostels = () => {
   const handleUpdateBookingStatus = async (bookingId, newStatus) => {
     setStatusActionLoading(bookingId);
     try {
+      // Deliberately does not touch staffNotes: this used to blank the note
+      // shown to the member every time a booking was approved or rejected.
       await updateDoc(doc(db, 'hostel_bookings', bookingId), {
         status: newStatus,
-        staffNotes: '',
         updatedAt: serverTimestamp()
       });
     } catch (error) {
@@ -261,7 +278,13 @@ const Hostels = () => {
     }
   };
 
-  const activeListings = (listings || []).filter((l) => l.active !== false);
+  // Staff keep seeing hidden listings (badged "Hidden" below); members don't.
+  // Filtering them out for everyone made "Hide" a one-way door: the listing
+  // vanished from the staff grid too, so the "Show" button that un-hides it
+  // could never be reached and the Hidden badge was dead code.
+  const visibleListings = isStaff
+    ? (listings || [])
+    : (listings || []).filter((l) => l.active !== false);
   const pendingBookings = (allBookings || []).filter((b) => (b.status || '').toLowerCase() === 'pending');
 
   if (listingsLoading && (listings || []).length === 0) {
@@ -302,14 +325,14 @@ const Hostels = () => {
           Available Stays
         </h2>
 
-        {activeListings.length === 0 ? (
+        {visibleListings.length === 0 ? (
           <Card className="p-10 text-center border-none shadow-sm bg-white">
             <p className="text-gray-400 italic text-sm">No hostel listings available right now. Please check back soon.</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence mode="popLayout">
-              {activeListings.map((listing) => (
+              {visibleListings.map((listing) => (
                 <motion.div
                   key={listing.id}
                   layout

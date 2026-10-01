@@ -582,13 +582,18 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
 
   // Ask the server once whether R2 is wired up, so the UI can say so up front
   // rather than letting staff pick a file and fail at the last step.
+  // Re-asks whenever the signed-in user changes, so a check that happened to
+  // run before Firebase restored the session doesn't leave a permanent "not
+  // configured" banner. `reachable: false` means we never got an answer, which
+  // is retried; a genuine `configured: false` is a real answer and stands.
   useEffect(() => {
     let alive = true
+    if (!user?.uid) return () => { alive = false }
     getUploadConfig()
-      .then((cfg) => { if (alive) setUploadConfig(cfg || { configured: false }) })
-      .catch(() => { if (alive) setUploadConfig({ configured: false }) })
+      .then((cfg) => { if (alive) setUploadConfig(cfg || { configured: false, reachable: false }) })
+      .catch(() => { if (alive) setUploadConfig({ configured: false, reachable: false }) })
     return () => { alive = false }
-  }, [])
+  }, [user?.uid])
 
   // Treat "not answered yet" as fine — only a definite `false` disables the
   // pickers, so a slow config call never blocks a staff member mid-edit.
@@ -1449,12 +1454,32 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
   const uploadsNotice = uploadConfig && uploadConfig.configured === false ? (
     <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-3 user-text-box">
       <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0 text-[11px] font-medium leading-relaxed">
-        <p className="font-bold uppercase tracking-label text-[10px] mb-1">Image uploads are not configured yet</p>
-        <p>
-          The server has no image storage set up, so new pictures cannot be added. Everything else on this trip
-          saves as normal, and any image already on it keeps showing.
-        </p>
+      <div className="flex-1 min-w-0 text-[11px] font-medium leading-relaxed user-text-box">
+        {uploadConfig.reachable === false ? (
+          <>
+            <p className="font-bold uppercase tracking-label text-[10px] mb-1">Could not check image storage</p>
+            <p className="user-text">
+              The server did not answer the storage check{uploadConfig.error ? `: ${uploadConfig.error}` : '.'} This is a
+              connection or deployment problem rather than a missing setting. Everything else on this trip saves as
+              normal.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="font-bold uppercase tracking-label text-[10px] mb-1">Image uploads are not configured yet</p>
+            <p>
+              The server has no image storage set up, so new pictures cannot be added. Everything else on this trip
+              saves as normal, and any image already on it keeps showing.
+            </p>
+            {Array.isArray(uploadConfig.missing) && uploadConfig.missing.length > 0 && (
+              <p className="mt-2 user-text">
+                Missing on the server:{' '}
+                <span className="font-mono font-bold">{uploadConfig.missing.join(', ')}</span>
+                {' '}— add {uploadConfig.missing.length === 1 ? 'it' : 'them'} to the backend environment variables and redeploy.
+              </p>
+            )}
+          </>
+        )}
       </div>
     </div>
   ) : null

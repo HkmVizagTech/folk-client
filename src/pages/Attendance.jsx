@@ -21,6 +21,43 @@ import Card from '../components/ui/Card'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
 
+/** A profile's display name, in the order the data actually uses. */
+export const devoteeName = (profile) =>
+  (profile?.name || profile?.fullName || profile?.displayName || '').trim() || 'Devotee';
+
+/**
+ * Which event an "auto-detect" scan belongs to.
+ *
+ * Events are created without a `status` field (Events.jsx writes title,
+ * category, date, dateISO, location, ...), so looking only for status ===
+ * 'active' never matched and the fallback silently used events[0] — whatever
+ * the backend happened to return first, typically the oldest event. Prefer an
+ * explicitly active event, otherwise the one closest to right now, with
+ * today/upcoming winning ties over a past one.
+ */
+export const pickActiveEvent = (events) => {
+  const list = (events || []).filter(Boolean);
+  if (!list.length) return null;
+  const active = list.find((e) => String(e.status || '').toLowerCase() === 'active');
+  if (active) return active;
+
+  const now = Date.now();
+  const scored = list
+    .map((e) => {
+      const t = Date.parse(e.dateISO || e.date || '');
+      return Number.isNaN(t) ? null : { event: e, delta: t - now };
+    })
+    .filter(Boolean);
+  if (!scored.length) return list[0];
+
+  // Soonest upcoming (or in progress today); if everything is in the past,
+  // the most recent one.
+  const upcoming = scored.filter((s) => s.delta >= -12 * 3600000);
+  const pool = upcoming.length ? upcoming : scored;
+  pool.sort((a, b) => (upcoming.length ? a.delta - b.delta : b.delta - a.delta));
+  return pool[0].event;
+};
+
 const Attendance = ({ onOpenScanner }) => {
   const { user } = useAuth();
   const attendanceQuery = React.useMemo(() => [], []);
@@ -40,34 +77,54 @@ const Attendance = ({ onOpenScanner }) => {
     where('userId', '==', user?.uid || '')
   ], [user?.uid]));
 
-  const filteredCheckins = checkins.filter(c => 
-    (c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     c.session?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (!selectedEventId || c.eventId === selectedEventId)
+  // Check-ins for whichever event is selected. Quick Stats used to count every
+  // check-in ever recorded while the table beside it showed only the selected
+  // event's, so the two never agreed.
+  const eventCheckins = selectedEventId
+    ? checkins.filter(c => c.eventId === selectedEventId)
+    : checkins;
+
+  const term = searchTerm.trim().toLowerCase();
+  const filteredCheckins = eventCheckins.filter(c =>
+    !term ||
+    c.name?.toLowerCase().includes(term) ||
+    c.session?.toLowerCase().includes(term)
   );
+
+  const onTimeCount = eventCheckins.filter(c => c.status === 'On-time').length;
+  const onTimeRate = eventCheckins.length
+    ? `${Math.round((onTimeCount / eventCheckins.length) * 100)}%`
+    : '—';
 
 
   const handleVerifyToken = async (e) => {
     e.preventDefault();
-    if (!tokenInput) return;
-    if (!selectedEventId) {
-      setVerifyResult({ success: false, message: 'Select an event first!' });
-      return;
-    }
+    const rawToken = tokenInput.trim();
+    if (!rawToken) return;
     setVerifying(true);
     setVerifyResult(null);
     try {
-      const input = tokenInput.toUpperCase();
+      // Registration tokens are generated uppercase; a devotee's qrToken is
+      // mixed case (it embeds the document id), so each lookup below uses the
+      // casing that matches what was written.
+      const input = rawToken.toUpperCase();
       let targetEventId = selectedEventId;
-      let targetEventTitle = events.find(e => e.id === selectedEventId)?.title || 'Current Event';
+      let targetEventTitle = events.find(e => e.id === selectedEventId)?.title || '';
 
-      // Auto-event fallback if none selected
-      if (!targetEventId && events.length > 0) {
-        targetEventId = events[0].id;
-        targetEventTitle = events[0].title;
+      // Auto-event fallback when the picker is left on "Auto-Detect Active
+      // Event". This used to be unreachable: the handler bailed out with
+      // "Select an event first!" before ever getting here, so the option the
+      // UI offers could never actually be used.
+      if (!targetEventId) {
+        const auto = pickActiveEvent(events);
+        if (auto) {
+          targetEventId = auto.id;
+          targetEventTitle = auto.title;
+        }
       }
 
       if (!targetEventId) throw new Error('No events available to mark attendance.');
+      if (!targetEventTitle) targetEventTitle = 'Current Event';
 
       // 1. Try Registrations first (standard token)
       const regQ = query(collection(db, 'registrations'), where('token', '==', input));
@@ -84,21 +141,26 @@ const Attendance = ({ onOpenScanner }) => {
         }
       } else {
         // 2. Try Universal ID (QR Token or UID prefix)
-        const userQ = query(collection(db, 'users'), where('qrToken', '==', tokenInput));
+        // Profiles store the devotee's name in `name` (Devotees.jsx, the
+        // signup flow and useMembers all use it); `fullName`/`displayName` are
+        // only ever fallbacks. Reading them first meant every QR-token scan
+        // resolved to the literal string "Devotee" — on screen AND in the
+        // attendance record that gets written below.
+        const userQ = query(collection(db, 'users'), where('qrToken', '==', rawToken));
         const userSnap = await getDocs(userQ);
-        
+
         if (!userSnap.empty) {
           const userDoc = userSnap.docs[0].data();
-          devoteeData = { id: userSnap.docs[0].id, name: userDoc.fullName || userDoc.displayName || 'Devotee' };
+          devoteeData = { id: userSnap.docs[0].id, name: devoteeName(userDoc) };
           notice = "Verified via Universal Vaikuntha ID";
         } else {
           // 3. Try fallback to finding by UID directly if it looks like one (simple check)
           if (input.length >= 8) {
-             const uidQ = query(collection(db, 'users'), where('uid', '==', tokenInput)); // or use doc() if it's exact
+             const uidQ = query(collection(db, 'users'), where('uid', '==', rawToken)); // or use doc() if it's exact
              const uidSnap = await getDocs(uidQ);
              if (!uidSnap.empty) {
                 const ud = uidSnap.docs[0].data();
-                devoteeData = { id: uidSnap.docs[0].id, name: ud.fullName || ud.displayName || 'Devotee' };
+                devoteeData = { id: uidSnap.docs[0].id, name: devoteeName(ud) };
                 notice = "Verified via System UID";
              }
           }
@@ -311,7 +373,7 @@ const Attendance = ({ onOpenScanner }) => {
                             <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-200">
                                <Search size={24} />
                             </div>
-                             <span>No check-ins found for &ldquo;{searchTerm}&rdquo;.</span>
+                             <span>{term ? `No check-ins found for “${searchTerm.trim()}”.` : 'No check-ins recorded yet.'}</span>
                           </div>
                         </td>
                       </tr>
@@ -515,11 +577,11 @@ const Attendance = ({ onOpenScanner }) => {
             <div className="space-y-4">
                <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50">
                   <span className="text-sm text-gray-500 font-medium">Total Present</span>
-                  <span className="font-bold text-saffron-dark">{checkins.length}</span>
+                  <span className="font-bold text-saffron-dark">{eventCheckins.length}</span>
                </div>
                <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50">
                   <span className="text-sm text-gray-500 font-medium">On-time Rate</span>
-                  <span className="font-bold text-green-600">92%</span>
+                  <span className="font-bold text-green-600">{onTimeRate}</span>
                </div>
             </div>
           </Card>

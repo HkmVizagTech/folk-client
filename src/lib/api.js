@@ -2,10 +2,49 @@ import { auth } from './firebase';
 import { CONFIG } from '../config';
 
 /**
+ * Firebase restores a signed-in session ASYNCHRONOUSLY after a page load, so
+ * `auth.currentUser` is null for the first few hundred milliseconds even for a
+ * user who is very much signed in. Reading it synchronously meant any call
+ * fired from a component's mount effect went out with NO Authorization header,
+ * the server answered "unauthenticated", and the caller quietly treated that
+ * as a real answer - e.g. the trips admin concluding R2 was unconfigured when
+ * it was perfectly configured, and never retrying because its effect ran once.
+ *
+ * Waiting for auth to settle first fixes every caller at once. authStateReady()
+ * exists from firebase v10.1; the listener is a fallback for older versions,
+ * and the timeout means a wedged auth layer degrades to an anonymous call
+ * rather than hanging the UI forever.
+ */
+const AUTH_READY_TIMEOUT_MS = 8000;
+let authReadyPromise = null;
+
+export const waitForAuthReady = () => {
+  if (authReadyPromise) return authReadyPromise;
+  authReadyPromise = new Promise((resolve) => {
+    let settled = false;
+    const done = () => { if (!settled) { settled = true; resolve(); } };
+    const timer = setTimeout(done, AUTH_READY_TIMEOUT_MS);
+    const finish = () => { clearTimeout(timer); done(); };
+
+    try {
+      if (typeof auth.authStateReady === 'function') {
+        auth.authStateReady().then(finish).catch(finish);
+      } else {
+        const unsub = auth.onAuthStateChanged(() => { unsub(); finish(); }, finish);
+      }
+    } catch {
+      finish();
+    }
+  });
+  return authReadyPromise;
+};
+
+/**
  * Utility to call the Cloud Run backend functions.
  * Handles authentication and onCall style data wrapping.
  */
 export const callApi = async (functionName, data = {}) => {
+  await waitForAuthReady();
   const user = auth.currentUser;
   const token = user ? await user.getIdToken() : null;
 
@@ -59,17 +98,29 @@ export const callApi = async (functionName, data = {}) => {
   }
 
   const result = await response.json();
-  
-  // Unwrap the result property (onCall convention)
-  return result.result || result;
+
+  // Unwrap the result property (onCall convention). Test for the KEY, not for
+  // truthiness: the server always answers { result }, so a handler that
+  // legitimately resolves to false/0/null/'' used to fall through to `result`
+  // and hand the caller the envelope `{ result: false }` — an object, i.e.
+  // truthy — turning every "no" into a "yes".
+  return result && typeof result === 'object' && 'result' in result ? result.result : result;
 };
 
 /**
  * Standard HTTP GET/POST for non-onCall endpoints (like webhooks or standard REST)
  */
 export const apiRequest = async (path, options = {}) => {
+  if (!CONFIG.BACKEND_URL || !/^https?:\/\//i.test(CONFIG.BACKEND_URL)) {
+    throw new Error(
+      'Backend URL is not configured. Set VITE_BACKEND_URL in the client environment (e.g. your Railway URL) and redeploy.'
+    );
+  }
   const url = `${CONFIG.BACKEND_URL}${path.startsWith('/') ? '' : '/'}${path}`;
-  
+
+  // Same reason as callApi above: without this the request races Firebase's
+  // async session restore and goes out unauthenticated on a page load.
+  await waitForAuthReady();
   const user = auth.currentUser;
   const token = user ? await user.getIdToken() : null;
 

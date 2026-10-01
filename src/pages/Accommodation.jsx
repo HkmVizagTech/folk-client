@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Home, Calendar, Users, Info, Clock, CheckCircle2, Loader2, Send, Camera, RefreshCw, StopCircle, Zap, X, ChevronDown } from 'lucide-react'
 import Card from '../components/ui/Card'
@@ -33,12 +33,28 @@ const Accommodation = () => {
   const [selectedCameraId, setSelectedCameraId] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
-  const [html5QrCode, setHtml5QrCode] = useState(null);
+  const [scanError, setScanError] = useState('');
+  // A ref, not state: the unmount cleanup below has to see the live instance,
+  // and a second "Start scanning" has to be able to tear the first one down.
+  const scannerRef = useRef(null);
+
+  // Leaving the page while the camera was running left it on (phone camera
+  // light still lit) because nothing ever stopped the scanner on unmount.
+  useEffect(() => () => {
+    const qr = scannerRef.current;
+    scannerRef.current = null;
+    if (!qr) return;
+    Promise.resolve()
+      .then(() => (qr.isScanning ? qr.stop() : null))
+      .then(() => qr.clear())
+      .catch(() => {});
+  }, []);
 
   const toggleScanner = async () => {
     if (!isScannerOpen) {
       setIsScannerOpen(true);
       setScanResult(null);
+      setScanError('');
       try {
         const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length > 0) {
@@ -46,7 +62,12 @@ const Accommodation = () => {
           setSelectedCameraId(devices[0].id);
         }
       } catch (err) {
+        // The panel claimed "No cameras detected. Please check permissions."
+        // even when the real failure was a denied permission prompt or an
+        // insecure origin; say what actually went wrong.
         console.error("Error getting cameras", err);
+        setCameras([]);
+        setScanError(err?.message || 'Could not reach any camera. Allow camera access for this site and try again.');
       }
     } else {
       await stopScanning();
@@ -57,8 +78,21 @@ const Accommodation = () => {
   const startScanning = async () => {
     if (isScanning) return;
     try {
+      // Scanning once left the old instance (and its <video>) attached to
+      // #reader, so a second scan stacked another one on top of it and the
+      // camera never came back. Tear the previous one down first.
+      if (scannerRef.current) {
+        const old = scannerRef.current;
+        scannerRef.current = null;
+        try {
+          if (old.isScanning) await old.stop();
+          await old.clear();
+        } catch (cleanupError) {
+          console.warn('Could not clean up the previous scanner:', cleanupError);
+        }
+      }
       const qrCode = new Html5Qrcode("reader");
-      setHtml5QrCode(qrCode);
+      scannerRef.current = qrCode;
       await qrCode.start(
         selectedCameraId,
         { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -66,25 +100,30 @@ const Accommodation = () => {
           setScanResult(decodedText);
           qrCode.stop().then(() => {
             setIsScanning(false);
-          });
+          }).catch(() => setIsScanning(false));
         },
         () => {}
       );
       setIsScanning(true);
+      setScanError('');
     } catch (err) {
       console.error("Start scanning error", err);
+      setIsScanning(false);
+      setScanError(err?.message || 'Could not start the camera. Check camera permissions and try again.');
     }
   };
 
   const stopScanning = async () => {
-    if (html5QrCode && (isScanning || html5QrCode.isScanning)) {
-      try {
-        await html5QrCode.stop();
-        setIsScanning(false);
-        setHtml5QrCode(null);
-      } catch (err) {
-        console.error("Stop scanning error", err);
-      }
+    const qrCode = scannerRef.current;
+    if (!qrCode) return;
+    try {
+      if (isScanning || qrCode.isScanning) await qrCode.stop();
+      await qrCode.clear();
+    } catch (err) {
+      console.error("Stop scanning error", err);
+    } finally {
+      scannerRef.current = null;
+      setIsScanning(false);
     }
   };
 
@@ -96,14 +135,32 @@ const Accommodation = () => {
     requirements: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!user) return;
+    setFormError('');
+    setFormSuccess(false);
+
+    const guestCount = parseInt(formData.guestCount, 10);
+    if (!Number.isInteger(guestCount) || guestCount < 1) {
+      setFormError('Please enter how many guests are coming (at least 1).');
+      return;
+    }
+    // A stay that ends before it starts is always a typo, and staff had no way
+    // to tell it apart from a real request.
+    if (formData.departureDate < formData.arrivalDate) {
+      setFormError('The departure date must be on or after the arrival date.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, 'accommodation_requests'), {
         ...formData,
+        guestCount,
         userId: user.uid,
         userName: user.name || user.displayName || 'Devotee',
         status: 'pending',
@@ -117,8 +174,14 @@ const Accommodation = () => {
         departureDate: '',
         requirements: ''
       });
+      setFormSuccess(true);
+      setTimeout(() => setFormSuccess(false), 4000);
     } catch (error) {
+      // This used to be a bare console.error: the button simply went back to
+      // "Submit Booking Request" and the member had no idea the request had
+      // not been sent.
       console.error("Error submitting request:", error);
+      setFormError(error?.message || 'Could not send your request. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -182,6 +245,16 @@ const Accommodation = () => {
             Request a Room
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+            {formError && (
+              <p role="alert" className="rounded-xl bg-red-50 border border-red-100 text-red-700 px-4 py-3 text-sm font-bold">
+                {formError}
+              </p>
+            )}
+            {formSuccess && (
+              <p role="status" className="rounded-xl bg-green-50 border border-green-100 text-green-700 px-4 py-3 text-sm font-bold flex items-center gap-2">
+                <CheckCircle2 size={16} /> Request sent. Staff will review it and confirm your stay.
+              </p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Accommodation Type</label>
@@ -207,7 +280,7 @@ const Accommodation = () => {
                     type="number" 
                     min={1}
                     value={formData.guestCount}
-                    onChange={(e) => setFormData({...formData, guestCount: parseInt(e.target.value)})}
+                    onChange={(e) => setFormData({...formData, guestCount: e.target.value})}
                     className="w-full pl-12 pr-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium" 
                    />
                 </div>
@@ -420,8 +493,13 @@ const Accommodation = () => {
                             )}
                           </button>
                         )) : (
-                          <div className="p-4 bg-red-50 text-red-500 rounded-xl text-xs font-bold flex items-center gap-2">
-                             <Info size={14} /> No cameras detected. Please check permissions.
+                          <div role="alert" className="p-4 bg-red-50 text-red-500 rounded-xl text-xs font-bold flex items-center gap-2">
+                             <Info size={14} className="shrink-0" /> {scanError || 'No cameras detected. Please check permissions.'}
+                          </div>
+                        )}
+                        {cameras.length > 0 && scanError && (
+                          <div role="alert" className="p-4 bg-red-50 text-red-500 rounded-xl text-xs font-bold flex items-center gap-2">
+                             <Info size={14} className="shrink-0" /> {scanError}
                           </div>
                         )}
                       </div>

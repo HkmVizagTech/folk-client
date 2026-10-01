@@ -66,15 +66,23 @@ const Events = () => {
         createdAt: serverTimestamp()
       });
       
-      await addDoc(collection(db, 'notifications'), {
-        type: 'new_event',
-        title: `New Event: ${formData.title}`,
-        message: `Join our upcoming ${formData.category} at ${formData.location} on ${formattedDate}.`,
-        link: '/events',
-        createdAt: serverTimestamp(),
-        createdBy: auth.currentUser?.uid || 'system'
-      });
-      
+      // Best effort: the event is already saved, so a failed announcement must
+      // not be reported as "failed to create event" - that sent admins back to
+      // the form to create the same event a second time.
+      try {
+        await addDoc(collection(db, 'notifications'), {
+          type: 'new_event',
+          title: `New Event: ${formData.title}`,
+          message: `Join our upcoming ${formData.category} at ${formData.location} on ${formattedDate}.`,
+          link: '/events',
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser?.uid || 'system'
+        });
+      } catch (notifyError) {
+        console.error('Event created, but the announcement could not be posted:', notifyError);
+      }
+
+
       setIsModalOpen(false);
       setFormData({
         title: '', date: '', location: '', category: 'Retreats',
@@ -107,27 +115,40 @@ const Events = () => {
       
       let attendingDiff = isAttending ? 1 : (prevState === 'Attending' ? -1 : 0);
       let declinedDiff = !isAttending ? 1 : (prevState === 'Not Attending' ? -1 : 0);
-      
+
       const eventRef = doc(db, 'events', event.id);
-      
-      // If it's a real event, update its counts
-      if (!event.id.startsWith('mock')) {
-        await updateDoc(eventRef, {
-          attendingCount: increment(attendingDiff),
-          declinedCount: increment(declinedDiff)
-        });
-      }
-      
+
+      // The registration is the RSVP; the counters on the event are a
+      // convenience. Write the registration FIRST: bumping the counter first
+      // meant that a member who may not write the events document (or any
+      // transient failure there) lost the RSVP entirely, and a counter that
+      // was bumped before a failed registration drifted up for good.
       await setDoc(registrationRef, {
         eventId: event.id,
         eventTitle: event.title,
         userId: user.uid,
-        userName: user.fullName || auth.currentUser?.displayName || 'Devotee',
+        // The profile field is `name` (see AuthContext.completeProfile);
+        // `fullName` never existed, so every roster and every attendance scan
+        // showed this person as a nameless "Devotee".
+        userName: user.name || user.fullName || auth.currentUser?.displayName || 'Devotee',
         token: token,
         status: status,
         updatedAt: serverTimestamp()
       }, { merge: true });
-      
+
+      // If it's a real event, update its counts
+      if (!event.id.startsWith('mock') && (attendingDiff || declinedDiff)) {
+        try {
+          await updateDoc(eventRef, {
+            attendingCount: increment(attendingDiff),
+            declinedCount: increment(declinedDiff)
+          });
+        } catch (countError) {
+          console.error('RSVP saved, but the event head-count could not be updated:', countError);
+        }
+      }
+
+
       if (isAttending) alert(`Successfully registered! Your Attendance Token: ${token}`);
     } catch (error) {
       console.error("Registration error:", error);

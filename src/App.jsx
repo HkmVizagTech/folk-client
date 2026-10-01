@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import MainLayout from './components/layout/MainLayout'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminSetup from './pages/AdminSetup'
@@ -146,13 +146,22 @@ function App() {
   // deep link (/admin, /createadmin, /hostels, ...) always wins so it never
   // bounces back to the home page. Non-admin users reaching an admin URL are
   // handled inside the pages themselves (AdminSetup explains access).
+  //
+  // This is a once-per-sign-in landing decision, not a rule. `user` is a new
+  // object whenever the profile changes (a sadhana log bumps streak/score, an
+  // admin changes a role), and re-running it then yanked a staff member off
+  // the Home tab back to the Command Center mid-session.
+  const landedForUid = useRef(null);
   useEffect(() => {
-    if (user) {
-      const fromUrl = pathToTab(getPathname());
-      const isStaff = user.role === 'folks_head' || user.role === 'admin';
-      if (fromUrl === 'dashboard') {
-        setActiveTab(isStaff ? 'admin' : 'dashboard')
-      }
+    if (!user) { landedForUid.current = null; return; }
+    // Keyed on the role too, so an actual promotion/demotion still re-lands.
+    const key = `${user.uid}:${user.role || ''}`;
+    if (landedForUid.current === key) return;
+    landedForUid.current = key;
+    const fromUrl = pathToTab(getPathname());
+    const isStaff = user.role === 'folks_head' || user.role === 'admin';
+    if (fromUrl === 'dashboard') {
+      setActiveTab(isStaff ? 'admin' : 'dashboard')
     }
   }, [user, setActiveTab]);
 

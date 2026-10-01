@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Send, Copy, Users, UserPlus, Flame, CalendarCheck, UserX, Cake } from 'lucide-react';
 import { orderBy, where, Timestamp } from '../lib/pgstore';
 import { useAuth } from '../hooks/useAuth';
@@ -91,7 +91,16 @@ const Reports = () => {
   ]);
 
   /* ---------------- Broadcast ---------------- */
+  // `isAdmin` is false on the first render (auth restores asynchronously), so
+  // seeding the state from it once left an admin stuck on "My members" after
+  // every reload. Apply the admin default when the role arrives, unless the
+  // user has already picked something.
   const [audience, setAudience] = useState(isAdmin ? 'all' : 'mine');
+  const audienceTouched = useRef(false);
+  useEffect(() => {
+    if (isAdmin && !audienceTouched.current) setAudience('all');
+  }, [isAdmin]);
+  const chooseAudience = (value) => { audienceTouched.current = true; setAudience(value); };
   const [stage, setStage] = useState('new');
   const [templateId, setTemplateId] = useState('');
   const [params, setParams] = useState('');
@@ -209,7 +218,7 @@ const Reports = () => {
         <form onSubmit={send} className="mt-5 grid gap-4 lg:grid-cols-2">
           <div className="space-y-4">
             <Field label="Send to">
-              <select className={inputClass} value={audience} onChange={(e) => setAudience(e.target.value)}>
+              <select className={inputClass} value={audience} onChange={(e) => chooseAudience(e.target.value)}>
                 <option value="mine">My members</option>
                 {isAdmin && <option value="all">All members</option>}
                 {isAdmin && <option value="stage">Members at a stage</option>}

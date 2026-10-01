@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { GraduationCap, Plus, CheckCircle2, Users, Pencil, Minus } from 'lucide-react';
-import { collection, addDoc, doc, setDoc, updateDoc, where, serverTimestamp, increment } from '../lib/pgstore';
+import { collection, addDoc, doc, getDoc, setDoc, updateDoc, where, serverTimestamp, increment } from '../lib/pgstore';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { db } from '../lib/firebase';
@@ -85,7 +85,14 @@ const Courses = () => {
     setError('');
     try {
       // Deterministic id: enrolling twice is a no-op, not a duplicate.
-      await setDoc(doc(db, 'enrollments', `${c.id}_${user.uid}`), {
+      const ref = doc(db, 'enrollments', `${c.id}_${user.uid}`);
+      // ...but setDoc overwrites, and the Enroll button is on screen before
+      // the enrolments query has answered (and whenever that read fails), so
+      // a second tap reset sessionsAttended and status back to zero. Bail out
+      // if the enrolment already exists instead of wiping its progress.
+      const existing = await getDoc(ref);
+      if (existing.exists()) return;
+      await setDoc(ref, {
         courseId: c.id,
         courseTitle: c.title,
         userId: user.uid,

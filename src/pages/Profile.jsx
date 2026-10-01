@@ -50,6 +50,30 @@ const Profile = () => {
     profileImage: ''
   });
 
+  // Also used by "Cancel": the form is the only copy of these values, so
+  // without resetting it a cancelled edit stayed on screen and was quietly
+  // written to the profile by the next save.
+  const resetFormFromUser = () => {
+    if (!user) return;
+    setFormData({
+      name: user.name || user.displayName || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      gender: user.gender || '',
+      level: user.level || 'FOLK New',
+      occupation: user.occupation || '',
+      qualification: user.qualification || '',
+      city: user.city || '',
+      state: user.state || '',
+      country: user.country || '',
+      center: user.center || '',
+      fatherName: user.fatherName || '',
+      fatherPhone: user.fatherPhone || '',
+      spouseId: user.spouseId || '',
+      profileImage: user.photo || user.photoURL || ''
+    });
+  };
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -299,7 +323,7 @@ const Profile = () => {
             )}
             {isEditing && (
               <button
-                onClick={() => setIsEditing(false)}
+                onClick={() => { resetFormFromUser(); setIsEditing(false); }}
                 aria-label="Cancel editing"
                 className="w-11 h-11 sm:w-12 sm:h-12 bg-white text-gray-400 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-all"
               >

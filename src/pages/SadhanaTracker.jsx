@@ -10,6 +10,7 @@ import { db } from '../lib/firebase'
 // object now, so firebase/firestore helpers throw on it - and useFirestore
 // swallows that, leaving the screen silently empty instead of erroring.
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, runTransaction, serverTimestamp } from '../lib/pgstore'
+import { todayIST, yesterdayIST } from '../lib/dates'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import QRView from '../components/qr/QRView'
 import { QrCode } from 'lucide-react'
@@ -26,26 +27,29 @@ const SadhanaTracker = () => {
   const [showMilestone, setShowMilestone] = useState(false);
   const [indexBuilding, setIndexBuilding] = useState(false);
   const [skippedTargetToday, setSkippedTargetToday] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
+  const [loadError, setLoadError] = useState('');
+  // Day keys must be India time. toISOString() is UTC, which files everything
+  // logged between midnight and 05:30 IST — morning japa — under yesterday,
+  // so the log never matched the day the rest of the app asks for.
+  const today = todayIST();
 
   const fetchData = async () => {
     if (!user) return;
     try {
+      setLoadError('');
       const userRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(userRef);
       const uData = userSnap.data() || {};
 
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      
+      const yesterdayStr = yesterdayIST();
+
       let displayStreak = uData.streak || 0;
       if (uData.lastSadhanaDate && uData.lastSadhanaDate !== today && uData.lastSadhanaDate !== yesterdayStr) {
         displayStreak = 0;
       }
 
       const profileStats = {
-        name: uData.fullName || user.displayName || 'Devotee',
+        name: uData.name || uData.fullName || user.displayName || 'Devotee',
         streak: displayStreak,
         score: uData.score || 0,
         longestStreak: uData.longestStreak || 0,
@@ -126,7 +130,11 @@ const SadhanaTracker = () => {
         }
       }
     } catch (error) {
+      // Without this the page rendered a confident "0 rounds / no records"
+      // state when the real problem was a failed read, and the member had no
+      // way to tell the difference.
       console.error("Critical error fetching sadhana data:", error);
+      setLoadError(error?.message || 'Could not load your sadhana records. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -220,9 +228,7 @@ const SadhanaTracker = () => {
         }
 
         let currentStreak = uData.streak || 0;
-        const yesterdayDate = new Date();
-        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-        const yesterdayString = yesterdayDate.toISOString().split('T')[0];
+        const yesterdayString = yesterdayIST();
 
         if (uData.lastSadhanaDate && uData.lastSadhanaDate !== today && uData.lastSadhanaDate !== yesterdayString) {
           currentStreak = 0;
@@ -289,7 +295,7 @@ const SadhanaTracker = () => {
   };
 
   const chartData = sadhanaData.logs.map(log => ({
-    day: new Date(log.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    day: new Date(`${log.date}T00:00:00+05:30`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Kolkata' }),
     rounds: log.roundsCompleted,
     target: log.target,
     date: log.date
@@ -339,9 +345,22 @@ const SadhanaTracker = () => {
         animate={{ opacity: 1, y: 0 }}
         className="relative z-10 max-w-7xl mx-auto space-y-12"
       >
+        {loadError && (
+          <div role="alert" className="rounded-[2rem] border border-red-100 bg-red-50 px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <p className="flex-1 text-sm font-bold text-red-700">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => { setLoading(true); fetchData(); }}
+              className="shrink-0 min-h-[44px] px-6 rounded-2xl bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         {/* Daily Target Modal - Mandatory Check */}
         <AnimatePresence>
-          {!todayLog && !skippedTargetToday && (
+          {!todayLog && !skippedTargetToday && !loadError && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -657,7 +676,7 @@ const SadhanaTracker = () => {
 
                     <div className="bg-cream/50 p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-saffron/10 mb-6 sm:mb-8 w-full flex justify-center overflow-hidden">
                        {user?.qrToken && (
-                         <QRView value={user.qrToken} name={user.fullName || user.displayName || 'Devotee'} size={150} />
+                         <QRView value={user.qrToken} name={user.name || user.fullName || user.displayName || 'Devotee'} size={150} />
                        )}
                     </div>
 

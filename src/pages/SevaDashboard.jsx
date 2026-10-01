@@ -40,6 +40,7 @@ const SevaDashboard = () => {
   const [selectedSeva, setSelectedSeva] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [participantsError, setParticipantsError] = useState('');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -56,27 +57,41 @@ const SevaDashboard = () => {
 
   const handleCreateSeva = async (e) => {
     e.preventDefault();
+    // A blank or non-numeric slot count stored as NaN (which the server records
+    // as null), and `countRegistered >= null` is true for a brand new seva, so
+    // it opened already showing "Limit Reached" and nobody could join it.
+    const maxVolunteers = parseInt(formData.maxVolunteers, 10);
+    if (!Number.isInteger(maxVolunteers) || maxVolunteers < 1) {
+      alert('Enter how many volunteers are needed (at least 1).');
+      return;
+    }
     setActionLoading('create');
     try {
       const sevaRef = doc(collection(db, 'sevas'));
       await setDoc(sevaRef, {
         ...formData,
-        maxVolunteers: parseInt(formData.maxVolunteers),
+        maxVolunteers,
         isRecurring: !!formData.isRecurring,
         countRegistered: 0,
         createdBy: user.uid,
         createdAt: serverTimestamp(),
       });
 
-      // --- ADD NOTIFICATION ---
-      await addDoc(collection(db, 'notifications'), {
-        type: 'new_seva',
-        title: `New Seva: ${formData.title}`,
-        message: `A new ${formData.sevaType} seva has been opened at ${formData.location} for ${formData.date}.`,
-        link: '/sevas',
-        createdAt: serverTimestamp(),
-        createdBy: user.uid
-      });
+      // --- ADD NOTIFICATION (best effort) ---
+      // The seva is already saved. A failed announcement used to surface as
+      // "Failed to create seva", which had admins creating it all over again.
+      try {
+        await addDoc(collection(db, 'notifications'), {
+          type: 'new_seva',
+          title: `New Seva: ${formData.title}`,
+          message: `A new ${formData.sevaType} seva has been opened at ${formData.location} for ${formData.date}.`,
+          link: '/sevas',
+          createdAt: serverTimestamp(),
+          createdBy: user.uid
+        });
+      } catch (notifyError) {
+        console.error('Seva created, but the announcement could not be posted:', notifyError);
+      }
       // ------------------------
 
       setShowCreateModal(false);
@@ -115,6 +130,11 @@ const SevaDashboard = () => {
         transaction.set(regRef, {
           userId: user.uid,
           sevaId,
+          sevaTitle: sevaData.title || '',
+          // The roster below reads reg.userName. Nothing ever wrote it, so
+          // every volunteer showed up to staff as "Devotee <uid prefix>".
+          userName: user.name || user.displayName || 'Devotee',
+          userPhone: user.phone || '',
           status: 'registered',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -151,6 +171,10 @@ const SevaDashboard = () => {
 
   const viewParticipants = async (sevaId) => {
     setSelectedSeva(sevas.find(s => s.id === sevaId));
+    // Drop the previous seva's roster first: on a failed read the old list
+    // stayed on screen under the new seva's title.
+    setParticipants([]);
+    setParticipantsError('');
     setLoadingParticipants(true);
     try {
       const q = query(collection(db, 'seva_registrations'), where('sevaId', '==', sevaId));
@@ -158,18 +182,30 @@ const SevaDashboard = () => {
       setParticipants(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (error) {
       console.error('View participants error:', error);
-      alert(error.message);
+      setParticipantsError(error.message || 'Could not load the volunteer roster.');
     } finally {
       setLoadingParticipants(false);
     }
   };
 
   const handleMarkAttendance = async (registrationId, status) => {
+    const before = participants.find(p => p.id === registrationId);
     try {
-      await updateDoc(doc(db, 'seva_registrations', registrationId), {
-        status,
-        updatedAt: serverTimestamp(),
-      });
+      const regRef = doc(db, 'seva_registrations', registrationId);
+      // Cancelling from the roster has to give the slot back. It only touched
+      // the registration before, so the seva stayed at its old headcount and
+      // could sit permanently "full" with nobody actually serving.
+      if (status === 'cancelled' && before?.status === 'registered' && before?.sevaId) {
+        const sevaRef = doc(db, 'sevas', before.sevaId);
+        await runTransaction(db, async (transaction) => {
+          const regDoc = await transaction.get(regRef);
+          if (!regDoc.exists() || regDoc.data().status !== 'registered') throw new Error('No active registration found');
+          transaction.update(sevaRef, { countRegistered: increment(-1) });
+          transaction.update(regRef, { status, updatedAt: serverTimestamp() });
+        });
+      } else {
+        await updateDoc(regRef, { status, updatedAt: serverTimestamp() });
+      }
       setParticipants(prev => prev.map(p => p.id === registrationId ? { ...p, status } : p));
     } catch (error) {
       console.error('Mark attendance error:', error);
@@ -492,6 +528,17 @@ const SevaDashboard = () => {
                   <div className="flex flex-col items-center justify-center h-full gap-4">
                     <Loader2 className="w-10 h-10 text-saffron animate-spin" />
                     <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Retrieving Souls...</p>
+                  </div>
+                ) : participantsError ? (
+                  <div role="alert" className="flex flex-col items-center justify-center h-full text-center gap-4 px-6">
+                    <p className="text-sm font-bold text-red-600">{participantsError}</p>
+                    <button
+                      type="button"
+                      onClick={() => viewParticipants(selectedSeva.id)}
+                      className="min-h-[44px] px-6 rounded-2xl bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest"
+                    >
+                      Try again
+                    </button>
                   </div>
                 ) : participants.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-gray-300">

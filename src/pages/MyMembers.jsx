@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MessageCircle, Phone, NotebookPen, Cake, AlertTriangle, Flame, CalendarCheck, Users, History } from 'lucide-react';
 import { collection, doc, orderBy, limit, where, serverTimestamp, writeBatch } from '../lib/pgstore';
 import { useAuth } from '../hooks/useAuth';
@@ -55,7 +55,15 @@ const MyMembers = () => {
   const { user: me } = useAuth();
   const isAdmin = me?.role === 'admin';
   const { members, staff, loading } = useMembers();
+  // Firebase restores the session asynchronously, so on a page load `me` is
+  // null for the first render. Seeding this from `me?.uid` once left it as ''
+  // forever, and the page then listed members whose guideId is '' - i.e. none
+  // - so a guide's own members never appeared. Adopt the uid as soon as auth
+  // settles, without clobbering an admin's manual choice in the picker below.
   const [guideId, setGuideId] = useState(me?.uid || '');
+  useEffect(() => {
+    if (me?.uid) setGuideId((current) => current || me.uid);
+  }, [me?.uid]);
   const [view, setView] = useState('attention');
   const [logFor, setLogFor] = useState(null);
   const [historyFor, setHistoryFor] = useState(null);

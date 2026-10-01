@@ -1,45 +1,87 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Download, QrCode } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const QRView = ({ value, name = 'Devotee', size = 200 }) => {
   const qrRef = useRef();
+  const [error, setError] = useState('');
+
+  const safeName = (name || 'Devotee').trim() || 'Devotee';
+  const fileBase = `QR_${safeName.replace(/[^\w-]+/g, '_')}`;
+
+  // Last resort when the canvas route fails: hand over the SVG itself, which
+  // every phone gallery and print shop can still open.
+  const downloadSvgFallback = (svgData) => {
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `${fileBase}.svg`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const downloadQR = () => {
-    const svg = qrRef.current.querySelector('svg');
+    setError('');
+    const svg = qrRef.current?.querySelector('svg');
+    if (!svg) {
+      setError('Could not read the QR code. Please reload the page and try again.');
+      return;
+    }
     const svgData = new XMLSerializer().serializeToString(svg);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    
+
     img.onload = () => {
-      canvas.width = size + 40;
-      canvas.height = size + 100;
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw QR
-      ctx.drawImage(img, 20, 20);
-      
-      // Draw Text
-      ctx.fillStyle = '#1f2937';
-      ctx.font = 'bold 16px Inter, system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(name, canvas.width / 2, size + 60);
-      
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '12px Inter, system-ui, sans-serif';
-      ctx.fillText('Folkvizag Devotee ID', canvas.width / 2, size + 80);
-      
-      const pngFile = canvas.toDataURL('image/png');
-      const downloadLink = document.createElement('a');
-      downloadLink.download = `QR_${name.replace(/\s+/g, '_')}.png`;
-      downloadLink.href = pngFile;
-      downloadLink.click();
+      try {
+        canvas.width = size + 40;
+        canvas.height = size + 100;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw QR
+        ctx.drawImage(img, 20, 20);
+
+        // Draw Text
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 16px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(safeName, canvas.width / 2, size + 60);
+
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '12px Inter, system-ui, sans-serif';
+        ctx.fillText('Folkvizag Devotee ID', canvas.width / 2, size + 80);
+
+        // The QR embeds the temple logo by URL. In some browsers that external
+        // reference taints the canvas and toDataURL throws a SecurityError -
+        // which used to abort here with no download and no message at all.
+        const pngFile = canvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.download = `${fileBase}.png`;
+        downloadLink.href = pngFile;
+        downloadLink.click();
+      } catch (err) {
+        console.error('QR PNG export failed, falling back to SVG:', err);
+        downloadSvgFallback(svgData);
+      }
     };
-    
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+
+    // A malformed or unloadable SVG never fires onload, so without this the
+    // button looked like it did nothing whatsoever.
+    img.onerror = () => {
+      console.error('QR image could not be rendered; falling back to SVG.');
+      downloadSvgFallback(svgData);
+    };
+
+    try {
+      // btoa() throws on any non-Latin-1 character in the serialized SVG.
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    } catch (err) {
+      console.error('QR encode failed, falling back to SVG:', err);
+      downloadSvgFallback(svgData);
+    }
   };
 
   return (
@@ -66,7 +108,7 @@ const QRView = ({ value, name = 'Devotee', size = 200 }) => {
       </div>
 
       <div className="text-center">
-        <h3 className="font-cinzel font-bold text-xl text-ink uppercase tracking-tight">{name}</h3>
+        <h3 className="font-cinzel font-bold text-xl text-ink uppercase tracking-tight">{safeName}</h3>
         <p className="text-ink-muted text-xs font-bold uppercase tracking-label mt-1">Permanent Pass</p>
       </div>
 
@@ -79,6 +121,12 @@ const QRView = ({ value, name = 'Devotee', size = 200 }) => {
         <Download size={18} />
         <span>Save to Phone</span>
       </motion.button>
+
+      {error && (
+        <p role="alert" className="text-xs font-bold text-red-600 text-center max-w-xs leading-relaxed">
+          {error}
+        </p>
+      )}
     </div>
   );
 };

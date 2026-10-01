@@ -17,6 +17,48 @@ import { collection, query, where, getDocs, serverTimestamp, doc, runTransaction
 import { useFirestore } from '../../hooks/useFirestore';
 import { useAuth } from '../../hooks/useAuth';
 
+/**
+ * A profile's display name, in the order the data actually uses: `name` is
+ * what Devotees.jsx, the signup flow and useMembers all write; fullName and
+ * displayName are only ever fallbacks.
+ */
+const devoteeName = (profile) =>
+  (profile?.name || profile?.fullName || profile?.displayName || '').trim() || 'Devotee';
+
+/**
+ * Which event a scan belongs to.
+ *
+ * Events are created without a `status` field (Events.jsx writes title,
+ * category, date, dateISO, location, ...), so `status === 'active'` never
+ * matched and the old fallback silently used events[0] — whatever the backend
+ * returned first, typically the oldest event, meaning tonight's scans landed
+ * on a programme from months ago. Prefer an explicitly active event, else the
+ * one closest to now, with today/upcoming beating a past one.
+ *
+ * Mirrors pickActiveEvent in pages/Attendance.jsx; kept local so the scanner
+ * doesn't import a page module.
+ */
+const pickActiveEvent = (events) => {
+  const list = (events || []).filter(Boolean);
+  if (!list.length) return null;
+  const active = list.find((e) => String(e.status || '').toLowerCase() === 'active');
+  if (active) return active;
+
+  const now = Date.now();
+  const scored = list
+    .map((e) => {
+      const t = Date.parse(e.dateISO || e.date || '');
+      return Number.isNaN(t) ? null : { event: e, delta: t - now };
+    })
+    .filter(Boolean);
+  if (!scored.length) return list[0];
+
+  const upcoming = scored.filter((s) => s.delta >= -12 * 3600000);
+  const pool = upcoming.length ? upcoming : scored;
+  pool.sort((a, b) => (upcoming.length ? a.delta - b.delta : b.delta - a.delta));
+  return pool[0].event;
+};
+
 const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
   const { user } = useAuth();
   const [scanMode, setScanMode] = useState(initialMode);
@@ -41,11 +83,12 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
       
       if (userSnap.empty) throw new Error('Invalid QR Code / Devotee not found');
       
-      const devotee = { id: userSnap.docs[0].id, ...userSnap.docs[0].data() };
-      
-      // Auto-detect Active Event (using the first available event if none selected)
-      const event = (events || []).find(e => e.status === 'active') || (events && events[0]);
-      
+      const profile = userSnap.docs[0].data();
+      const devotee = { id: userSnap.docs[0].id, ...profile, name: devoteeName(profile) };
+
+      // Auto-detect the event this scan belongs to.
+      const event = pickActiveEvent(events);
+
       if (!event) throw new Error('No active events found. Please create an event in the dashboard first.');
 
       if (scanMode === 'attendance') {
@@ -225,7 +268,7 @@ const ScanningOverlay = ({ isOpen, onClose, initialMode = 'attendance' }) => {
                       {scanMode === 'attendance' ? 'Entry Allowed' : 'Prasadam Allowed'}
                     </span>
                     <h4 className="text-2xl sm:text-3xl font-bold text-ink uppercase tracking-tight mb-2 break-words">
-                      {verifyResult.devotee?.fullName || verifyResult.devotee?.displayName}
+                      {verifyResult.devotee?.name}
                     </h4>
                     <p className="text-ink-muted font-bold">{verifyResult.message}</p>
                   </div>

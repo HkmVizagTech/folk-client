@@ -58,6 +58,12 @@ const Devotees = () => {
   const [qrModalDevotee, setQrModalDevotee] = useState(null);
   const [roleFilter, setRoleFilter] = useState('All');
   const [showRoleFilter, setShowRoleFilter] = useState(false);
+  // Every write here used to fail into console.error only: a rejected save
+  // (permission denied, offline) left the modal open with the button looking
+  // like it simply did nothing.
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [pageError, setPageError] = useState('');
 
   const exportCSV = () => {
     const headers = ['Name', 'Phone', 'Address', 'Role', 'Level', 'Streak', 'Longest Streak', 'Score', 'QR Token'];
@@ -78,13 +84,20 @@ const Devotees = () => {
     URL.revokeObjectURL(url);
   };
 
+  const errorText = (error, fallback) =>
+    error?.code === 'permission-denied'
+      ? 'You do not have permission to do that.'
+      : error?.message || fallback;
+
   const generateQrToken = async (devotee) => {
+    setPageError('');
     try {
       const qrToken = `FOLK-${devotee.id || 'D'}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
       await updateDoc(doc(db, 'users', devotee.id), { qrToken });
       setQrModalDevotee({ ...devotee, qrToken });
     } catch (error) {
       console.error("Error generating QR token:", error);
+      setPageError(errorText(error, 'Could not generate a QR token. Please try again.'));
     }
   };
 
@@ -106,6 +119,9 @@ const Devotees = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    setFormError('');
     try {
       // Only an admin may set/change the role field - firestore.rules
       // enforces this too, but we also keep it out of the payload here so a
@@ -131,20 +147,26 @@ const Devotees = () => {
       handleCloseModal();
     } catch (error) {
       console.error("Error saving devotee:", error);
+      setFormError(errorText(error, 'Could not save this devotee. Please try again.'));
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
+    setPageError('');
     if (window.confirm('Are you sure you want to delete this devotee?')) {
       try {
         await deleteDoc(doc(db, 'users', id));
       } catch (error) {
         console.error("Error deleting devotee:", error);
+        setPageError(errorText(error, 'Could not delete this devotee. Please try again.'));
       }
     }
   };
 
   const handleEdit = (devotee) => {
+    setFormError('');
     setEditingDevotee(devotee);
     setFormData({
       name: devotee.name || '',
@@ -159,14 +181,21 @@ const Devotees = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingDevotee(null);
+    setFormError('');
     setFormData({ name: '', phone: '', address: '', role: 'devotee', level: '1' });
   };
 
+  // An empty search box must mean "everyone". The old condition required a
+  // name or phone match even when nothing was typed, so any profile with
+  // neither field - imported or half-finished records - was invisible on this
+  // page and could never be edited, given a QR token, or deleted.
+  const term = searchTerm.trim().toLowerCase();
   const filteredDevotees = devotees.filter(d =>
     (roleFilter === 'All' || d.role === roleFilter) &&
     (
-      d.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.phone?.includes(searchTerm)
+      !term ||
+      d.name?.toLowerCase().includes(term) ||
+      d.phone?.includes(term)
     )
   );
 
@@ -195,6 +224,15 @@ const Devotees = () => {
           </button>
         </div>
       </div>
+
+      {pageError && (
+        <div role="alert" className="flex items-start justify-between gap-4 bg-red-50 border border-red-100 text-red-700 rounded-2xl px-4 py-3 text-sm font-bold">
+          <span>{pageError}</span>
+          <button onClick={() => setPageError('')} aria-label="Dismiss" className="shrink-0 text-red-400 hover:text-red-600">
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-white p-4 rounded-2xl border border-saffron/10 shadow-sm">
         <div className="relative flex-1 w-full">
@@ -381,6 +419,11 @@ const Devotees = () => {
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                {formError && (
+                  <p role="alert" className="bg-red-50 border border-red-100 text-red-700 rounded-xl px-4 py-3 text-sm font-bold">
+                    {formError}
+                  </p>
+                )}
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700 ml-1">Full Name</label>
                   <div className="relative">
@@ -465,11 +508,12 @@ const Devotees = () => {
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
-                    className="flex-1 py-3.5 px-6 bg-gradient-to-r from-saffron to-gold text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+                    disabled={saving}
+                    className="flex-1 py-3.5 px-6 bg-gradient-to-r from-saffron to-gold text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
                   >
-                    {editingDevotee ? 'Update Devotee' : 'Save Devotee'}
+                    {saving ? 'Saving…' : editingDevotee ? 'Update Devotee' : 'Save Devotee'}
                   </button>
                 </div>
               </form>
