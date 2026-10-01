@@ -1,22 +1,29 @@
 {
-  "name": "Folkvizag - Devotee Management",
-  "short_name": "Folkvizag",
-  "description": "A comprehensive platform for devotee management and sadhana tracking.",
+  "name": "FOLK Vizag - Friends of Lord Krishna",
+  "short_name": "FOLK Vizag",
+  "description": "The youth club of the Hare Krishna Movement, Visakhapatnam - events, sadhana, seva and yatras.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFF8E7",
   "theme_color": "#FF9933",
   "icons": [
     {
-      "src": "/logo_pwa.png",
+      "src": "/folk_icon_192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/logo_pwa.png",
+      "src": "/folk_icon_512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/folk_icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

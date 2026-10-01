@@ -52,7 +52,7 @@ const QRView = ({ value, name = 'Devotee', size = 200 }) => {
 
         ctx.fillStyle = '#6b7280';
         ctx.font = '12px Inter, system-ui, sans-serif';
-        ctx.fillText('Folkvizag Devotee ID', canvas.width / 2, size + 80);
+        ctx.fillText('FOLK Vizag Devotee ID', canvas.width / 2, size + 80);
 
         // The QR embeds the temple logo by URL. In some browsers that external
         // reference taints the canvas and toDataURL throws a SecurityError -

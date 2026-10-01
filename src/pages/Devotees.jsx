@@ -598,7 +598,7 @@ const Devotees = () => {
 
                 <p className="mt-8 text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
                   Scan for Attendance & Prasadam <br/>
-                  <span className="text-saffron-dark/40 font-black">Folkvizag Devotee Management</span>
+                  <span className="text-saffron-dark/40 font-black">FOLK Vizag Devotee Management</span>
                 </p>
               </div>
             </motion.div>

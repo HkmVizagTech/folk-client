@@ -66,7 +66,7 @@ export const openCheckout = async ({ order, description, prefill = {}, onVerifyi
       name: 'FOLK Vizag',
       description,
       order_id: order.id,
-      image: '/folk_logo_blue.png',
+      image: '/folk_icon_512.png',
       prefill,
       theme: { color: '#E8731C' },
       handler: async (response) => {

@@ -304,7 +304,7 @@ const PublicTopBar = ({ onLoginClick }) => (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="h-16 sm:h-[70px] flex items-center justify-between gap-3">
         <a href="/" className="min-w-0 flex items-center shrink-0" aria-label="FOLK Vizag — home">
-          <img src="/folk_logo_blue.png" alt="Folk Vizag logo" className="h-12 sm:h-14 w-auto max-w-full object-contain shrink-0" />
+          <img src="/folk_logo_blue.png" alt="FOLK Vizag" className="h-12 sm:h-14 w-auto max-w-full object-contain shrink-0" />
         </a>
         <button
           type="button"

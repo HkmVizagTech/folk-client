@@ -316,7 +316,7 @@ const PublicTopBar = ({ onLoginClick }) => (
       <div className="h-16 sm:h-[70px] flex items-center justify-between gap-3">
         <a href="/" className="min-w-0 flex items-center gap-2.5 sm:gap-3" aria-label="FOLK Vizag — home">
           <span className="w-11 h-11 shrink-0 rounded-2xl bg-white flex items-center justify-center shadow-premium ring-1 ring-black/5 overflow-hidden">
-            <img src="/logo.png" alt="Folk Vizag logo" className="h-8 w-8 max-w-full object-contain" />
+            <img src="/folk_mark.png" alt="FOLK Vizag" className="h-8 w-8 max-w-full object-contain" />
           </span>
           <span className="leading-tight min-w-0">
             <span className="block text-[14px] sm:text-[15px] font-black tracking-tight text-gray-900 truncate">FOLK Vizag</span>
@@ -846,7 +846,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
         name: 'FOLK Vizag',
         description: `${trip.title || 'Yatra'} — ${seats} seat${seats === 1 ? '' : 's'}`,
         order_id: order.id,
-        image: '/logo.png',
+        image: '/folk_icon_512.png',
         handler: function () {
           // Nothing is written to Firestore here: the server webhook is the
           // single source of truth for whether the money actually arrived.

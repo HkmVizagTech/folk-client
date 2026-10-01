@@ -1,9 +1,13 @@
-// Service Worker for Folkvizag (PWA)
-const CACHE_NAME = 'folkvizag-v2.0'; // Increment version to force update
+// Service Worker for FOLK Vizag (PWA)
+// v3.0: the old logo.png is no longer part of the shell. The version bump is
+// what evicts a returning devotee's cached copy of it - without it they would
+// keep seeing the previous mark no matter what we deploy.
+const CACHE_NAME = 'folkvizag-v3.0'; // Increment version to force update
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/logo.png',
+  '/folk_mark.png',
+  '/folk_logo_blue.png',
   '/manifest.json'
 ];
 

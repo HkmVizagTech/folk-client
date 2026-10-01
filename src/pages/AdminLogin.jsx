@@ -93,6 +93,15 @@ const AdminLogin = () => {
         <div className="bg-gray-900/90 backdrop-blur-2xl border border-gray-800 rounded-[2.5rem] shadow-2xl p-8 sm:p-10">
 
           <div className="text-center mb-8">
+            {/* The white wordmark, since this card is the one dark surface in
+                the app - the blue one would disappear into it. Staff arriving
+                at /admin should see the same logo they see everywhere else;
+                the shield below is what says "this door is the admin one". */}
+            <img
+              src="/folk_logo_white.png"
+              alt="FOLK Vizag"
+              className="h-12 w-auto mx-auto mb-6 opacity-90"
+            />
             <motion.div
               initial={{ y: -16, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -106,7 +115,7 @@ const AdminLogin = () => {
             <h1 className="text-3xl font-black bg-gradient-to-r from-saffron via-gold to-saffron bg-clip-text text-transparent font-cinzel tracking-tight">
               Administrator
             </h1>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">Folkvizag Control Portal</p>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">FOLK Vizag Control Portal</p>
           </div>
 
           {(error || message) && (
