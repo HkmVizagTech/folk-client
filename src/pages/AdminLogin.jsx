@@ -63,7 +63,7 @@ const AdminLogin = () => {
     } catch (err) {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
         setError(
-          'Invalid administrator credentials. If the shared admin login was never set up (or you forgot its password), sign in with the site owner\u2019s account first (Google works too) and use \u201cCreate / Reset Admin Login\u201d in the Command Center.'
+          'Invalid administrator credentials. If the shared admin login was never created, sign in with the site owner\u2019s account first (Google works too) and use \u201cCreate / Reset Admin Login\u201d in the Command Center to set its password.'
         );
       } else if (err.code === 'auth/too-many-requests') {
         setError('Too many attempts. Please wait and try again.');
@@ -79,10 +79,10 @@ const AdminLogin = () => {
     <div className="min-h-screen bg-gray-950 relative flex flex-col items-center justify-center p-4 overflow-hidden font-inter">
       {/* Ambient background */}
       <div className="absolute top-0 left-0 w-full h-full opacity-[0.07] pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, #E4702A 0, transparent 40%), radial-gradient(circle at 75% 75%, #7C3AED 0, transparent 40%)' }}
+        style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, #FF9933 0, transparent 40%), radial-gradient(circle at 75% 75%, #7C3AED 0, transparent 40%)' }}
       />
-      <div className="absolute -top-40 -right-40 w-[40rem] h-[40rem] bg-saffron/5 rounded-full hidden pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-[30rem] h-[30rem] bg-purple-600/10 rounded-full hidden pointer-events-none" />
+      <div className="absolute -top-40 -right-40 w-[40rem] h-[40rem] bg-saffron/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-[30rem] h-[30rem] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
@@ -90,23 +90,23 @@ const AdminLogin = () => {
         transition={{ duration: 0.4 }}
         className="w-full max-w-md relative z-10"
       >
-        <div className="bg-gray-900/90 backdrop-hidden border border-gray-800 rounded-xl shadow-2xl p-8 sm:p-10">
+        <div className="bg-gray-900/90 backdrop-blur-2xl border border-gray-800 rounded-[2.5rem] shadow-2xl p-8 sm:p-10">
 
           <div className="text-center mb-8">
             <motion.div
               initial={{ y: -16, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.15 }}
-              className="w-20 h-20 mx-auto mb-5 rounded-3xl bg-saffron p-[2px] shadow-lg"
+              className="w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-saffron via-gold to-saffron-dark p-[2px] shadow-lg shadow-saffron/20"
             >
               <div className="w-full h-full bg-gray-900 rounded-[calc(1.5rem-2px)] flex items-center justify-center">
                 <ShieldCheck className="text-saffron" size={34} />
               </div>
             </motion.div>
-            <h1 className="text-3xl font-black bg-saffron bg-clip-text text-transparent font-cinzel tracking-tight">
+            <h1 className="text-3xl font-black bg-gradient-to-r from-saffron via-gold to-saffron bg-clip-text text-transparent font-cinzel tracking-tight">
               Administrator
             </h1>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-label mt-2">Folkvizag Control Portal</p>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">Folkvizag Control Portal</p>
           </div>
 
           {(error || message) && (
@@ -171,7 +171,7 @@ const AdminLogin = () => {
               whileTap={{ scale: 0.98 }}
               disabled={loading}
               type="submit"
-              className="w-full py-4 bg-saffron rounded-2xl font-black text-gray-950 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-all uppercase tracking-label text-xs"
+              className="w-full py-4 bg-gradient-to-r from-saffron to-gold rounded-2xl font-black text-gray-950 shadow-lg shadow-saffron/20 flex items-center justify-center gap-2 disabled:opacity-50 transition-all uppercase tracking-[0.15em] text-xs"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={18} />
@@ -199,7 +199,7 @@ const AdminLogin = () => {
               <div className="relative py-5">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-800" /></div>
                 <div className="relative flex justify-center">
-                  <span className="bg-gray-900 px-4 text-[10px] uppercase font-bold text-gray-600 tracking-label">or</span>
+                  <span className="bg-gray-900 px-4 text-[10px] uppercase font-bold text-gray-600 tracking-[0.2em]">or</span>
                 </div>
               </div>
               <motion.button
@@ -227,7 +227,7 @@ const AdminLogin = () => {
             </p>
             <a
               href="/"
-              className="inline-block mt-3 text-[10px] font-bold text-gray-500 hover:text-saffron uppercase tracking-label transition-colors"
+              className="inline-block mt-3 text-[10px] font-bold text-gray-500 hover:text-saffron uppercase tracking-widest transition-colors"
             >
               ← Member sign-in
             </a>

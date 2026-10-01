@@ -1,284 +1,434 @@
-import React, { useMemo, useState } from 'react';
-import { CalendarDays, MapPin, Plus, Users, CheckCircle2, XCircle, ImagePlus, Ticket } from 'lucide-react';
-import { collection, addDoc, serverTimestamp, doc, where, increment, writeBatch } from '../lib/pgstore';
-import { v4 as uuidv4 } from 'uuid';
-import { useAuth } from '../hooks/useAuth';
-import { auth, db } from '../lib/firebase';
-import { useFirestore } from '../hooks/useFirestore';
-import { toDate, formatDay, formatTime } from '../lib/dates';
-import Modal, { Field, inputClass, textareaClass } from '../components/ui/Modal';
-import { Lotus } from '../components/site/Ornament';
-
-const CATEGORIES = ['Weekly Program', 'Retreats', 'Kirtans', 'Festivals', 'Yatras', 'Seminars', 'Other'];
-const EMPTY_FORM = { title: '', date: '', location: '', category: 'Weekly Program', description: '', img: '' };
-
-// Old events were created with a random stock photo as their default image.
-const realImage = (src) => (src && !/picsum\.photos|unsplash\.com\/random/.test(src) ? src : '');
-
-const eventDate = (e) => toDate(e.dateISO || e.date);
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '../hooks/useAuth'
+import { auth, db } from '../lib/firebase'
+import { 
+  Calendar, MapPin, Tag, Users, ArrowRight, Loader2, Plus, X, Clock, Image as ImageIcon, CheckCircle2, XCircle, Filter, Sparkles, Megaphone, ChevronRight
+} from 'lucide-react'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import { useFirestore } from '../hooks/useFirestore'
+// Postgres-backed shim, NOT the real Firebase SDK: `db` is only a marker
+// object now, so firebase/firestore helpers throw on it - and useFirestore
+// swallows that, leaving the screen silently empty instead of erroring.
+import { collection, addDoc, serverTimestamp, setDoc, doc, where, updateDoc, increment } from '../lib/pgstore'
+import { v4 as uuidv4 } from 'uuid'
 
 const Events = () => {
   const { user } = useAuth();
-  const isStaff = user?.role === 'admin' || user?.role === 'folks_head';
-  const { data: allEvents, loading } = useFirestore('events');
-  const regQuery = useMemo(() => [where('userId', '==', user?.uid || 'guest')], [user?.uid]);
+  const { data: firestoreEvents, loading: eventsLoading } = useFirestore('events');
+  
+  const regQuery = React.useMemo(() => [where('userId', '==', user?.uid || 'guest')], [user?.uid]);
   const { data: registrations } = useFirestore('registrations', regQuery);
 
-  const [category, setCategory] = useState('All');
-  const [when, setWhen] = useState('upcoming');
-  const [busy, setBusy] = useState({});
-  const [error, setError] = useState('');
-  const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [submitting, setSubmitting] = useState(false);
+  const [rsvpLoading, setRsvpLoading] = useState({});
+  
+  const [formData, setFormData] = useState({
+    title: '',
+    date: '',
+    location: '',
+    category: 'Retreats',
+    description: '',
+    img: 'https://picsum.photos/seed/temple/800/400',
+    attendees: '0'
+  });
 
-  const regByEvent = useMemo(() => new Map(registrations.map((r) => [r.eventId, r])), [registrations]);
+  const categories = ['All', 'Retreats', 'Kirtans', 'Yatras', 'Seminars', 'Other']
+  
+  const events = (firestoreEvents || []).slice().sort((a, b) => {
+    const aTime = a.dateISO ? new Date(a.dateISO).getTime() : new Date(a.date).getTime();
+    const bTime = b.dateISO ? new Date(b.dateISO).getTime() : new Date(b.date).getTime();
+    return (aTime || 0) - (bTime || 0);
+  });
+  
+  const filteredEvents = activeCategory === 'All' 
+    ? events 
+    : events.filter(e => e.category === activeCategory);
 
-  const events = useMemo(() => {
-    const cutoff = Date.now() - 6 * 3600 * 1000;
-    return allEvents
-      .map((e) => ({ ...e, _d: eventDate(e) }))
-      .filter((e) => (category === 'All' || e.category === category))
-      .filter((e) => (when === 'upcoming' ? !e._d || e._d.getTime() >= cutoff : e._d && e._d.getTime() < cutoff))
-      .sort((a, b) => (when === 'upcoming' ? 1 : -1) * ((a._d?.getTime() || 0) - (b._d?.getTime() || 0)));
-  }, [allEvents, category, when]);
-
-  const usedCategories = useMemo(
-    () => ['All', ...CATEGORIES.filter((c) => allEvents.some((e) => e.category === c)), ...[...new Set(allEvents.map((e) => e.category).filter((c) => c && !CATEGORIES.includes(c)))]],
-    [allEvents]
-  );
-
-  const rsvp = async (event, attending) => {
-    if (!user) return;
-    const status = attending ? 'Attending' : 'Not Attending';
-    const prev = regByEvent.get(event.id)?.status;
-    if (prev === status) return;
-    setBusy((b) => ({ ...b, [event.id]: true }));
-    setError('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
     try {
-      // One batch, so the counter can never drift from the registrations.
-      const batch = writeBatch(db);
-      batch.update(doc(db, 'events', event.id), {
-        attendingCount: increment(attending ? 1 : prev === 'Attending' ? -1 : 0),
-        declinedCount: increment(!attending ? 1 : prev === 'Not Attending' ? -1 : 0),
+      const rawDate = new Date(formData.date);
+      const formattedDate = rawDate.toLocaleString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit'
       });
-      batch.set(doc(db, 'registrations', `${event.id}_${user.uid}`), {
-        eventId: event.id,
-        eventTitle: event.title,
-        userId: user.uid,
-        userName: user.name || user.fullName || auth.currentUser?.displayName || 'Member',
-        token: attending ? uuidv4().slice(0, 8).toUpperCase() : null,
-        status,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-      await batch.commit();
-    } catch (e) {
-      console.error('RSVP failed:', e);
-      setError('Could not save your RSVP. Please try again.');
-    } finally {
-      setBusy((b) => ({ ...b, [event.id]: false }));
+
+      await addDoc(collection(db, 'events'), {
+        ...formData,
+        date: formattedDate,
+        dateISO: rawDate.toISOString(),
+        groupId: auth.currentUser?.uid || 'system',
+        createdAt: serverTimestamp()
+      });
+      
+      await addDoc(collection(db, 'notifications'), {
+        type: 'new_event',
+        title: `New Event: ${formData.title}`,
+        message: `Join our upcoming ${formData.category} at ${formData.location} on ${formattedDate}.`,
+        link: '/events',
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser?.uid || 'system'
+      });
+      
+      setIsModalOpen(false);
+      setFormData({
+        title: '', date: '', location: '', category: 'Retreats',
+        description: '', img: 'https://picsum.photos/seed/temple/800/400', attendees: '0'
+      });
+      setSubmitting(false);
+    } catch (error) {
+      setSubmitting(false);
+      console.error("Error adding event:", error);
+      alert("Failed to create event: " + error.message);
     }
   };
 
-  const onImage = (e) => {
-    const file = e.target.files?.[0];
+  const handleRSVP = async (event, isAttending) => {
+    if (!user) {
+      alert("Please login to RSVP");
+      return;
+    }
+    setRsvpLoading(prev => ({ ...prev, [event.id]: true }));
+    try {
+      const token = isAttending ? uuidv4().slice(0, 8).toUpperCase() : null;
+      const status = isAttending ? 'Attending' : 'Not Attending';
+      const registrationRef = doc(db, 'registrations', `${event.id}_${user.uid}`);
+      
+      const prevState = registrations?.find(r => r.eventId === event.id)?.status;
+      if (prevState === status) {
+        setRsvpLoading(prev => ({ ...prev, [event.id]: false }));
+        return;
+      }
+      
+      let attendingDiff = isAttending ? 1 : (prevState === 'Attending' ? -1 : 0);
+      let declinedDiff = !isAttending ? 1 : (prevState === 'Not Attending' ? -1 : 0);
+      
+      const eventRef = doc(db, 'events', event.id);
+      
+      // If it's a real event, update its counts
+      if (!event.id.startsWith('mock')) {
+        await updateDoc(eventRef, {
+          attendingCount: increment(attendingDiff),
+          declinedCount: increment(declinedDiff)
+        });
+      }
+      
+      await setDoc(registrationRef, {
+        eventId: event.id,
+        eventTitle: event.title,
+        userId: user.uid,
+        userName: user.fullName || auth.currentUser?.displayName || 'Devotee',
+        token: token,
+        status: status,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      
+      if (isAttending) alert(`Successfully registered! Your Attendance Token: ${token}`);
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("Failed to RSVP: " + error.message);
+    } finally {
+      setRsvpLoading(prev => ({ ...prev, [event.id]: false }));
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { setError('Please choose an image file.'); return; }
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        // Downscale so the event document stays small.
-        const scale = Math.min(1, 1000 / img.width);
         const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        setForm((f) => ({ ...f, img: canvas.toDataURL('image/jpeg', 0.72) }));
-      };
-      img.src = ev.target.result;
+        let width = img.width, height = img.height;
+        if (width > 800) { height = Math.round((height * 800) / width); width = 800; }
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        setFormData({...formData, img: canvas.toDataURL('image/jpeg', 0.7)});
+      }
+      img.src = event.target.result;
     };
     reader.readAsDataURL(file);
   };
 
-  const create = async (e) => {
-    e.preventDefault();
-    const d = new Date(form.date);
-    if (!form.title.trim() || Number.isNaN(d.getTime())) { setError('Add a title and a valid date and time.'); return; }
-    setSaving(true);
-    setError('');
-    try {
-      const label = d.toLocaleString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' });
-      await addDoc(collection(db, 'events'), {
-        title: form.title.trim(),
-        category: form.category,
-        location: form.location.trim(),
-        description: form.description.trim(),
-        img: form.img || '',
-        date: label,
-        dateISO: d.toISOString(),
-        attendingCount: 0,
-        declinedCount: 0,
-        groupId: auth.currentUser?.uid || 'system',
-        createdAt: serverTimestamp(),
-      });
-      await addDoc(collection(db, 'notifications'), {
-        type: 'new_event',
-        title: `New event: ${form.title.trim()}`,
-        message: `${form.category}${form.location ? ` at ${form.location.trim()}` : ''} on ${label}.`,
-        link: '/events',
-        createdAt: serverTimestamp(),
-        createdBy: auth.currentUser?.uid || 'system',
-      });
-      setFormOpen(false);
-      setForm(EMPTY_FORM);
-    } catch (err) {
-      console.error('Create event failed:', err);
-      setError('Could not create the event. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  if (eventsLoading && firestoreEvents.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-saffron" size={48} />
+          <p className="text-gray-400 font-black uppercase tracking-[0.3em] text-[10px]">Gathering Events...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="display-lg">Events</h1>
-          <p className="mt-1 text-ink-muted">Programs, festivals and retreats. RSVP so the team knows you&apos;re coming.</p>
-        </div>
-        {isStaff && (
-          <button type="button" onClick={() => { setForm(EMPTY_FORM); setFormOpen(true); }} className="btn-primary"><Plus size={18} /> New event</button>
-        )}
-      </div>
+    <div className="min-h-screen bg-[#fafafa] p-4 lg:p-10 relative overflow-x-hidden">
+      {/* Background Decor */}
+      <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-saffron/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-[600px] h-[600px] bg-gold/5 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/3 pointer-events-none" />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1" role="tablist" aria-label="Category">
-          {usedCategories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              role="tab"
-              aria-selected={category === c}
-              onClick={() => setCategory(c)}
-              className={`shrink-0 h-9 px-3.5 rounded-full border text-[14px] font-semibold transition-colors ${category === c ? 'bg-navy text-white border-navy' : 'bg-white border-line text-ink hover:bg-paper hover:border-marigold/60'}`}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 max-w-7xl mx-auto space-y-12">
+        
+        {/* Header Section */}
+        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-3 px-5 py-2 bg-saffron/10 text-saffron rounded-full border border-saffron/20 shadow-sm">
+               <Megaphone size={16} />
+               <span className="text-[11px] font-black uppercase tracking-[0.2em]">Spiritual Gatherings</span>
+            </div>
+            <h1 className="text-4xl md:text-7xl font-black text-gray-900 tracking-tighter leading-tight xl:leading-[0.8] uppercase">
+              COMMUNITY<br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-saffron to-gold">Events</span>
+            </h1>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <div className="flex -space-x-3">
+               {[1,2,3,4].map(i => (
+                 <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden shadow-sm">
+                    <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="avatar" />
+                 </div>
+               ))}
+               <div className="w-10 h-10 rounded-full border-2 border-white bg-saffron text-white flex items-center justify-center text-[10px] font-black shadow-sm">+50</div>
+            </div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none">Join 1000+ devotees <br/>in sacred practice</p>
+            {user?.role && (user.role === 'admin' || user.role === 'folks_head') && (
+              <Button onClick={() => setIsModalOpen(true)} className="py-4 px-8 bg-gray-900 text-white font-black rounded-2xl shadow-premium-xl group">
+                 <Plus size={18} className="mr-2 group-hover:rotate-90 transition-transform" /> CREATE EVENT
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Categories Bar */}
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4">
+          {categories.map((cat) => (
+            <button 
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-8 py-3.5 rounded-2xl whitespace-nowrap transition-all font-black text-xs uppercase tracking-[0.15em] relative ${
+                cat === activeCategory 
+                  ? 'bg-gray-900 text-white shadow-premium-xl translate-y-[-2px]' 
+                  : 'bg-white/60 backdrop-blur-md border border-gray-100 text-gray-400 hover:text-saffron hover:border-saffron/30 hover:bg-white'
+              }`}
             >
-              {c}
+              {cat}
+              {cat === activeCategory && (
+                <motion.div layoutId="catActive" className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-saffron rounded-full" />
+              )}
             </button>
           ))}
         </div>
-        <div className="flex p-1 bg-white border border-line rounded-md" role="tablist" aria-label="When">
-          {[['upcoming', 'Upcoming'], ['past', 'Past']].map(([k, l]) => (
-            <button key={k} type="button" role="tab" aria-selected={when === k} onClick={() => setWhen(k)} className={`h-8 px-3 rounded text-[14px] font-semibold ${when === k ? 'bg-paper text-ink' : 'text-ink-muted'}`}>{l}</button>
-          ))}
-        </div>
-      </div>
 
-      {error && <p role="alert" className="rounded-md bg-red-50 text-red-700 px-4 py-3">{error}</p>}
-
-      {loading && allEvents.length === 0 ? (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3" aria-busy="true">
-          {[0, 1, 2].map((i) => <div key={i} className="h-80 card animate-pulse" />)}
-        </div>
-      ) : events.length === 0 ? (
-        <div className="card p-10 text-center">
-          <div className="ornament justify-center text-marigold"><Lotus /></div>
-          <h2 className="mt-4 font-display text-lg font-bold">{when === 'upcoming' ? 'No upcoming events' : 'No past events'}</h2>
-          <p className="mt-1 text-ink-muted">{when === 'upcoming' ? 'New programs are announced here and on WhatsApp.' : 'Past events will be listed here.'}</p>
-        </div>
-      ) : (
-        <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {events.map((e) => {
-            const reg = regByEvent.get(e.id);
-            const going = reg?.status === 'Attending';
-            const declined = reg?.status === 'Not Attending';
-            const img = realImage(e.img);
-            const past = when === 'past';
-            return (
-              <li key={e.id} className="card card-hover overflow-hidden flex flex-col">
-                {/* Event images are usually posters with the date and venue in
-                    the artwork, so they're shown whole (contain), not cropped. */}
-                <div className="relative aspect-[4/3] bg-paper-dark overflow-hidden">
-                  {img ? <img src={img} alt={`${e.title} poster`} loading="lazy" className="absolute inset-0 w-full h-full object-contain" /> : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-paper to-paper-dark"><Lotus className="text-marigold" style={{ width: 72, height: 36 }} /></div>
-                  )}
-                  {e._d && (
-                    <div className="absolute top-3 left-3 bg-white rounded-xl px-2.5 py-1.5 text-center leading-none shadow-premium">
-                      <div className="font-display text-xl font-extrabold">{e._d.toLocaleDateString('en-IN', { day: '2-digit', timeZone: 'Asia/Kolkata' })}</div>
-                      <div className="mt-0.5 font-sans text-[11px] font-bold tracking-label text-saffron-dark">{e._d.toLocaleDateString('en-IN', { month: 'short', timeZone: 'Asia/Kolkata' }).toUpperCase()}</div>
-                    </div>
-                  )}
-                  {e.category && <span className="absolute top-3 right-3 bg-navy-800/90 text-white rounded-full px-2.5 py-1 text-[12px] font-semibold">{e.category}</span>}
+        {/* Featured Card */}
+        {filteredEvents.length > 0 && activeCategory === 'All' && (
+          <Card className="p-0 border-none shadow-premium-xl rounded-[4rem] overflow-hidden group relative min-h-[500px] flex flex-col justify-end bg-black">
+             <div className="absolute inset-0 overflow-hidden">
+                <img src={filteredEvents[0].img} alt="hero" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-60" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+             </div>
+             
+              <div className="relative z-10 p-8 sm:p-12 xl:p-16 space-y-6 sm:space-y-8">
+                <div className="flex flex-wrap gap-3">
+                   <span className="px-4 py-1.5 bg-saffron text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Featured</span>
+                   <span className="px-4 py-1.5 bg-white/10 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-full border border-white/20">{filteredEvents[0].category}</span>
                 </div>
-                <div className="p-5 flex-1 flex flex-col">
-                  <h2 className="font-display text-lg font-bold leading-snug user-text">{e.title}</h2>
-                  <p className="mt-2 text-[15px] text-ink-muted flex flex-col gap-1">
-                    {e._d && <span className="inline-flex items-center gap-2"><CalendarDays size={16} className="shrink-0" /> {formatDay(e._d)}, {formatTime(e._d)}</span>}
-                    {e.location && <span className="inline-flex items-center gap-2 user-text"><MapPin size={16} className="shrink-0" /> {e.location}</span>}
-                    {(e.attendingCount || 0) > 0 && <span className="inline-flex items-center gap-2"><Users size={16} className="shrink-0" /> {e.attendingCount} going</span>}
-                  </p>
-                  {e.description && <p className="mt-3 text-[15px] text-ink line-clamp-3 user-text">{e.description}</p>}
-
-                  {!past && (
-                    <div className="mt-auto pt-5">
-                      {going && reg?.token && (
-                        <p className="mb-3 flex items-center gap-2 rounded-md bg-green-50 text-green-800 px-3 py-2 text-[14px]">
-                          <Ticket size={16} className="shrink-0" /> Check-in code <span className="font-display font-bold tracking-wider">{reg.token}</span>
-                        </p>
-                      )}
-                      <div className="grid grid-cols-2 gap-2">
-                        <button type="button" disabled={busy[e.id]} onClick={() => rsvp(e, true)} aria-pressed={going}
-                          className={`btn normal-case tracking-normal text-[14px] ${going ? 'bg-green-600 text-white' : 'bg-navy text-white hover:bg-navy'}`}>
-                          <CheckCircle2 size={17} /> {going ? 'Going' : "I'm going"}
-                        </button>
-                        <button type="button" disabled={busy[e.id]} onClick={() => rsvp(e, false)} aria-pressed={declined}
-                          className={`btn normal-case tracking-normal text-[14px] border ${declined ? 'border-ink bg-paper text-ink' : 'border-line text-ink hover:bg-paper'}`}>
-                          <XCircle size={17} /> {declined ? "Can't go" : "Can't make it"}
-                        </button>
+                
+                <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white tracking-tighter max-w-3xl leading-none italic uppercase">{filteredEvents[0].title}</h2>
+                
+                <div className="flex flex-wrap gap-6 sm:gap-10">
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20"><Calendar className="text-gold" size={20} /></div>
+                      <div>
+                         <span className="block text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest">Date & Time</span>
+                         <span className="text-sm sm:text-lg font-black text-white tracking-tight">{filteredEvents[0].date}</span>
                       </div>
-                    </div>
-                  )}
+                   </div>
+                   <div className="flex items-center gap-3 text-left">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20"><MapPin className="text-saffron" size={20} /></div>
+                      <div className="text-left">
+                         <span className="block text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest text-left">Location</span>
+                         <span className="text-sm sm:text-lg font-black text-white tracking-tight text-left">{filteredEvents[0].location}</span>
+                      </div>
+                   </div>
                 </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
 
-      <Modal
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        title="New event"
-        footer={<>
-          <button type="button" onClick={() => setFormOpen(false)} className="btn border border-line text-ink hover:bg-paper">Cancel</button>
-          <button type="submit" form="event-form" disabled={saving} className="btn-primary">{saving ? 'Creating…' : 'Create event'}</button>
-        </>}
-      >
-        <form id="event-form" onSubmit={create} className="space-y-4">
-          <Field label="Title"><input required className={inputClass} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="e.g. Sunday Feast Program" /></Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Date & time"><input required type="datetime-local" className={inputClass} value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} /></Field>
-            <Field label="Category">
-              <select className={inputClass} value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </Field>
+                 <div className="pt-6 sm:pt-8 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                    {(() => {
+                        const event = filteredEvents[0];
+                        const reg = registrations?.find(r => r.eventId === event.id);
+                        if (reg?.status === 'Attending') return (
+                          <div className="px-10 py-5 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 flex items-center gap-4">
+                             <CheckCircle2 size={24} className="text-green-400" />
+                             <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Your Token</span>
+                                <span className="text-lg font-black text-white tracking-widest">{reg.token}</span>
+                             </div>
+                          </div>
+                        );
+                        return (
+                          <Button 
+                            disabled={rsvpLoading[event.id]}
+                            onClick={() => handleRSVP(event, true)} 
+                            className="w-full sm:w-auto px-10 py-5 bg-white text-gray-900 font-black rounded-3xl hover:bg-cream transition-all uppercase tracking-[0.2em] text-[11px] shadow-2xl disabled:opacity-50"
+                          >
+                             {rsvpLoading[event.id] ? <Loader2 className="animate-spin mx-auto" size={18} /> : "I will Attend"}
+                          </Button>
+                        );
+                    })()}
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic">
+                        {filteredEvents[0].attendingCount || filteredEvents[0].attendees || 0} Devotees expected
+                    </p>
+                 </div>
+             </div>
+          </Card>
+        )}
+
+        {/* Grid Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+            {filteredEvents.slice(activeCategory === 'All' ? 1 : 0).map((event, idx) => (
+              <motion.div key={event.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
+                 <Card className="p-0 border-none shadow-premium-xl rounded-[3.5rem] overflow-hidden flex flex-col h-full bg-white group transition-all hover:translate-y-[-10px]">
+                    <div className="relative h-64 overflow-hidden">
+                       <img src={event.img} alt={event.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                       <div className="absolute top-6 left-6 block text-left">
+                          <span className="px-5 py-2 bg-white/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-gray-900 border border-white/20 shadow-xl uppercase tracking-widest text-left">{event.category}</span>
+                       </div>
+                       <div className="absolute bottom-6 right-6">
+                          <div className="flex items-center gap-2 bg-gray-900/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
+                             <Users size={12} className="text-gold" />
+                             <span className="text-[10px] font-black text-white uppercase">{event.attendingCount || event.attendees || 0}</span>
+                          </div>
+                       </div>
+                    </div>
+                    
+                    <div className="p-6 sm:p-8 lg:p-10 flex-1 flex flex-col space-y-6">
+                       <div className="flex items-center gap-2 text-saffron text-[11px] font-black uppercase tracking-[0.2em]">
+                          <Calendar size={14} /> {event.date}
+                       </div>
+                       <h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-tight italic uppercase group-hover:text-saffron transition-colors text-left">{event.title}</h3>
+                       <p className="text-sm text-gray-400 font-bold leading-relaxed line-clamp-3 text-left">{event.description}</p>
+                       
+                       <div className="pt-8 mt-auto border-t border-gray-100 flex items-center justify-between">
+                          <div className="flex flex-col text-left">
+                             <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest text-left">Venue</span>
+                             <span className="text-xs font-bold text-gray-900 truncate max-w-[120px] text-left">{event.location}</span>
+                          </div>
+                          
+                          {(() => {
+                             const reg = registrations?.find(r => r.eventId === event.id);
+                             if (reg?.status === 'Attending') return (
+                               <div className="p-3 bg-green-50 rounded-2xl flex items-center gap-3">
+                                  <CheckCircle2 size={16} className="text-green-500" />
+                                  <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">{reg.token}</span>
+                               </div>
+                             );
+                             return (
+                               <Button
+                                 disabled={rsvpLoading[event.id]}
+                                 onClick={() => handleRSVP(event, true)}
+                                 className="py-3.5 px-6 min-h-[44px] bg-saffron text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:shadow-saffron/20 group disabled:opacity-50"
+                               >
+                                  {rsvpLoading[event.id] ? <Loader2 className="animate-spin mx-auto" size={14} /> : (
+                                    <div className="flex items-center">
+                                      JOIN <ChevronRight size={14} className="ml-1 group-hover:translate-x-1" />
+                                    </div>
+                                  )}
+                               </Button>
+                             );
+                          })()}
+                       </div>
+                    </div>
+                 </Card>
+              </motion.div>
+            ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredEvents.length === 0 && (
+          <div className="text-center py-32 bg-white rounded-[4rem] shadow-premium-xl border border-gray-100">
+             <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-8">
+                <Filter size={40} className="text-gray-200" />
+             </div>
+             <h3 className="text-3xl font-black text-gray-900 tracking-tight italic uppercase">No Sacred Gatherings Found</h3>
+             <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-2">Try switching categories, or check back later!</p>
           </div>
-          <Field label="Location"><input className={inputClass} value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="e.g. Temple hall" /></Field>
-          <Field label="Description"><textarea className={textareaClass} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="What will happen, who it's for, what to bring" /></Field>
-          <Field label="Photo" hint="Optional. A real photo from a past program works best.">
-            <div className="flex items-center gap-4">
-              <label className="btn border border-line text-ink hover:bg-paper normal-case tracking-normal text-[14px] cursor-pointer">
-                <ImagePlus size={17} /> Choose photo
-                <input type="file" accept="image/*" className="sr-only" onChange={onImage} />
-              </label>
-              {form.img && <img src={form.img} alt="Selected" className="h-14 w-24 object-cover rounded-md" />}
-            </div>
-          </Field>
-        </form>
-      </Modal>
-    </div>
-  );
-};
+        )}
 
-export default Events;
+        <div className="h-20" />
+      </motion.div>
+
+      {/* Modern Creation Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-gray-900/60 backdrop-blur-xl" />
+            <motion.div initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 50 }} className="relative w-full max-w-2xl bg-white rounded-[2.5rem] sm:rounded-[4rem] shadow-premium-xl p-6 sm:p-10 xl:p-14 overflow-y-auto max-h-[90vh] border border-saffron/10 scrollbar-hide">
+               <button onClick={() => setIsModalOpen(false)} aria-label="Close" className="absolute top-6 right-6 sm:top-8 sm:right-8 w-11 h-11 sm:w-12 sm:h-12 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-all"><X size={24}/></button>
+
+               <div className="text-center mb-12">
+                  <div className="w-16 h-16 bg-gradient-to-br from-saffron to-gold rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                     <Sparkles size={32} className="text-white" />
+                  </div>
+                  <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase italic leading-none">Assemble the Sips</h2>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-2">Publish a Divine Gathering</p>
+               </div>
+
+               <form onSubmit={handleSubmit} className="space-y-10">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Event Title</label>
+                       <input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-8 py-5 bg-gray-50 rounded-3xl border border-gray-100 focus:bg-white focus:border-saffron outline-none font-black text-gray-900 tracking-tight transition-all placeholder:text-gray-200" placeholder="e.g. Mahotsav 2026" />
+                    </div>
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Category</label>
+                       <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full px-8 py-5 bg-gray-50 rounded-3xl border border-gray-100 focus:bg-white focus:border-saffron outline-none font-black text-gray-900 transition-all appearance-none cursor-pointer">
+                          {categories.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                       </select>
+                    </div>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Date & Time</label>
+                       <input required type="datetime-local" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full px-8 py-5 bg-gray-50 rounded-3xl border border-gray-100 focus:bg-white focus:border-saffron outline-none font-black text-gray-900 transition-all" />
+                    </div>
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Location</label>
+                       <input required type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-8 py-5 bg-gray-50 rounded-3xl border border-gray-100 focus:bg-white focus:border-saffron outline-none font-black text-gray-900 transition-all placeholder:text-gray-200" placeholder="e.g. Govinda Hall" />
+                    </div>
+                 </div>
+
+                 <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Description</label>
+                    <textarea rows={3} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-8 py-5 bg-gray-50 rounded-3xl border border-gray-100 focus:bg-white focus:border-saffron outline-none font-black text-gray-900 transition-all resize-none placeholder:text-gray-200" placeholder="Brief details about the spiritual experience..." />
+                 </div>
+
+                 <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Visual Banner</label>
+                    <label className="flex items-center gap-4 cursor-pointer w-full p-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2.5rem] hover:bg-gray-100 hover:border-saffron transition-all group overflow-hidden">
+                       <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><ImageIcon className="text-gray-400" size={24} /></div>
+                       <span className="text-xs font-black text-gray-400 uppercase tracking-widest truncate">{formData.img.startsWith('data') ? 'IMAGE SECURED' : 'CHOOSE SACRED IMAGE'}</span>
+                       <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                 </div>
+
+                 <Button type="submit" disabled={submitting} className="w-full py-6 bg-gray-900 text-white font-black rounded-[2.5rem] shadow-premium-xl hover:bg-black group text-xs uppercase tracking-[0.3em]">
+                    {submitting ? <Loader2 className="animate-spin mx-auto" /> : <div className="flex items-center justify-center gap-3">PUBLISH EXPERIENCE <Megaphone size={18} /></div>}
+                 </Button>
+               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+export default Events

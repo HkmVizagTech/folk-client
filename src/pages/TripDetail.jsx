@@ -6,7 +6,14 @@ import {
   CheckCircle2, XCircle, AlertTriangle, Ban, Clock3, Sparkles, Info, Camera,
   Map as MapIcon, Bus, Banknote, Building2, ChevronLeft, ChevronRight
 } from 'lucide-react'
-import { collection, addDoc, updateDoc, doc, serverTimestamp, where } from 'firebase/firestore'
+// MUST come from the pgstore shim, not 'firebase/firestore'. Data lives in
+// Postgres now and `db` is just a marker object, so the real Firebase helpers
+// throw on it. Worse, they fail SILENTLY here: useFirestore catches the error,
+// leaves `data` empty, and the page concludes the trip doesn't exist - which is
+// what made every /trip/<slug> page render "This yatra isn't here" while the
+// record sat in the database all along. The same import feeds addDoc/updateDoc,
+// so registration and the payment-order write were broken on this page too.
+import { collection, addDoc, updateDoc, doc, serverTimestamp, where } from '../lib/pgstore'
 import { db, auth } from '../lib/firebase'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
@@ -246,6 +253,63 @@ const Photo = ({
 
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ *
+ * ScrollRow — a horizontally scrolling strip that SAYS it scrolls.
+ *
+ * `overflow-x-auto scrollbar-hide` scrolls correctly but removes every hint
+ * that it does, so a clipped strip reads as a broken layout. This wraps the
+ * scroller and fades whichever edge still has content behind it, with a
+ * chevron on the trailing edge. Both fades are driven by the real scroll
+ * position, so nothing is drawn when the strip fits and nothing scrolls.
+ * ------------------------------------------------------------------ */
+const ScrollRow = ({
+  children,
+  className = '',
+  outerClassName = '',
+  fadeClass = 'from-cream',
+  chevronClass = 'text-saffron',
+}) => {
+  const ref = useRef(null)
+  const [edge, setEdge] = useState({ start: false, end: false })
+
+  const measure = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    const max = el.scrollWidth - el.clientWidth
+    setEdge({ start: el.scrollLeft > 4, end: max > 4 && el.scrollLeft < max - 4 })
+  }, [])
+
+  useEffect(() => {
+    measure()
+    const el = ref.current
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    // Watch the scroller AND its children: a yatra's stops arrive with the
+    // data, long after first paint.
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    Array.from(el.children).forEach((child) => ro.observe(child))
+    return () => ro.disconnect()
+  }, [measure, children])
+
+  return (
+    <div className={`relative min-w-0 ${outerClassName}`}>
+      <div ref={ref} onScroll={measure} className={`overflow-x-auto scrollbar-hide ${className}`}>
+        {children}
+      </div>
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r ${fadeClass} to-transparent transition-opacity duration-200 ${edge.start ? 'opacity-100' : 'opacity-0'}`}
+      />
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l ${fadeClass} to-transparent flex items-center justify-end transition-opacity duration-200 ${edge.end ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <ChevronRight size={15} className={chevronClass} />
+      </span>
+    </div>
+  )
+}
+
 const PublicTopBar = ({ onLoginClick }) => (
   <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-saffron/10">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -326,7 +390,7 @@ const PlacesSection = ({ locations, tripTitle }) => {
   /* The route at a glance. Scrolls horizontally on its own so a long yatra
      can never widen the page. */
   const routeStrip = count > 1 && (
-    <div className="mb-6 sm:mb-8 -mx-1 px-1 overflow-x-auto scrollbar-hide">
+    <ScrollRow outerClassName="mb-6 sm:mb-8 -mx-1" className="px-1 py-0.5">
       <ol className="flex items-center min-w-min">
         {locations.map((loc, i) => (
           <li key={loc.id} className="flex items-center shrink-0">
@@ -344,7 +408,7 @@ const PlacesSection = ({ locations, tripTitle }) => {
           </li>
         ))}
       </ol>
-    </div>
+    </ScrollRow>
   )
 
   return (
@@ -453,7 +517,9 @@ const isCashEnabled = (trip) => trip?.cashPaymentEnabled === true
 /** Skeleton for the detail page — closer to the finished layout than a spinner. */
 const DetailSkeleton = () => (
   <div className="animate-pulse" aria-hidden="true">
-    <div className="h-[46svh] sm:h-[56svh] bg-gradient-to-br from-[#1a1614] to-[#0B0A09]" />
+    {/* Matches the real hero's min-height, so the page does not lurch when
+        the trip resolves. */}
+    <div className="h-[62svh] sm:h-[68svh] bg-gradient-to-br from-[#1a1614] to-[#0B0A09]" />
     <div className="bg-cream">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
@@ -1546,7 +1612,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               {otherTrips.length > 0 && (
                 <section>
                   <SectionHeading icon={<Bus size={13} />} eyebrow="Also coming up" title="Other yatras" />
-                  <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Three across only from xl: this sits inside lg:col-span-2
+                      of a 3-column grid, which at 1024px is ~440px wide — three
+                      cards there are 130px each. */}
+                  <div className="grid grid-cols-1 xs:grid-cols-2 xl:grid-cols-3 gap-4">
                     {otherTrips.map((t) => {
                       const otherPlaces = normaliseLocations(t.locations).length
                       return (
@@ -1959,10 +2028,14 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 <X size={21} />
               </button>
 
+              {/* Capped to the modal's own height. A portrait photograph used
+                  to make this box scroll, and the prev/next buttons below are
+                  positioned at top-1/2 of the SCROLL height — so on a tall
+                  image they sat off-screen until you scrolled to find them. */}
               <img
                 src={gallery[lightbox]}
                 alt={`${trip.title || 'Yatra'} photo ${lightbox + 1}`}
-                className="w-full max-w-full h-auto object-contain"
+                className="block mx-auto w-auto max-w-full h-auto max-h-[80vh] object-contain"
               />
 
               {gallery.length > 1 && (

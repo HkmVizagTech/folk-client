@@ -238,6 +238,64 @@ const Photo = ({
 }
 
 /* ------------------------------------------------------------------ *
+ * ScrollRow — a horizontally scrolling strip that SAYS it scrolls.
+ *
+ * `overflow-x-auto scrollbar-hide` scrolls correctly but removes every hint
+ * that it does, so a clipped strip reads as a broken layout. This wraps the
+ * scroller and fades whichever edge still has content behind it, with a
+ * chevron on the trailing edge. Both fades are driven by the real scroll
+ * position, so nothing is drawn when the strip fits and nothing scrolls.
+ * ------------------------------------------------------------------ */
+const ScrollRow = ({
+  children,
+  className = '',
+  outerClassName = '',
+  fadeClass = 'from-white',
+  fadeEdgeClass = '',
+  chevronClass = 'text-gray-400',
+}) => {
+  const ref = useRef(null)
+  const [edge, setEdge] = useState({ start: false, end: false })
+
+  const measure = React.useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    const max = el.scrollWidth - el.clientWidth
+    setEdge({ start: el.scrollLeft > 4, end: max > 4 && el.scrollLeft < max - 4 })
+  }, [])
+
+  useEffect(() => {
+    measure()
+    const el = ref.current
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    // Watch the scroller AND its children: the strip's content arrives with
+    // the data, long after first paint.
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    Array.from(el.children).forEach((child) => ro.observe(child))
+    return () => ro.disconnect()
+  }, [measure, children])
+
+  return (
+    <div className={`relative min-w-0 ${outerClassName}`}>
+      <div ref={ref} onScroll={measure} className={`overflow-x-auto scrollbar-hide ${className}`}>
+        {children}
+      </div>
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r ${fadeClass} to-transparent transition-opacity duration-200 ${fadeEdgeClass} ${edge.start ? 'opacity-100' : 'opacity-0'}`}
+      />
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l ${fadeClass} to-transparent flex items-center justify-end pr-1 transition-opacity duration-200 ${fadeEdgeClass} ${edge.end ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <ArrowRight size={13} className={chevronClass} />
+      </span>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ *
  * Minimal top bar — only for logged-out visitors landing on /trips
  * directly, where the app shell (navbar) is not mounted.
  * ------------------------------------------------------------------ */
@@ -312,7 +370,18 @@ const LocationStrip = ({ locations }) => {
 const TripCard = ({ trip, seatsLeft, onOpen, index }) => {
   const status = (trip.status || 'upcoming').toLowerCase()
   const locations = React.useMemo(() => normaliseLocations(trip.locations), [trip.locations])
-  const open = () => onOpen(trip.slug)
+  const href = trip.slug ? `/trip/${encodeURIComponent(trip.slug)}` : undefined
+
+  // A real <a href> so the card can be copied, opened in a new tab and
+  // crawled - these pages exist to be shared on WhatsApp. We only hijack the
+  // plain left-click to keep SPA navigation; every modified click (ctrl/cmd
+  // for a new tab, middle-click, shift) is left to the browser.
+  const handleLinkClick = (e) => {
+    if (e.defaultPrevented) return
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+    e.preventDefault()
+    onOpen(trip.slug)
+  }
 
   return (
     <motion.article
@@ -321,17 +390,7 @@ const TripCard = ({ trip, seatsLeft, onOpen, index }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ delay: Math.min(index * 0.05, 0.3), duration: 0.45, ease: 'easeOut' }}
-      role="button"
-      tabIndex={0}
-      aria-label={`${trip.title || 'Trip'} — view details`}
-      onClick={open}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          open()
-        }
-      }}
-      className="group cursor-pointer h-full flex flex-col bg-white rounded-[1.5rem] sm:rounded-[1.75rem] overflow-hidden shadow-premium hover:shadow-premium-2xl border border-orange-50 transition-all duration-300 hover:-translate-y-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933] focus-visible:ring-offset-2"
+      className="group relative cursor-pointer h-full flex flex-col bg-white rounded-[1.5rem] sm:rounded-[1.75rem] overflow-hidden shadow-premium hover:shadow-premium-2xl border border-orange-50 transition-all duration-300 hover:-translate-y-1.5 focus-within:ring-2 focus-within:ring-[#FF9933] focus-within:ring-offset-2"
     >
       {/* Cover — a fixed ratio box, so the grid never reflows as covers land */}
       <Photo
@@ -368,7 +427,13 @@ const TripCard = ({ trip, seatsLeft, onOpen, index }) => {
       <div className="p-4 xs:p-5 sm:p-6 flex-1 flex flex-col gap-3.5 user-text-box">
         <div className="user-text-box">
           <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight leading-snug line-clamp-2 group-hover:text-[#E67E22] transition-colors user-text">
-            {trip.title || 'Untitled trip'}
+            <a
+              href={href}
+              onClick={handleLinkClick}
+              className="outline-none after:absolute after:inset-0 after:content-[''] after:rounded-[1.5rem] sm:after:rounded-[1.75rem]"
+            >
+              {trip.title || 'Untitled trip'}
+            </a>
           </h3>
           {trip.subtitle && (
             <p className="text-[12.5px] text-gray-500 font-medium mt-1.5 leading-relaxed line-clamp-2 user-text">{trip.subtitle}</p>
@@ -402,12 +467,15 @@ const TripCard = ({ trip, seatsLeft, onOpen, index }) => {
         <div className="mt-auto pt-4 border-t border-gray-100 flex items-end justify-between gap-3 user-text-box">
           <div className="min-w-0">
             {Number(trip.price) > 0 ? (
-              <div className="flex items-baseline gap-1.5 flex-wrap">
-                <p className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-none">{inr(trip.price)}</p>
+              /* A lakh-plus price is one unbreakable token. Without `user-text`
+                 it sets its own min-content width and pushes the arrow button
+                 out of the card at the narrow end of the three-column grid. */
+              <div className="flex items-baseline gap-1.5 flex-wrap min-w-0">
+                <p className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-none min-w-0 user-text">{inr(trip.price)}</p>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.12em]">/ person</p>
               </div>
             ) : (
-              <p className="text-sm font-black text-emerald-600 uppercase tracking-tight">Free / by seva</p>
+              <p className="text-sm font-black text-emerald-600 uppercase tracking-tight user-text">Free / by seva</p>
             )}
             {typeof seatsLeft === 'number' ? (
               <p className={`mt-2 text-[10px] font-black uppercase tracking-[0.12em] inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ${
@@ -660,8 +728,12 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
           {/* Destination lockup strip — every holy place the crew travels to */}
           {placeNames.length > 0 && (
             <div className="relative z-10 border-t border-white/10 bg-black/35 backdrop-blur-md">
-              <div className="px-5 sm:px-10 lg:px-14 py-4 sm:py-5">
-                <div className="flex items-center gap-x-5 gap-y-3 overflow-x-auto scrollbar-hide user-text-box">
+              <div className="py-4 sm:py-5">
+                <ScrollRow
+                  className="flex items-center gap-x-5 gap-y-3 px-5 sm:px-10 lg:px-14 user-text-box"
+                  fadeClass="from-[#0B0A09]"
+                  chevronClass="text-white/50"
+                >
                   <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
                     On the map
                   </span>
@@ -679,7 +751,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
                       +{placeNames.length - 12} more
                     </span>
                   )}
-                </div>
+                </ScrollRow>
               </div>
             </div>
           )}
@@ -688,7 +760,12 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
 
       {/* ---------------- Tabs + filters ---------------- */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 p-1.5 bg-white rounded-full shadow-premium border border-orange-50 w-full sm:w-fit overflow-x-auto scrollbar-hide">
+        <ScrollRow
+          className="flex items-center gap-2"
+          outerClassName="p-1.5 bg-white rounded-full shadow-premium border border-orange-50 w-full sm:w-fit"
+          fadeClass="from-white"
+          fadeEdgeClass="rounded-full"
+        >
           {[
             { id: 'upcoming', label: 'Upcoming', count: upcoming.length },
             { id: 'completed', label: 'Completed', count: completed.length },
@@ -719,7 +796,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
               </span>
             </button>
           ))}
-        </div>
+        </ScrollRow>
 
         {showFilters && (
           <div className="flex flex-col sm:flex-row gap-3">
@@ -731,7 +808,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search trips, destinations, holy places…"
                 aria-label="Search trips"
-                className="w-full min-w-0 min-h-[48px] pl-11 pr-12 py-3 bg-white border border-orange-100 rounded-2xl outline-none focus:border-[#FF9933]/50 transition-all font-medium text-sm shadow-sm"
+                className="w-full min-w-0 min-h-[48px] pl-11 pr-14 py-3 bg-white border border-orange-100 rounded-2xl outline-none focus:border-[#FF9933]/50 transition-all font-medium text-sm shadow-sm"
               />
               {search && (
                 <button
@@ -764,7 +841,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
 
       {/* ---------------- Grid ---------------- */}
       {loading && (trips || []).length === 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
           {[0, 1, 2, 3, 4, 5].map((i) => <TripCardSkeleton key={i} index={i} />)}
           <span className="sr-only" role="status">Loading trips…</span>
         </div>
@@ -816,7 +893,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
           />
         )
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
           <AnimatePresence mode="popLayout">
             {filtered.map((trip, i) => (
               <TripCard

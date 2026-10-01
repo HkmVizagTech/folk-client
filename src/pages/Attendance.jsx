@@ -13,6 +13,9 @@ import {
   Home
 } from 'lucide-react'
 import { db } from '../lib/firebase'
+// Postgres-backed shim, NOT the real Firebase SDK: `db` is only a marker
+// object now, so firebase/firestore helpers throw on it - and useFirestore
+// swallows that, leaving the screen silently empty instead of erroring.
 import { collection, query, where, getDocs, serverTimestamp, doc, runTransaction } from '../lib/pgstore'
 import Card from '../components/ui/Card'
 import { useFirestore } from '../hooks/useFirestore'
@@ -223,13 +226,13 @@ const Attendance = ({ onOpenScanner }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-poppins text-saffron-dark">Live Attendance</h1>
-          <p className="text-sm text-ink-muted">Real-time devotee check-ins and session tracking</p>
+          <p className="text-sm text-gray-500">Real-time devotee check-ins and session tracking</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
            <select
              value={selectedEventId}
              onChange={(e) => setSelectedEventId(e.target.value)}
-             className="w-full sm:w-auto px-4 py-2 bg-white border border-line rounded-xl text-sm font-bold text-ink-muted shadow-sm outline-none focus:border-saffron sm:min-w-[200px]"
+             className="w-full sm:w-auto px-4 py-2 bg-white border border-gray-100 rounded-xl text-sm font-bold text-gray-600 shadow-sm outline-none focus:border-saffron sm:min-w-[200px]"
            >
              <option value="">Select Active Event...</option>
              {events?.map(e => (
@@ -240,7 +243,7 @@ const Attendance = ({ onOpenScanner }) => {
              onClick={() => {
                onOpenScanner('attendance');
              }}
-             className="flex items-center justify-center gap-2 px-4 py-2 bg-saffron text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all"
+             className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-saffron to-gold text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all"
            >
              <QrIcon size={16} />
              <span>Scan Pass</span>
@@ -253,15 +256,15 @@ const Attendance = ({ onOpenScanner }) => {
         <div className="lg:col-span-2 space-y-6">
           <Card className="border-none shadow-premium bg-white p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-              <h2 className="text-lg font-bold text-ink">Recent Check-ins</h2>
+              <h2 className="text-lg font-bold text-gray-800">Recent Check-ins</h2>
               <div className="relative flex-1 md:max-w-xs">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
                   type="text" 
                   placeholder="Search check-ins..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-paper border border-line rounded-xl text-sm outline-none focus:border-saffron focus:bg-white transition-all font-medium"
+                  className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:border-saffron focus:bg-white transition-all font-medium"
                 />
               </div>
             </div>
@@ -270,14 +273,14 @@ const Attendance = ({ onOpenScanner }) => {
               <div className="min-w-[600px] sm:min-w-full px-6 sm:px-0">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-paper/60 text-[10px] font-bold text-ink-muted uppercase tracking-label border-b border-line">
-                      <th className="px-6 py-4 font-bold">Devotee</th>
-                      <th className="px-6 py-4 font-bold">Session</th>
-                      <th className="px-6 py-4 font-bold">Time</th>
-                      <th className="px-6 py-4 font-bold">Status</th>
+                    <tr className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+                      <th className="px-6 py-4 font-black">Devotee</th>
+                      <th className="px-6 py-4 font-black">Session</th>
+                      <th className="px-6 py-4 font-black">Time</th>
+                      <th className="px-6 py-4 font-black">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-line/60">
+                  <tbody className="divide-y divide-gray-50">
                     {filteredCheckins.length > 0 ? filteredCheckins.map((row, i) => (
                       <tr key={i} className="hover:bg-saffron/5 transition-colors group">
                         <td className="px-6 py-4">
@@ -285,11 +288,11 @@ const Attendance = ({ onOpenScanner }) => {
                             <div className="w-8 h-8 shrink-0 rounded-lg bg-cream flex items-center justify-center text-[10px] font-bold text-saffron-dark border border-saffron/10 group-hover:bg-white">
                               {row.name?.charAt(0)}
                             </div>
-                            <span className="font-bold text-ink-soft">{row.name}</span>
+                            <span className="font-bold text-gray-700">{row.name}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-ink-muted font-medium">{row.session}</td>
-                        <td className="px-6 py-4 flex items-center gap-2 text-ink-muted">
+                        <td className="px-6 py-4 text-gray-500 font-medium">{row.session}</td>
+                        <td className="px-6 py-4 flex items-center gap-2 text-gray-400">
                            <Clock size={14} className="text-gold" />
                            {row.time || 'N/A'}
                         </td>
@@ -303,9 +306,9 @@ const Attendance = ({ onOpenScanner }) => {
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan="4" className="px-6 py-20 text-center text-ink-muted font-medium">
+                        <td colSpan="4" className="px-6 py-20 text-center text-gray-400 font-medium italic">
                           <div className="flex flex-col items-center gap-3">
-                            <div className="w-12 h-12 bg-paper rounded-full flex items-center justify-center text-ink-muted/40">
+                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-200">
                                <Search size={24} />
                             </div>
                              <span>No check-ins found for &ldquo;{searchTerm}&rdquo;.</span>
@@ -324,7 +327,7 @@ const Attendance = ({ onOpenScanner }) => {
         <div className="space-y-6">
           {user?.role !== 'devotee' ? (
             <Card className="p-5 sm:p-8 border-none shadow-premium bg-white">
-            <h3 className="font-extrabold text-ink mb-6 flex items-center gap-3 uppercase tracking-tight">
+            <h3 className="font-extrabold text-gray-800 mb-6 flex items-center gap-3 italic uppercase tracking-tighter">
                 <div className="w-10 h-10 bg-saffron/10 rounded-xl flex items-center justify-center text-saffron shrink-0">
                    <QrIcon size={20} />
                 </div>
@@ -335,7 +338,7 @@ const Attendance = ({ onOpenScanner }) => {
                 <select 
                   value={selectedEventId}
                   onChange={(e) => setSelectedEventId(e.target.value)}
-                  className="w-full px-5 py-4 bg-paper border border-line rounded-2xl text-sm font-bold outline-none transition-all hover:border-saffron focus:border-saffron"
+                  className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold outline-none transition-all hover:border-saffron focus:border-saffron"
                 >
                   <option value="">Auto-Detect Active Event</option>
                   {events?.map(e => (
@@ -344,19 +347,19 @@ const Attendance = ({ onOpenScanner }) => {
                 </select>
               </div>
 
-              <div className="flex gap-2 mb-6 p-1 bg-paper rounded-2xl">
+              <div className="flex gap-2 mb-6 p-1 bg-gray-50 rounded-2xl">
                 <button 
                   onClick={() => setScanMode('attendance')}
-                  className={`flex-1 py-4 rounded-xl text-[11px] font-bold uppercase tracking-label transition-all ${
-                    scanMode === 'attendance' ? 'bg-white shadow-premium text-saffron border border-saffron/10' : 'text-ink-muted'
+                  className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                    scanMode === 'attendance' ? 'bg-white shadow-premium text-saffron border border-saffron/10' : 'text-gray-400'
                   }`}
                 >
                   Attendance Mode
                 </button>
                 <button 
                   onClick={() => setScanMode('prasadam')}
-                  className={`flex-1 py-4 rounded-xl text-[11px] font-bold uppercase tracking-label transition-all ${
-                    scanMode === 'prasadam' ? 'bg-white shadow-premium text-orange-600 border border-orange-100' : 'text-ink-muted'
+                  className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                    scanMode === 'prasadam' ? 'bg-white shadow-premium text-orange-600 border border-orange-100' : 'text-gray-400'
                   }`}
                 >
                   Prasadam Mode
@@ -367,32 +370,32 @@ const Attendance = ({ onOpenScanner }) => {
                 <button 
                   disabled={verifying}
                   onClick={() => onOpenScanner(scanMode)}
-                  className="w-full py-6 bg-ink text-white rounded-2xl font-bold text-xs uppercase tracking-label shadow-premium-xl flex items-center justify-center gap-3 hover:bg-black transition-all disabled:opacity-30"
+                  className="w-full py-6 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-premium-xl flex items-center justify-center gap-3 hover:bg-black transition-all disabled:opacity-30"
                 >
                   <QrIcon size={20} />
                   Open Camera Scanner
                 </button>
                 
                 <div className="relative flex items-center gap-4 py-2">
-                  <div className="h-px flex-1 bg-paper-dark" />
-                  <span className="text-[10px] font-bold text-ink-muted/50 uppercase tracking-label">or use token</span>
-                  <div className="h-px flex-1 bg-paper-dark" />
+                  <div className="h-px flex-1 bg-gray-100" />
+                  <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">or use token</span>
+                  <div className="h-px flex-1 bg-gray-100" />
                 </div>
 
                 <form onSubmit={handleVerifyToken} className="space-y-4">
                   <div className="relative">
-                    <Ticket className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted/50" size={18} />
+                    <Ticket className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                     <input 
                       type="text" 
                       placeholder="8-digit token..."
                       value={tokenInput}
                       onChange={(e) => setTokenInput(e.target.value)}
-                      className="w-full pl-12 pr-4 py-4 bg-paper border border-line rounded-2xl outline-none focus:border-saffron focus:bg-white transition-all font-mono font-bold uppercase tracking-label text-lg"
+                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-saffron focus:bg-white transition-all font-mono font-bold uppercase tracking-widest text-lg"
                     />
                   </div>
                   <button 
                     disabled={verifying}
-                    className="w-full py-5 bg-saffron text-white rounded-2xl font-bold shadow-premium-xl transition-all hover:scale-[1.02] disabled:opacity-50 uppercase tracking-label text-xs"
+                    className="w-full py-5 bg-saffron text-white rounded-2xl font-black shadow-premium-xl transition-all hover:scale-[1.02] disabled:opacity-50 uppercase tracking-widest text-xs"
                   >
                     {verifying ? 'Verifying...' : 'Verify Manual Token'}
                   </button>
@@ -405,7 +408,7 @@ const Attendance = ({ onOpenScanner }) => {
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className={`mt-6 overflow-hidden rounded-xl shadow-premium-xl border-4 ${
+                    className={`mt-6 overflow-hidden rounded-[2.5rem] shadow-premium-xl border-4 ${
                       verifyResult.success 
                         ? 'bg-white border-green-500' 
                         : 'bg-white border-red-500'
@@ -418,30 +421,30 @@ const Attendance = ({ onOpenScanner }) => {
                                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-2">
                                   <CheckCircle2 size={40} className="text-white" />
                                </div>
-                               <h2 className="text-3xl sm:text-4xl font-bold uppercase tracking-tight">ALLOWED</h2>
+                               <h2 className="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter">ALLOWED</h2>
                              </>
                            ) : (
                              <>
                                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-2">
                                   <XCircle size={40} className="text-white" />
                                </div>
-                               <h2 className="text-3xl sm:text-4xl font-bold uppercase tracking-tight">DENIED</h2>
+                               <h2 className="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter">DENIED</h2>
                              </>
                            )}
-                           <p className="font-bold text-xs uppercase tracking-label opacity-80 px-2">{verifyResult.message}</p>
+                           <p className="font-bold text-xs uppercase tracking-[0.3em] opacity-80 px-2">{verifyResult.message}</p>
                         </div>
                     </div>
 
                     <div className="p-5 sm:p-8 space-y-6">
                       {verifyResult.success && verifyResult.devotee && (
                         <div className="flex items-center gap-4 sm:gap-5">
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-3xl bg-paper flex items-center justify-center text-2xl sm:text-3xl font-bold text-ink-muted/50 border border-line shadow-inner">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-3xl bg-gray-50 flex items-center justify-center text-2xl sm:text-3xl font-black text-gray-300 border border-gray-100 shadow-inner">
                               {verifyResult.devotee.name?.charAt(0)}
                           </div>
                           <div className="flex flex-col min-w-0">
-                              <span className="text-[10px] font-bold text-ink-muted uppercase tracking-label mb-1">Devotee Identity</span>
-                              <h3 className="text-xl sm:text-2xl font-bold text-ink tracking-tight uppercase truncate">{verifyResult.devotee.name}</h3>
-                              <span className="text-[10px] font-mono font-bold text-saffron uppercase tracking-label truncate">ID: {verifyResult.devotee.id?.slice(0,12)}...</span>
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Devotee Identity</span>
+                              <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tighter italic uppercase truncate">{verifyResult.devotee.name}</h3>
+                              <span className="text-[10px] font-mono font-bold text-saffron uppercase tracking-widest truncate">ID: {verifyResult.devotee.id?.slice(0,12)}...</span>
                           </div>
                         </div>
                       )}
@@ -457,13 +460,13 @@ const Attendance = ({ onOpenScanner }) => {
                         <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 shadow-sm">
                            <div className="flex items-center gap-2 mb-3">
                               <Home size={14} className="text-amber-600" />
-                              <span className="text-[10px] font-bold uppercase tracking-label text-amber-700">Reserved Stay</span>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Reserved Stay</span>
                            </div>
                            <div className="flex justify-between items-center gap-3">
-                              <span className="text-xs font-bold text-ink truncate min-w-0">{verifyResult.accommodation.type}</span>
+                              <span className="text-xs font-bold text-gray-800 truncate min-w-0">{verifyResult.accommodation.type}</span>
                               <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 bg-white rounded-lg border border-amber-100">
                                  <Users size={12} className="text-amber-600" />
-                                 <span className="text-[10px] font-bold text-amber-700">{verifyResult.accommodation.guestCount}</span>
+                                 <span className="text-[10px] font-black text-amber-700">{verifyResult.accommodation.guestCount}</span>
                               </div>
                            </div>
                         </div>
@@ -471,7 +474,7 @@ const Attendance = ({ onOpenScanner }) => {
 
                       <button 
                          onClick={() => setVerifyResult(null)}
-                         className="w-full py-4 bg-ink text-white rounded-2xl font-bold text-[11px] uppercase tracking-label hover:bg-black transition-all"
+                         className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-black transition-all"
                       >
                          Dismiss
                       </button>
@@ -481,8 +484,8 @@ const Attendance = ({ onOpenScanner }) => {
               </AnimatePresence>
             </Card>
           ) : (
-            <Card className="p-8 bg-saffron text-white border-none shadow-premium overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 hidden" />
+            <Card className="p-8 bg-gradient-to-br from-saffron to-gold text-white border-none shadow-premium overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <Ticket size={24} /> My Registrations
               </h3>
@@ -490,32 +493,32 @@ const Attendance = ({ onOpenScanner }) => {
               
               <div className="space-y-4 relative z-10">
                 {myRegistrations.length > 0 ? myRegistrations.map((reg) => (
-                  <div key={reg.id} className="bg-white/10 p-4 rounded-2xl border border-white/20">
-                    <p className="text-[10px] font-bold uppercase tracking-label text-white/60 mb-1">{reg.eventTitle}</p>
+                  <div key={reg.id} className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">{reg.eventTitle}</p>
                     <div className="flex justify-between items-center">
-                      <span className="text-xl font-mono font-bold tracking-tight">{reg.token}</span>
+                      <span className="text-xl font-mono font-black tracking-tighter">{reg.token}</span>
                       <QrIcon size={20} className="text-white/40" />
                     </div>
                   </div>
                 )) : (
-                  <p className="text-sm opacity-60">No active registrations.</p>
+                  <p className="text-sm italic opacity-60">No active registrations.</p>
                 )}
               </div>
             </Card>
           )}
 
           <Card className="p-6 border-none shadow-premium bg-white">
-            <h3 className="font-bold text-ink mb-4 flex items-center gap-2">
+            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Users size={18} className="text-saffron" />
               Quick Stats
             </h3>
             <div className="space-y-4">
-               <div className="flex justify-between items-center p-3 rounded-xl bg-paper">
-                  <span className="text-sm text-ink-muted font-medium">Total Present</span>
+               <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50">
+                  <span className="text-sm text-gray-500 font-medium">Total Present</span>
                   <span className="font-bold text-saffron-dark">{checkins.length}</span>
                </div>
-               <div className="flex justify-between items-center p-3 rounded-xl bg-paper">
-                  <span className="text-sm text-ink-muted font-medium">On-time Rate</span>
+               <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50">
+                  <span className="text-sm text-gray-500 font-medium">On-time Rate</span>
                   <span className="font-bold text-green-600">92%</span>
                </div>
             </div>

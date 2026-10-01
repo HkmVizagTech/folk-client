@@ -1,13 +1,16 @@
 import { callApi } from './api';
+import { auth } from './firebase';
+import { CONFIG } from '../config';
 
 /**
  * Image uploads for trip covers, galleries and location photos.
  *
- * The browser compresses the picture, asks the server for a short-lived
- * presigned R2 URL, then PUTs the bytes STRAIGHT TO R2. The image never
- * passes through our API, which is what keeps the JSON body limit out of the
- * picture entirely - the old approach stuffed base64 into the document and
- * blew past it.
+ * The browser compresses the picture and POSTs the raw bytes to our own
+ * server, which forwards them to Cloudflare R2. Routing through the server
+ * (rather than letting the browser PUT straight to R2 with a presigned URL)
+ * is deliberate: CORS is a browser rule, so once the request to R2 is made
+ * server-side there is no Origin, no preflight, and the bucket needs no CORS
+ * policy at all.
  *
  * What gets stored on the trip is just the public URL string, so a trip row
  * stays small and the /trips list loads fast no matter how many photos a
@@ -84,30 +87,36 @@ export const uploadImage = async (file, opts = {}) => {
   if (onProgress) onProgress('compressing');
   const blob = await compressImage(file, maxWidth, quality);
 
-  if (onProgress) onProgress('requesting');
-  const { uploadUrl, publicUrl } = await callApi('getUploadUrl', {
-    contentType: 'image/jpeg',
-    contentLength: blob.size,
-    folder,
-  });
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) throw new Error('Please sign in again before uploading.');
 
-  if (!uploadUrl || !publicUrl) {
-    throw new Error('The server did not return an upload URL.');
-  }
+  const base = (CONFIG.BACKEND_URL || '').replace(/\/+$/, '');
+  if (!base) throw new Error('Backend URL is not configured, so uploads cannot run.');
 
   if (onProgress) onProgress('uploading');
-  const response = await fetch(uploadUrl, {
-    method: 'PUT',
-    // Must match what was signed, or R2 rejects the PUT.
-    headers: { 'Content-Type': 'image/jpeg' },
+  const response = await fetch(`${base}/uploadImage?folder=${encodeURIComponent(folder)}`, {
+    method: 'POST',
+    headers: {
+      // Raw bytes, not multipart: the server reads this with express.raw().
+      'Content-Type': 'image/jpeg',
+      Authorization: `Bearer ${token}`,
+    },
     body: blob,
   });
 
   if (!response.ok) {
-    throw new Error(
-      `Upload failed (${response.status}). If this keeps happening, check the bucket's CORS rules allow PUT from this site.`
-    );
+    let message = `Upload failed (${response.status}).`;
+    try {
+      const body = await response.json();
+      if (body?.error?.message) message = body.error.message;
+    } catch {
+      if (response.status === 413) message = 'That image is too large. Try a smaller one.';
+    }
+    throw new Error(message);
   }
+
+  const { publicUrl } = await response.json();
+  if (!publicUrl) throw new Error('The server did not return an image URL.');
 
   if (onProgress) onProgress('done');
   return publicUrl;

@@ -217,9 +217,61 @@ const PAY_STATES = {
 
 const payMeta = (state) => PAY_STATES[state] || PAY_STATES.unpaid
 
+// `min-w-0` matters: an <input> carries an intrinsic min-content width of
+// roughly 170px, so inside any flex row (the slug row, every StringListEditor
+// row) it refuses to shrink and pushes the row's buttons out of the modal.
 const inputClass =
-  'w-full px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-sm min-h-[44px]'
+  'w-full min-w-0 px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-sm min-h-[44px]'
 const labelClass = 'text-[10px] font-bold text-ink-muted uppercase tracking-label ml-1'
+
+/* ------------------------------------------------------------------ *
+ * ScrollRow — a horizontally scrolling strip that SAYS it scrolls.
+ *
+ * `overflow-x-auto scrollbar-hide` scrolls correctly but removes every hint
+ * that it does, so the modal's six-tab section strip read as simply cut off
+ * at 360px. This wraps the scroller and fades whichever edge still has
+ * content behind it, with a chevron on the trailing edge. Both fades follow
+ * the real scroll position, so nothing is drawn when the strip fits.
+ * ------------------------------------------------------------------ */
+const ScrollRow = ({ children, className = '', outerClassName = '', fadeClass = 'from-white' }) => {
+  const ref = React.useRef(null)
+  const [edge, setEdge] = useState({ start: false, end: false })
+
+  const measure = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    const max = el.scrollWidth - el.clientWidth
+    setEdge({ start: el.scrollLeft > 4, end: max > 4 && el.scrollLeft < max - 4 })
+  }, [])
+
+  useEffect(() => {
+    measure()
+    const el = ref.current
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    Array.from(el.children).forEach((child) => ro.observe(child))
+    return () => ro.disconnect()
+  }, [measure, children])
+
+  return (
+    <div className={`relative min-w-0 ${outerClassName}`}>
+      <div ref={ref} onScroll={measure} className={`overflow-x-auto scrollbar-hide ${className}`}>
+        {children}
+      </div>
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 left-0 w-7 bg-gradient-to-r ${fadeClass} to-transparent transition-opacity duration-200 ${edge.start ? 'opacity-100' : 'opacity-0'}`}
+      />
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l ${fadeClass} to-transparent flex items-center justify-end transition-opacity duration-200 ${edge.end ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <ChevronLeft size={15} className="rotate-180 text-saffron" />
+      </span>
+    </div>
+  )
+}
 
 /* ------------------------------------------------------------------ *
  *  Module-level sub components (kept outside so typing never remounts)
@@ -343,7 +395,7 @@ const SummaryTile = ({ label, value, sub, icon: Icon, tone = 'saffron' }) => {
     <div className={`rounded-2xl p-3.5 sm:p-4 bg-gradient-to-br ${tones[tone]} border border-white/60 shadow-premium user-text-box`}>
       <div className="flex items-center gap-2 mb-1 user-text-box">
         {Icon && <Icon size={14} className="shrink-0" />}
-        <p className="text-[9px] font-bold uppercase tracking-label opacity-80 truncate">{label}</p>
+        <p className="text-[9px] font-bold uppercase tracking-label opacity-80 truncate min-w-0">{label}</p>
       </div>
       <p className="text-lg sm:text-xl font-bold leading-tight user-text">{value}</p>
       {sub && <p className="text-[10px] font-bold opacity-60 mt-0.5 user-text">{sub}</p>}
@@ -1460,7 +1512,10 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       </div>
 
       {/* ---------------- View switcher ---------------- */}
-      <div className="flex items-center gap-2 p-1.5 bg-white rounded-2xl shadow-premium border border-saffron/10 w-full sm:w-auto sm:inline-flex overflow-x-auto scrollbar-hide">
+      <ScrollRow
+        className="flex items-center gap-2"
+        outerClassName="p-1.5 bg-white rounded-2xl shadow-premium border border-saffron/10 w-full sm:w-fit"
+      >
         {[
           { key: 'trips', label: 'Trips', icon: Bus, count: totalTrips },
           { key: 'registrations', label: 'Registrations', icon: Users, count: (registrations || []).length },
@@ -1482,7 +1537,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             </button>
           )
         })}
-      </div>
+      </ScrollRow>
 
       {/* ================= TRIPS VIEW ================= */}
       {view === 'trips' && (
@@ -1519,11 +1574,17 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   const locationCount = Array.isArray(trip.locations) ? trip.locations.length : 0
                   return (
                     <motion.div key={trip.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}>
-                      <Card hover={false} className="p-4 sm:p-5 border-none shadow-premium bg-white rounded-xl sm:rounded-xl">
-                        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                      <Card hover={false} className="p-4 sm:p-5 border-none shadow-premium bg-white rounded-xl sm:rounded-xl overflow-hidden">
+                        {/* Side-by-side only from xl. The app shell is
+                            `lg:pl-64` inside max-w-[1400px], so at 1024px this
+                            card is ~704px wide — the thumb (112) plus the
+                            control column (290) plus gaps is 434px of fixed
+                            furniture, leaving the meta column 270px. Below xl
+                            the card stacks and every part gets full width. */}
+                        <div className="flex flex-col xl:flex-row xl:items-center gap-4">
 
                           {/* thumb */}
-                          <div className="w-full h-36 lg:w-28 lg:h-20 shrink-0 rounded-2xl overflow-hidden bg-saffron flex items-center justify-center">
+                          <div className="w-full h-36 xl:w-28 xl:h-20 shrink-0 rounded-2xl overflow-hidden bg-saffron flex items-center justify-center">
                             {trip.coverImage ? (
                               <img src={trip.coverImage} alt={trip.title} className="w-full h-full object-cover" />
                             ) : (
@@ -1575,14 +1636,14 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                           </div>
 
                           {/* controls */}
-                          <div className="flex flex-col gap-2 shrink-0 lg:w-[290px]">
+                          <div className="flex flex-col gap-2 shrink-0 w-full xl:w-[290px]">
                             <div className="flex items-center gap-2">
                               <select
                                 value={TRIP_STATUSES.includes(trip.status) ? trip.status : 'draft'}
                                 disabled={busy}
                                 aria-label={`Status for ${trip.title}`}
                                 onChange={(e) => handleTripStatus(trip, e.target.value)}
-                                className="flex-1 min-h-[44px] px-3 bg-cream/40 border border-saffron/10 rounded-xl text-xs font-bold text-ink-muted outline-none focus:border-saffron/40 disabled:opacity-60"
+                                className="flex-1 min-w-0 min-h-[44px] px-3 bg-cream/40 border border-saffron/10 rounded-xl text-xs font-bold text-ink-muted outline-none focus:border-saffron/40 disabled:opacity-60"
                               >
                                 {TRIP_STATUSES.map((s) => (
                                   <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -1597,12 +1658,12 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                                   trip.registrationOpen ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-paper-dark text-ink-muted hover:bg-paper-dark'
                                 }`}
                               >
-                                {busy ? <Loader2 size={15} className="animate-spin" /> : trip.registrationOpen ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                                {busy ? <Loader2 size={15} className="animate-spin shrink-0" /> : trip.registrationOpen ? <ToggleRight size={16} className="shrink-0" /> : <ToggleLeft size={16} className="shrink-0" />}
                                 <span className="hidden sm:inline">{trip.registrationOpen ? 'Open' : 'Closed'}</span>
                               </button>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-2">
                               <button
                                 onClick={() => openEdit(trip)}
                                 aria-label={`Edit ${trip.title}`}
@@ -1659,8 +1720,11 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       {view === 'registrations' && (
         <div className="space-y-5">
 
-          {/* summary strip — Collected sums verified online AND recorded cash */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          {/* Summary strip — Collected sums verified online AND recorded cash.
+              Five across only from xl: at 1024px the content box is ~704px, so
+              five tiles are 124px each and a lakh-scale "Collected" figure
+              breaks mid-number inside its own tile. */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
             <SummaryTile label="Registrations" value={regSummary.total} icon={Users} />
             <SummaryTile label="Confirmed" value={regSummary.confirmed} icon={CheckCircle2} tone="green" />
             <SummaryTile label="Seats Booked" value={regSummary.seats} sub="confirmed only" icon={Bus} tone="slate" />
@@ -1813,9 +1877,13 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             </Card>
           ) : (
             <>
-            {/* ---- below md: stacked cards. A 900px table on a 360px phone is
-                 unusable, so the same data is re-laid-out rather than scrolled. ---- */}
-            <div className="md:hidden space-y-3">
+            {/* ---- below xl: stacked cards. A 1000px table is unusable on a
+                 phone, so the same data is re-laid-out rather than scrolled.
+                 The cut-off is xl, not md: the app shell is `lg:pl-64` inside
+                 max-w-[1400px], so the content box is only ~704px at 1024px
+                 and ~960px at 1280px — a md-and-up table meant everything
+                 from 768px to 1280px scrolled sideways by 300-450px. ---- */}
+            <div className="xl:hidden space-y-3">
               {filteredRegs.map((reg) => {
                 const pay = resolvePayment(reg)
                 const meta = payMeta(pay.state)
@@ -1877,10 +1945,10 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
               })}
             </div>
 
-            {/* ---- md and up: the reconciliation table ---- */}
-            <Card hover={false} className="hidden md:block p-0 border-none shadow-premium bg-white rounded-xl sm:rounded-xl overflow-hidden">
+            {/* ---- xl and up: the reconciliation table ---- */}
+            <Card hover={false} className="hidden xl:block p-0 border-none shadow-premium bg-white rounded-xl sm:rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[960px]">
+                <table className="w-full min-w-[900px]">
                   <thead>
                     <tr className="text-left text-[10px] font-bold text-ink-muted uppercase tracking-label border-b border-line bg-cream/20">
                       <th className="py-4 px-5 font-bold">Devotee</th>
@@ -1905,7 +1973,12 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                         <React.Fragment key={reg.id}>
                           <tr className="hover:bg-cream/20 transition-colors align-top">
                             <td className="py-4 px-5">
-                              <div className="flex items-start gap-2.5 w-[210px] user-text-box">
+                              {/* min/max rather than a fixed w-[210px]: a fixed
+                                  width is also a minimum, so three of them put
+                                  the table's real min-content at ~1160px — well
+                                  past the 900px floor — and the card scrolled
+                                  sideways at every desktop width. */}
+                              <div className="flex items-start gap-2.5 min-w-[150px] max-w-[260px] user-text-box">
                                 <span className={`w-1 self-stretch rounded-full shrink-0 mt-0.5 ${meta.dot}`} aria-hidden="true" />
                                 <div className="min-w-0 user-text-box">
                                   <p className="font-bold text-ink text-sm user-text">{reg.userName || 'Devotee'}</p>
@@ -1917,7 +1990,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                               </div>
                             </td>
                             <td className="py-4 px-3">
-                              <div className="w-[170px] user-text-box">
+                              <div className="min-w-[120px] max-w-[210px] user-text-box">
                                 <p className="text-xs font-bold text-ink-muted user-text">{reg.tripTitle || '—'}</p>
                                 <p className="text-[10px] text-ink-muted font-mono user-text">{reg.tripSlug || ''}</p>
                               </div>
@@ -1925,7 +1998,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             <td className="py-4 px-3 text-sm font-bold text-ink-soft">{toInt(reg.seats) || 1}</td>
                             <td className="py-4 px-3 text-sm font-bold text-ink-soft whitespace-nowrap">{formatINR(reg.amountDue)}</td>
                             <td className="py-4 px-3">
-                              <div className="w-[180px] user-text-box">
+                              <div className="min-w-[130px] max-w-[200px] user-text-box">
                               <PayChip pay={pay} />
                               {pay.state === 'cash_collected' && (
                                 <p className="text-[10px] text-teal-600 font-bold mt-1 user-text">
@@ -2007,8 +2080,12 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                   {editingId ? 'Update the yatra details devotees see on its landing page.' : 'Set up a pilgrimage devotees can browse and register for.'}
                 </p>
 
-                {/* section nav */}
-                <div className="flex gap-2 mt-5 -mx-5 px-5 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide pb-1">
+                {/* Section nav. Six tabs never fit a 360px phone, so the strip
+                    scrolls — and ScrollRow draws the edge fade that says so. */}
+                <ScrollRow
+                  outerClassName="mt-5 -mx-5 sm:mx-0"
+                  className="flex gap-2 px-5 sm:px-0 pb-1"
+                >
                   {MODAL_SECTIONS.map((s) => {
                     const Icon = s.icon
                     const active = section === s.key
@@ -2018,16 +2095,16 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                         key={s.key}
                         type="button"
                         onClick={() => setSection(s.key)}
-                        className={`relative min-h-[44px] px-4 rounded-xl text-[11px] font-bold uppercase tracking-label whitespace-nowrap flex items-center gap-2 transition-all ${
+                        className={`relative shrink-0 min-h-[44px] px-4 rounded-xl text-[11px] font-bold uppercase tracking-label whitespace-nowrap flex items-center gap-2 transition-all ${
                           active ? 'bg-saffron text-white shadow-md' : 'bg-cream/40 text-ink-muted hover:text-saffron'
                         }`}
                       >
-                        <Icon size={14} /> {s.label}
+                        <Icon size={14} className="shrink-0" /> {s.label}
                         {bad && <span className="w-1.5 h-1.5 rounded-full bg-red-500 absolute top-2 right-2" />}
                       </button>
                     )
                   })}
-                </div>
+                </ScrollRow>
               </div>
 
               <form onSubmit={handleSubmit} className="p-5 sm:p-8 pt-6 space-y-6">
@@ -2417,14 +2494,20 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
 
                     {(form.itinerary || []).map((day, i) => (
                       <div key={i} className="p-4 rounded-2xl bg-cream/25 border border-saffron/10 space-y-3">
-                        <div className="flex items-center gap-2">
+                        {/* An <input> carries a ~170px intrinsic min-content
+                            width, so `flex-1` alone would not let the title
+                            shrink: 80 + 170 + three 44px buttons overflowed a
+                            360px modal sideways. `min-w-0` lets it shrink and
+                            `flex-wrap` drops the button cluster onto its own
+                            line once the title cannot hold its 11rem basis. */}
+                        <div className="flex flex-wrap items-center gap-2">
                           <input
                             type="number"
                             min={1}
                             value={day.day}
                             onChange={(e) => updateDay(i, 'day', e.target.value)}
                             aria-label={`Day number for entry ${i + 1}`}
-                            className="w-20 px-3 py-3 min-h-[44px] bg-white border border-saffron/10 rounded-xl outline-none focus:border-saffron/40 font-bold text-sm text-center"
+                            className="w-20 shrink-0 px-3 py-3 min-h-[44px] bg-white border border-saffron/10 rounded-xl outline-none focus:border-saffron/40 font-bold text-sm text-center"
                           />
                           <input
                             type="text"
@@ -2432,9 +2515,9 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             onChange={(e) => updateDay(i, 'title', e.target.value)}
                             placeholder="Arrival & Mangala Aarti"
                             aria-label={`Title for day ${i + 1}`}
-                            className="flex-1 px-4 py-3 min-h-[44px] bg-white border border-saffron/10 rounded-xl outline-none focus:border-saffron/40 font-medium text-sm"
+                            className="flex-1 min-w-0 basis-[11rem] px-4 py-3 min-h-[44px] bg-white border border-saffron/10 rounded-xl outline-none focus:border-saffron/40 font-medium text-sm"
                           />
-                          <div className="flex gap-1 shrink-0">
+                          <div className="flex gap-1 shrink-0 ml-auto">
                             <button
                               type="button" aria-label={`Move day ${i + 1} up`} disabled={i === 0}
                               onClick={() => moveDay(i, -1)}
@@ -2739,7 +2822,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
             />
             <motion.div
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-xl sm:rounded-xl shadow-premium-xl p-6 sm:p-8 overflow-y-auto max-h-[90vh] border border-red-100"
+              className="relative w-full max-w-md bg-white rounded-xl sm:rounded-xl shadow-premium-xl p-5 sm:p-8 overflow-y-auto max-h-[90vh] border border-red-100 user-text-box"
             >
               <button
                 onClick={() => !deleting && setDeleteTarget(null)}
