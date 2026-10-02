@@ -29,6 +29,7 @@ const emptyForm = (role) => ({
   description: '',
   img: '',
   audience: role === 'admin' ? 'all' : 'mine',
+  givesPrasadamCoupon: false,
 });
 
 /** Shrinks a chosen photo so the event document stays small. */
@@ -78,6 +79,7 @@ const EventModal = ({ open, onClose, event = null, defaultDate = '', onSaved }) 
         description: event.description || '',
         img: event.img || '',
         audience: event.audience || 'all',
+        givesPrasadamCoupon: !!event.givesPrasadamCoupon,
       });
     } else {
       const base = emptyForm(user?.role);
@@ -120,6 +122,7 @@ const EventModal = ({ open, onClose, event = null, defaultDate = '', onSaved }) 
         date: label,
         dateISO: when.toISOString(),
         audience: form.audience,
+        ...(user?.role === 'admin' ? { givesPrasadamCoupon: !!form.givesPrasadamCoupon } : {}),
         updatedAt: serverTimestamp(),
       };
 
@@ -243,6 +246,25 @@ const EventModal = ({ open, onClose, event = null, defaultDate = '', onSaved }) 
             <p className="mt-2 text-[13px] text-ink-muted">Public events go on the website, so an admin creates those.</p>
           )}
         </fieldset>
+
+        {/* Coupons are meals the kitchen has to cook, so only an admin can
+            put a program on the list (the server enforces this too). */}
+        {user?.role === 'admin' && (
+          <label className="flex items-start gap-3 rounded-xl border border-line p-3.5 cursor-pointer hover:bg-paper">
+            <input
+              type="checkbox"
+              checked={!!form.givesPrasadamCoupon}
+              onChange={(e) => set('givesPrasadamCoupon', e.target.checked)}
+              className="mt-0.5 w-5 h-5 shrink-0 accent-saffron"
+            />
+            <span>
+              <span className="block font-semibold text-[15px] text-ink">Gives a prasadam coupon</span>
+              <span className="block mt-0.5 text-[13px] text-ink-muted">
+                Everyone marked present gets that day&apos;s prasadam coupon in the Hare Krishna app, a minute or two after they are ticked in.
+              </span>
+            </span>
+          </label>
+        )}
 
         <Field label="Location">
           <input className={inputClass} value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="e.g. Temple hall" />

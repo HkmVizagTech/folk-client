@@ -120,10 +120,13 @@ const Events = () => {
       // also show on folkvizag.org), so a FOLK guide creating from here makes
       // it for the youth they guide; the server enforces the same rule.
       const audience = formData.audience || (user?.role === 'admin' ? 'all' : 'mine');
+      // Prasadam coupons are admin-only (the server enforces it too).
+      const givesPrasadamCoupon = user?.role === 'admin' && !!formData.givesPrasadamCoupon;
 
       await addDoc(collection(db, 'events'), {
         ...formData,
         audience,
+        givesPrasadamCoupon,
         ownerId: user?.uid || auth.currentUser?.uid || null,
         ownerName: user?.name || user?.displayName || 'FOLK team',
         date: formattedDate,
@@ -514,6 +517,24 @@ const Events = () => {
                        </select>
                        <p className="text-[10px] font-bold text-gray-400 ml-1">{audienceOf({ audience: formData.audience || (user?.role === 'admin' ? 'all' : 'mine') }).desc}</p>
                     </div>
+                    {/* Coupons are meals the kitchen has to cook, so admins only
+                        (the server enforces this as well). */}
+                    {user?.role === 'admin' && (
+                      <div className="space-y-3 md:col-span-2">
+                         <label className="flex items-start gap-4 px-8 py-5 bg-gray-50 rounded-3xl border border-gray-100 cursor-pointer hover:bg-white transition-all">
+                            <input
+                               type="checkbox"
+                               checked={!!formData.givesPrasadamCoupon}
+                               onChange={(e) => setFormData({ ...formData, givesPrasadamCoupon: e.target.checked })}
+                               className="mt-1 w-5 h-5 shrink-0 accent-saffron"
+                            />
+                            <span>
+                               <span className="block font-black text-gray-900">Gives a prasadam coupon</span>
+                               <span className="block mt-1 text-[11px] font-bold text-gray-400">Everyone marked present gets that day&apos;s prasadam coupon in the Hare Krishna app.</span>
+                            </span>
+                         </label>
+                      </div>
+                    )}
                  </div>
 
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

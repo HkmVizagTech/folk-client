@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, Search, Users, UserCheck, Loader2, AlertCircle, UserPlus, Sparkles, Phone } from 'lucide-react';
+import { Check, Search, Users, UserCheck, Loader2, AlertCircle, UserPlus, Sparkles, Phone, UtensilsCrossed } from 'lucide-react';
 import { setDoc, deleteDoc, doc, where, orderBy, limit, serverTimestamp } from '../../lib/pgstore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
@@ -25,6 +25,36 @@ const GROUPS = [
   { id: 'new', label: 'New boys', tone: 'text-navy-700' },
   { id: 'regular', label: 'Regulars', tone: 'text-green-700' },
 ];
+
+// What the community app made of this person's prasadam coupon. 'done' means
+// they have it; anything final is worth showing so the team can explain it at
+// the counter ("you need the Hare Krishna app first"); anything else is still
+// on its way and not worth mentioning.
+const COUPON_TEXT = {
+  not_member: 'Not on the app',
+  no_phone: 'No mobile on file',
+  no_session: 'No prasadam session',
+  not_open: 'Counter not open',
+  ended: 'Counter closed',
+  invalid: 'Could not be given',
+};
+
+const CouponBadge = ({ grant }) => {
+  if (!grant) return null;
+  if (grant.status === 'done') {
+    return (
+      <span className="chip bg-green-50 text-green-800 border border-green-600/30">
+        <UtensilsCrossed size={12} aria-hidden="true" /> Coupon
+      </span>
+    );
+  }
+  if (grant.status !== 'final') return null;
+  return (
+    <span className="chip bg-paper text-ink-muted border border-line" title={grant.message || ''}>
+      <UtensilsCrossed size={12} aria-hidden="true" /> {COUPON_TEXT[grant.result] || 'No coupon'}
+    </span>
+  );
+};
 
 const VisitBadge = ({ priorVisits, present }) => {
   if (priorVisits === 0) {
@@ -69,6 +99,12 @@ const RollCall = ({ eventId, eventTitle }) => {
 
   const visitorQ = useMemo(() => [where('eventId', '==', eventId)], [eventId]);
   const { data: visitors } = useFirestore('visitors', visitorQ);
+
+  // Prasadam coupons for this program, if it is one that gives them. Written
+  // only by the server's sweep; here it is read to show how each person got on.
+  const grantQ = useMemo(() => [where('eventId', '==', eventId)], [eventId]);
+  const { data: grants } = useFirestore('prasadam_grants', grantQ);
+  const grantByUser = useMemo(() => new Map(grants.map((g) => [g.userId, g])), [grants]);
 
   const [guideId, setGuideId] = useState(user?.uid || '');
   const [scope, setScope] = useState('mine'); // 'mine' | 'all'
@@ -280,7 +316,10 @@ const RollCall = ({ eventId, eventTitle }) => {
                     <span className="block font-semibold truncate user-text">{m.displayName}</span>
                     <span className="block text-[13px] text-ink-muted">{m.present ? 'Present' : stageLabel(m.stage)}</span>
                   </span>
-                  <VisitBadge priorVisits={m.priorVisits} present={m.present} />
+                  <span className="flex flex-col items-end gap-1 shrink-0">
+                    <VisitBadge priorVisits={m.priorVisits} present={m.present} />
+                    <CouponBadge grant={grantByUser.get(m.id)} />
+                  </span>
                 </button>
               </li>
             ))}
