@@ -20,6 +20,7 @@ import { collection, query, where, getDocs, serverTimestamp, doc, runTransaction
 import Card from '../components/ui/Card'
 import { useFirestore } from '../hooks/useFirestore'
 import RollCall from '../components/attendance/RollCall'
+import FirstTimers from '../components/attendance/FirstTimers'
 import { useAuth } from '../hooks/useAuth'
 
 /** A profile's display name, in the order the data actually uses. */
@@ -313,6 +314,8 @@ const Attendance = ({ onOpenScanner }) => {
            </button>
         </div>
       </div>
+
+      <FirstTimers />
 
       {selectedEventId && (
         <RollCall
