@@ -13,6 +13,7 @@ import { useFirestore } from '../hooks/useFirestore'
 // swallows that, leaving the screen silently empty instead of erroring.
 import { collection, addDoc, serverTimestamp, setDoc, doc, where, runTransaction } from '../lib/pgstore'
 import { v4 as uuidv4 } from 'uuid'
+import { audienceOf, audiencesFor } from '../content/audiences'
 
 const ATTENDING = 'Attending';
 const DECLINED = 'Not Attending';
@@ -115,8 +116,16 @@ const Events = () => {
         hour: 'numeric', minute: '2-digit'
       });
 
+      // Who the event is for. Only an admin may publish to everyone (those
+      // also show on folkvizag.org), so a FOLK guide creating from here makes
+      // it for the youth they guide; the server enforces the same rule.
+      const audience = formData.audience || (user?.role === 'admin' ? 'all' : 'mine');
+
       await addDoc(collection(db, 'events'), {
         ...formData,
+        audience,
+        ownerId: user?.uid || auth.currentUser?.uid || null,
+        ownerName: user?.name || user?.displayName || 'FOLK team',
         date: formattedDate,
         dateISO: rawDate.toISOString(),
         // Seed both RSVP counters at zero. A member's RSVP may only move a
@@ -132,8 +141,13 @@ const Events = () => {
       // Best effort: the event is already saved, so a failed announcement must
       // not be reported as "failed to create event" - that sent admins back to
       // the form to create the same event a second time.
+      //
+      // Only public events are announced: every signed-in member can read
+      // notifications, so posting a guide's private program there would show
+      // its title to the whole club. Scoped events appear in the calendar of
+      // the people they are for instead.
       try {
-        await addDoc(collection(db, 'notifications'), {
+        if (audience === 'all') await addDoc(collection(db, 'notifications'), {
           type: 'new_event',
           title: `New Event: ${formData.title}`,
           message: `Join our upcoming ${formData.category} at ${formData.location} on ${formattedDate}.`,
@@ -394,6 +408,11 @@ const Events = () => {
                        <img src={event.img} alt={event.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                        <div className="absolute top-6 left-6 block text-left">
                           <span className="px-5 py-2 bg-white/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-gray-900 border border-white/20 shadow-xl uppercase tracking-widest text-left">{event.category}</span>
+                          {/* Only called out when it isn't the public calendar, so the
+                              team can see at a glance who a program is for. */}
+                          {audienceOf(event).id !== 'all' && (
+                            <span className="px-5 py-2 bg-navy/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-white border border-white/20 shadow-xl uppercase tracking-widest text-left">{audienceOf(event).short}</span>
+                          )}
                        </div>
                        <div className="absolute bottom-6 right-6">
                           <div className="flex items-center gap-2 bg-gray-900/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
@@ -483,6 +502,17 @@ const Events = () => {
                        <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full px-8 py-5 bg-gray-50 rounded-3xl border border-gray-100 focus:bg-white focus:border-saffron outline-none font-black text-gray-900 transition-all appearance-none cursor-pointer">
                           {categories.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
                        </select>
+                    </div>
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Who is it for?</label>
+                       <select
+                          value={formData.audience || (user?.role === 'admin' ? 'all' : 'mine')}
+                          onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
+                          className="w-full px-8 py-5 bg-gray-50 rounded-3xl border border-gray-100 focus:bg-white focus:border-saffron outline-none font-black text-gray-900 transition-all appearance-none cursor-pointer"
+                       >
+                          {audiencesFor(user?.role).map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+                       </select>
+                       <p className="text-[10px] font-bold text-gray-400 ml-1">{audienceOf({ audience: formData.audience || (user?.role === 'admin' ? 'all' : 'mine') }).desc}</p>
                     </div>
                  </div>
 

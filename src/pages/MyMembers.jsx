@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MessageCircle, Phone, NotebookPen, Cake, AlertTriangle, Flame, CalendarCheck, Users, History } from 'lucide-react';
+import { MessageCircle, Phone, NotebookPen, Cake, AlertTriangle, Flame, CalendarCheck, Users, History, UserCheck } from 'lucide-react';
 import { collection, doc, orderBy, limit, where, serverTimestamp, writeBatch } from '../lib/pgstore';
 import { useAuth } from '../hooks/useAuth';
 import { useMembers } from '../hooks/useMembers';
@@ -84,6 +84,32 @@ const MyMembers = () => {
     return map;
   }, [attendance]);
 
+  // Programs that have already happened in the last two months: the yardstick
+  // for how regularly each member is turning up.
+  const { data: allEvents } = useFirestore('events');
+  const recentPrograms = useMemo(() => {
+    const from = Date.now() - 60 * 86400000;
+    const until = Date.now() - 2 * 3600 * 1000; // a program starting later today hasn't happened yet
+    return allEvents
+      .map((e) => ({ id: e.id, t: toDate(e.dateISO || e.date)?.getTime() || null }))
+      .filter((e) => e.t && e.t >= from && e.t <= until)
+      .sort((a, b) => b.t - a.t)
+      .slice(0, 8);
+  }, [allEvents]);
+
+  // How many of those programs each member was marked at (QR or roll call).
+  const attendedBy = useMemo(() => {
+    const ids = new Set(recentPrograms.map((p) => p.id));
+    const map = new Map();
+    for (const a of attendance) {
+      const uid = a.userId || a.uid;
+      if (!uid || !ids.has(a.eventId)) continue;
+      if (!map.has(uid)) map.set(uid, new Set());
+      map.get(uid).add(a.eventId);
+    }
+    return map;
+  }, [attendance, recentPrograms]);
+
   const today = todayIST();
   const mine = useMemo(() => members.filter((m) => m.guideId === guideId && m.id !== guideId), [members, guideId]);
 
@@ -104,8 +130,14 @@ const MyMembers = () => {
     const snoozed = !followDue && m.nextFollowUpDate && m.nextFollowUpDate > today
       && lastFollowUp && Date.now() - lastFollowUp.getTime() < 14 * 86400000;
     const score = snoozed ? 0 : reasons.reduce((s, r) => s + r.weight, 0);
-    return { ...m, chantGap, seen, seenGap, reasons, score, snoozed, bday: daysToBirthday(m.dob, today) };
-  }), [mine, lastSeen, today]);
+    const attended = (attendedBy.get(m.id) || new Set()).size;
+    return {
+      ...m, chantGap, seen, seenGap, reasons, score, snoozed,
+      attended,
+      programs: recentPrograms.length,
+      bday: daysToBirthday(m.dob, today),
+    };
+  }), [mine, lastSeen, today, attendedBy, recentPrograms.length]);
 
   const attention = rows.filter((r) => r.score >= 2).sort((a, b) => b.score - a.score);
   const birthdays = rows.filter((r) => r.bday !== null && r.bday <= 7).sort((a, b) => a.bday - b.bday);
@@ -168,9 +200,17 @@ const MyMembers = () => {
         )}
       </div>
 
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
         <Tile icon={Users} value={rows.length} label="members" tone="bg-navy-50 text-navy-700" />
         <Tile icon={Flame} value={rows.filter((r) => r.chantGap !== null && r.chantGap <= 1).length} label="chanted today / yesterday" tone="bg-saffron-50 text-saffron" />
+        <Tile
+          icon={UserCheck}
+          value={recentPrograms.length && rows.length
+            ? `${Math.round((rows.reduce((n, r) => n + r.attended, 0) / (rows.length * recentPrograms.length)) * 100)}%`
+            : '—'}
+          label={recentPrograms.length ? `came to the last ${recentPrograms.length} programs` : 'no programs yet'}
+          tone="bg-green-50 text-green-700"
+        />
         <Tile icon={AlertTriangle} value={attention.length} label="need attention" tone="bg-red-50 text-red-700" />
         <Tile icon={Cake} value={birthdays.length} label="birthdays this week" tone="bg-marigold/15 text-marigold-dark" />
       </div>
@@ -220,6 +260,12 @@ const MyMembers = () => {
               <div className="mt-3 grid grid-cols-2 gap-2 text-[14px]">
                 <span className="rounded-md bg-paper px-3 py-2"><Flame size={14} className="inline -mt-0.5 mr-1 text-saffron" />{m.chantGap === null ? 'Never chanted' : m.chantGap === 0 ? 'Chanted today' : `Chanted ${m.chantGap}d ago`}{m.streak ? ` · ${m.streak}d` : ''}</span>
                 <span className="rounded-md bg-paper px-3 py-2"><CalendarCheck size={14} className="inline -mt-0.5 mr-1 text-navy-500" />{m.seenGap === null ? 'Never checked in' : m.seenGap === 0 ? 'At a program today' : `Program ${m.seenGap}d ago`}</span>
+                {m.programs > 0 && (
+                  <span className={`col-span-2 rounded-md px-3 py-2 ${m.attended === 0 ? 'bg-red-50 text-red-700' : m.attended >= Math.ceil(m.programs / 2) ? 'bg-green-50 text-green-800' : 'bg-paper'}`}>
+                    <UserCheck size={14} className="inline -mt-0.5 mr-1" />
+                    Came to {m.attended} of the last {m.programs} programs
+                  </span>
+                )}
               </div>
 
               {m.reasons.length > 0 && view === 'attention' && (

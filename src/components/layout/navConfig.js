@@ -15,6 +15,7 @@ export const NAV_GROUPS = [
       { id: 'dashboard', label: 'Home', icon: Home, roles: ALL },
       { id: 'sadhana', label: 'Sadhana', icon: Flame, roles: ALL },
       { id: 'events', label: 'Events', icon: CalendarDays, roles: ALL },
+      { id: 'calendar', label: 'Calendar', icon: CalendarRange, roles: ALL },
       { id: 'seva', label: 'Seva', icon: HandHeart, roles: ALL },
       { id: 'courses', label: 'Courses', icon: GraduationCap, roles: ALL },
       { id: 'trips', label: 'Yatras', icon: Compass, roles: ALL },
@@ -39,7 +40,6 @@ export const NAV_GROUPS = [
     title: 'About',
     items: [
       { id: 'about', label: 'About FOLK', icon: Info, roles: ALL },
-      { id: 'calendar', label: 'Festival calendar', icon: CalendarRange, roles: ALL },
       { id: 'gallery', label: 'Gallery', icon: Images, roles: ALL },
       { id: 'contact', label: 'Contact', icon: Phone, roles: ALL },
     ],
