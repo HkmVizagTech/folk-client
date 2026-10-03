@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { whatsappLink } from '../content/site'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   MapPin, Calendar, Clock, Users, Bus, Ticket, ArrowRight, ArrowUpRight, Search,
@@ -947,7 +948,7 @@ const Trips = ({ openTrip, setActiveTab, onLoginClick, isPublicView = false }) =
             </div>
           </div>
           <a
-            href="https://wa.me/919154881444"
+            href={whatsappLink('Hare Krishna! We would like to plan a yatra for our group.')}
             target="_blank"
             rel="noopener noreferrer"
             className="shrink-0 inline-flex items-center justify-center gap-2 min-h-[48px] px-7 rounded-full bg-white text-gray-900 font-black uppercase tracking-[0.16em] text-[10px] hover:bg-[#FF9933] hover:text-white transition-colors"
