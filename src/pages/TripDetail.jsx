@@ -18,8 +18,7 @@ import { db, auth } from '../lib/firebase'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
 import { callApi } from '../lib/api'
-import { initializeRazorpay } from '../lib/razorpay'
-import { CONFIG } from '../config'
+import { getPaymentConfig, openCheckout } from '../lib/razorpay'
 
 /* ------------------------------------------------------------------ *
  * Local helpers (kept in-file — Trips.jsx / TripDetail.jsx are the only
@@ -95,10 +94,7 @@ const waNumber = (phone) => {
   return digits.replace(/^0+/, '')
 }
 
-const razorpayConfigured = () => {
-  const key = CONFIG.RAZORPAY_KEY
-  return !!key && !key.includes('your_key_here') && key.trim().length > 8
-}
+
 
 /**
  * The places this yatra visits — the new `locations` field, which staff edit
@@ -660,7 +656,16 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
   const emptyForm = { seats: 1, travellerNotes: '', emergencyContact: '', phone: '', email: '' }
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
-  const [submitting, setSubmitting] = useState(null) // 'pay' | 'cash' | 'later' | null
+  const [submitting, setSubmitting] = useState(null) // 'pay' | 'cash' | null
+  // The server holds the Razorpay keys and tells us whether online payment is
+  // on, so the website needs no key of its own.
+  const [payCfg, setPayCfg] = useState(null)
+  useEffect(() => {
+    let alive = true
+    getPaymentConfig().then((c) => { if (alive) setPayCfg(c) })
+    return () => { alive = false }
+  }, [])
+  const razorpayReady = !!payCfg?.enabled
   const [formError, setFormError] = useState('')
   const [notice, setNotice] = useState(null) // { tone, text }
   const [cancelling, setCancelling] = useState(false)
@@ -712,7 +717,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
   /* ---------------- Payment methods offered for this trip ---------------- */
   // Online additionally needs a real Razorpay key and something to charge:
   // a ₹0 "by seva" yatra has no checkout to open.
-  const onlineAvailable = isOnlineEnabled(trip) && razorpayConfigured() && total > 0
+  const onlineAvailable = isOnlineEnabled(trip) && razorpayReady && total > 0
   // A ₹0 "by seva" yatra has nothing to collect either way, so cash is not
   // offered there — the trip falls through to a plain pending request.
   const cashAvailable = isCashEnabled(trip) && total > 0
@@ -839,40 +844,8 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
       // closing the modal. Rules allow only these two fields here.
       await updateDoc(regRef, { paymentOrderId: order.id, updatedAt: serverTimestamp() })
 
-      const loaded = await initializeRazorpay()
-      if (!loaded || !window.Razorpay) throw new Error('Razorpay checkout could not load. Check your connection and try again.')
-
-      const rzp = new window.Razorpay({
-        key: CONFIG.RAZORPAY_KEY,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'FOLK Vizag',
-        description: `${trip.title || 'Yatra'} — ${seats} seat${seats === 1 ? '' : 's'}`,
-        order_id: order.id,
-        image: '/folk_icon_512.png',
-        handler: function () {
-          // Nothing is written to Firestore here: the server webhook is the
-          // single source of truth for whether the money actually arrived.
-          setNotice({
-            tone: 'success',
-            text: 'Payment submitted. Once our server confirms it, this page will show your seat as paid.',
-          })
-        },
-        prefill: {
-          name: user.fullName || user.name || auth.currentUser?.displayName || '',
-          email: (form.email || '').trim(),
-          contact: (form.phone || '').trim(),
-        },
-        theme: { color: '#FF9933' },
-        modal: {
-          ondismiss: function () {
-            setSubmitting(null)
-          },
-        },
-      })
-
       setModalOpen(false)
-      rzp.open()
+      await runCheckout(order, seats)
     } catch (error) {
       console.error('Trip registration error:', error)
       if (regRef) {
@@ -886,6 +859,45 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
       }
     } finally {
       setSubmitting(null)
+    }
+  }
+
+  /**
+   * Opens Razorpay and lets the server confirm both the payment and the seat,
+   * so a devotee sees "confirmed" before they put their phone down.
+   */
+  const runCheckout = async (order, seatCount) => {
+    const outcome = await openCheckout({
+      order,
+      description: `${trip.title || 'Yatra'} · ${seatCount} seat${seatCount === 1 ? '' : 's'}`,
+      prefill: {
+        name: user.fullName || user.name || auth.currentUser?.displayName || '',
+        email: (form.email || user.email || '').trim(),
+        contact: (form.phone || user.phone || '').trim(),
+      },
+      onVerifying: () => setNotice({ tone: 'info', text: 'Confirming your payment…' }),
+    })
+    if (outcome === 'paid') {
+      setNotice({ tone: 'success', text: 'Payment received and your seat is confirmed. Hare Krishna! The yatra team will be in touch with the details.' })
+    } else {
+      setNotice({ tone: 'warn', text: 'Payment not completed. Your seat is held for now — tap "Pay now" to finish.' })
+    }
+  }
+
+  const [payingExisting, setPayingExisting] = useState(false)
+  /** Finish paying for a seat that was booked but never paid for. */
+  const payExisting = async () => {
+    if (!myRegistration || payingExisting) return
+    setPayingExisting(true)
+    setNotice(null)
+    try {
+      const order = await callApi('createOrder', { tripRegistrationId: myRegistration.id })
+      if (!order?.id) throw new Error('The payment could not be started. Please try again.')
+      await runCheckout(order, parseInt(myRegistration.seats, 10) || 1)
+    } catch (error) {
+      setNotice({ tone: 'warn', text: error.message || 'The payment could not be started. Please try again.' })
+    } finally {
+      setPayingExisting(false)
     }
   }
 
@@ -1187,6 +1199,19 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
 
               {(myRegistration.status || '').toLowerCase() === 'pending' && (
                 <>
+                  {/* A seat booked but not paid for: finish paying it here,
+                      rather than only being offered more seats. */}
+                  {!isSettled && !isCashRegistration && onlineAvailable && (
+                    <button
+                      type="button"
+                      onClick={payExisting}
+                      disabled={payingExisting}
+                      className="w-full min-h-[48px] rounded-2xl bg-saffron text-white font-black uppercase tracking-[0.14em] text-[11px] hover:brightness-105 transition-all disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                    >
+                      {payingExisting ? <Loader2 size={16} className="animate-spin shrink-0" /> : <CreditCard size={16} className="shrink-0" />}
+                      {payingExisting ? 'Opening payment…' : `Pay ${inr(price * (parseInt(myRegistration.seats, 10) || 1))} now`}
+                    </button>
+                  )}
                   {!isSettled && price > 0 && !blockedReason && (
                     <button
                       type="button"
@@ -1227,7 +1252,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 className="w-full min-h-[52px] rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg shadow-saffron/25 hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
               >
                 <Ticket size={16} className="shrink-0" />
-                {noPaymentAvailable ? 'Request a seat' : cashAvailable && !onlineAvailable ? 'Register & pay cash' : 'Reserve my seat'}
+                {noPaymentAvailable ? 'Request a seat' : cashAvailable && !onlineAvailable ? 'Register & pay cash' : 'Book & pay online'}
               </button>
               <p className="text-[11px] text-gray-400 font-medium text-center leading-relaxed">
                 {noPaymentAvailable
@@ -1727,7 +1752,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     ? 'Request a seat'
                     : cashAvailable && !onlineAvailable
                       ? 'Register & pay cash'
-                      : 'Reserve seat'}
+                      : 'Book & pay'}
               </span>
             </button>
           </div>
@@ -1763,7 +1788,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   <Ticket className="text-white" size={24} />
                 </div>
                 <h2 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">
-                  {noPaymentAvailable ? 'Request a seat' : 'Reserve your seat'}
+                  {noPaymentAvailable ? 'Request a seat' : 'Book your seat'}
                 </h2>
                 <p className="text-gray-400 text-[13px] sm:text-sm font-medium mt-1.5 user-text">{trip.title}</p>
               </div>
@@ -1961,7 +1986,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     <p className={`text-xs font-semibold leading-relaxed user-text ${total > 0 ? 'text-amber-800' : 'text-gray-600'}`}>
                       {total === 0
                         ? 'There is nothing to pay for this yatra. '
-                        : isOnlineEnabled(trip) && !razorpayConfigured()
+                        : isOnlineEnabled(trip) && !razorpayReady
                           ? 'Online payment isn’t switched on for this site yet. '
                           : 'No payment method is open for this yatra right now. '}
                       Your registration is saved as
@@ -2005,26 +2030,15 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     </span>
                   </button>
 
-                  {/* "Pay later" stays available whenever online checkout is the
-                      primary route — it is the pre-existing escape hatch. It is
-                      redundant (and confusing) once cash is the chosen method. */}
-                  {submitMode === 'pay' && (
-                    <button
-                      type="button"
-                      disabled={!!submitting}
-                      onClick={() => handleRegister('later')}
-                      className="w-full min-h-[48px] px-4 rounded-2xl bg-gray-900 text-white font-black uppercase tracking-[0.14em] text-[10px] hover:bg-gray-800 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                    >
-                      {submitting === 'later' ? <Loader2 size={16} className="animate-spin shrink-0" /> : <Clock3 size={16} className="shrink-0" />}
-                      {submitting === 'later' ? 'Reserving…' : 'Register, pay later'}
-                    </button>
-                  )}
+                  {/* No "pay later": a devotee books and pays in one go, and
+                      the seat is confirmed the moment the payment clears. */}
 
                   <p className="text-[11px] text-gray-400 font-medium text-center leading-relaxed">
-                    Your seat stays <span className="font-bold">pending</span> until the team confirms it.
                     {effectiveMethod === 'cash' && !noPaymentAvailable
-                      ? ' Cash is recorded by the yatra team, never by this page.'
-                      : ' Payments are verified by our server, never by this page.'}
+                      ? 'Your seat stays pending until the team receives the cash — it is recorded by them, never by this page.'
+                      : noPaymentAvailable
+                        ? 'Your seat stays pending until the yatra team confirms it.'
+                        : 'Your seat is confirmed as soon as the payment clears. Payments are verified by our server, never by this page.'}
                   </p>
                 </div>
               </form>
