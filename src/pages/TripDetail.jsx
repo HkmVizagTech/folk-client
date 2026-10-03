@@ -191,6 +191,11 @@ const DETAIL_STYLES = `
  * surface via onError. Nothing here branches on data: vs https: — both are
  * valid <img src> values and are passed straight through.
  * ------------------------------------------------------------------ */
+/** A caller that positions the box itself (e.g. the hero's "absolute
+ *  inset-0") must win: adding our own `relative` too would take the box out
+ *  of that position and collapse it to zero height, which is why cover
+ *  photos never appeared. */
+const isPositioned = (cls) => /(^|\s)(absolute|fixed|sticky|relative)(\s|$)/.test(cls || '');
 const Photo = ({
   src,
   alt = '',
@@ -217,7 +222,7 @@ const Photo = ({
   const hasImage = !!src && !failed
 
   return (
-    <div className={`relative overflow-hidden bg-[#F6EADA] ${className}`}>
+    <div className={`${isPositioned(className) ? '' : 'relative'} overflow-hidden bg-[#F6EADA] ${className}`}>
       {(!hasImage || !loaded) && (
         <div className={`absolute inset-0 ${tone}`} aria-hidden="true">
           <div className="absolute inset-0 folk-yatra-mandala opacity-[0.16] mix-blend-soft-light" />
@@ -1303,13 +1308,13 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
         >
           {/* Dims the photograph and the loading surface by the same amount,
               so there is no brightness pop when the image arrives. */}
-          <div className="absolute inset-0 bg-[#070605]/30" aria-hidden="true" />
+          <div className="absolute inset-0 bg-[#070605]/20" aria-hidden="true" />
         </Photo>
 
         {/* Scrims — guarantee contrast over any photo */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070605] via-[#070605]/70 to-[#070605]/25" aria-hidden="true" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#070605]/85 via-[#070605]/40 to-transparent" aria-hidden="true" />
-        <div className="absolute inset-0 folk-yatra-grain opacity-[0.22] mix-blend-overlay" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070605] via-[#070605]/75 to-[#070605]/10" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#070605]/80 via-[#070605]/25 to-transparent" aria-hidden="true" />
+        <div className="absolute inset-0 folk-yatra-grain opacity-[0.12] mix-blend-overlay" aria-hidden="true" />
         <div className="absolute inset-0 folk-yatra-mandala opacity-[0.10] mix-blend-soft-light" aria-hidden="true" />
 
         <div className="relative z-10 w-full">

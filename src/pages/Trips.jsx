@@ -181,6 +181,11 @@ const TRIPS_STYLES = `
  * data: vs https: — both are valid <img src> values and are passed straight
  * through.
  * ------------------------------------------------------------------ */
+/** A caller that positions the box itself (e.g. the hero's "absolute
+ *  inset-0") must win: adding our own `relative` too would take the box out
+ *  of that position and collapse it to zero height, which is why cover
+ *  photos never appeared. */
+const isPositioned = (cls) => /(^|\s)(absolute|fixed|sticky|relative)(\s|$)/.test(cls || '');
 const Photo = ({
   src,
   alt = '',
@@ -207,7 +212,7 @@ const Photo = ({
   const hasImage = !!src && !failed
 
   return (
-    <div className={`relative overflow-hidden bg-[#F6EADA] ${className}`}>
+    <div className={`${isPositioned(className) ? '' : 'relative'} overflow-hidden bg-[#F6EADA] ${className}`}>
       {(!hasImage || !loaded) && (
         <div className={`absolute inset-0 ${tone}`} aria-hidden="true">
           <div className="absolute inset-0 folk-yatra-mandala opacity-[0.16] mix-blend-soft-light" />
