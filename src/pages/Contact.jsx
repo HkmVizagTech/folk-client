@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, Phone, MapPin, Instagram, Send, CheckCircle2 } from 'lucide-react';
+import { MessageCircle, Phone, MapPin, Instagram, Send, CheckCircle2, Mail } from 'lucide-react';
 import { addDoc, collection, serverTimestamp } from '../lib/pgstore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
@@ -60,6 +60,12 @@ const Contact = () => {
             <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} className="card p-5 flex items-center gap-4 hover:border-ink">
               <span className="w-11 h-11 rounded-md bg-navy-50 text-navy-700 inline-flex items-center justify-center"><Phone size={22} /></span>
               <span><span className="block font-display font-bold">Call</span><span className="text-ink-muted">{SITE.contact.phone}</span></span>
+            </a>
+          )}
+          {SITE.contact.email && (
+            <a href={`mailto:${SITE.contact.email}`} className="card p-5 flex items-center gap-4 hover:border-ink">
+              <span className="w-11 h-11 rounded-md bg-marigold/15 text-marigold-dark inline-flex items-center justify-center"><Mail size={22} /></span>
+              <span className="min-w-0"><span className="block font-display font-bold">Email</span><span className="text-ink-muted user-text">{SITE.contact.email}</span></span>
             </a>
           )}
           {SITE.contact.address && (

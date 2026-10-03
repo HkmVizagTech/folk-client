@@ -8,21 +8,25 @@ export const SITE = {
   tagline: 'Youth Empowerment Club',
   parent: 'Hare Krishna Movement, Visakhapatnam',
 
+  // All of this is the temple's own published contact, taken from
+  // harekrishnavizag.org so the two never disagree.
   contact: {
-    // Number already used across the app for WhatsApp enquiries.
-    phone: '+91 91548 81444',
-    whatsapp: '919154881444',
-    email: '',
-    // TODO(FOLK team): full street address + Google Maps link.
-    address: 'Hare Krishna Movement, Visakhapatnam, Andhra Pradesh',
-    mapsUrl: '',
+    phone: '+91 89777 61187',
+    whatsapp: '918977761187',
+    email: 'social@hkmvizag.org',
+    address: 'Chaitanya Bhavan, Hare Krishna Vaikuntham Cultural Centre, IIM Rd, opp. Akshaya Patra Foundation, Gambhiram, Visakhapatnam, Andhra Pradesh 531163',
+    mapsUrl: 'https://maps.app.goo.gl/Yg2imkSEDxuY5u2K9',
   },
 
   social: {
+    // FOLK keeps its own Instagram; the rest are the temple's channels.
     instagram: 'https://www.instagram.com/folkvizag/',
-    youtube: '',
-    facebook: '',
+    youtube: 'https://www.youtube.com/user/harekrishnavizag',
+    facebook: 'https://www.facebook.com/hkm.vizag/',
   },
+
+  // The temple's own site, linked from the footer.
+  parentUrl: 'https://harekrishnavizag.org',
 };
 
 export const whatsappLink = (text = 'Hare Krishna! I would like to know more about FOLK Vizag.') =>
