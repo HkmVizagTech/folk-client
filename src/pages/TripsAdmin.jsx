@@ -65,8 +65,13 @@ const EMPTY_FORM = {
   endDate: '',
   durationLabel: '',
   price: '',
+  // What the yatra really costs, when the temple is subsidising it. Shown
+  // struck through beside the price so devotees can see the gift.
+  originalPrice: '',
   advanceAmount: '',
   capacity: '',
+  // 'Boys only', 'Girls only', or blank when everybody is welcome.
+  eligibility: '',
   status: 'draft',
   registrationOpen: false,
   // Payment rails the devotee is offered. Online defaults ON so an existing
@@ -682,8 +687,10 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     endDate: trip.endDate || '',
     durationLabel: trip.durationLabel || '',
     price: trip.price ?? '',
+    originalPrice: trip.originalPrice ?? '',
     advanceAmount: trip.advanceAmount ?? '',
     capacity: trip.capacity ?? '',
+    eligibility: trip.eligibility ?? '',
     status: TRIP_STATUSES.includes(trip.status) ? trip.status : 'draft',
     registrationOpen: !!trip.registrationOpen,
     // A trip saved before these fields existed has no `onlinePaymentEnabled`.
@@ -950,8 +957,10 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
     endDate: f.endDate || '',
     durationLabel: (f.durationLabel || '').trim(),
     price: toNumber(f.price),
+    originalPrice: toNumber(f.originalPrice),
     advanceAmount: toNumber(f.advanceAmount),
     capacity: toInt(f.capacity),
+    eligibility: String(f.eligibility || '').trim(),
     status: TRIP_STATUSES.includes(f.status) ? f.status : 'draft',
     registrationOpen: !!f.registrationOpen,
     onlinePaymentEnabled: !!f.onlinePaymentEnabled,
@@ -2277,6 +2286,28 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                           placeholder="7500"
                           className={inputClass}
                         />
+                      </Field>
+                      <Field label="Actual cost (₹)" hint="Shown struck through, e.g. 1300">
+                        <input
+                          type="number"
+                          min={0}
+                          step="1"
+                          value={form.originalPrice}
+                          onChange={(e) => setField('originalPrice', e.target.value)}
+                          placeholder="1300"
+                          className={inputClass}
+                        />
+                      </Field>
+                      <Field label="Who can come" hint="Leave as Everyone unless the yatra is separate">
+                        <select
+                          value={form.eligibility}
+                          onChange={(e) => setField('eligibility', e.target.value)}
+                          className={inputClass}
+                        >
+                          <option value="">Everyone</option>
+                          <option value="Boys only">Boys only</option>
+                          <option value="Girls only">Girls only</option>
+                        </select>
                       </Field>
                       <Field label="Advance (₹)" hint="0 = full only" error={showErrors ? errors.advanceAmount : ''}>
                         <input

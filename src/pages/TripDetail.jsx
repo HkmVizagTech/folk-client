@@ -700,6 +700,9 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
   }, [lightbox, closeLightbox, stepLightbox])
 
   const price = Number(trip?.price) || 0
+  // Only a real saving is shown: a stray or smaller number is ignored.
+  const originalPrice = Number(trip?.originalPrice) || 0
+  const hasOffer = originalPrice > price
   const advance = Number(trip?.advanceAmount) || 0
   const seats = Math.min(20, Math.max(1, parseInt(form.seats, 10) || 1))
   const total = price * seats
@@ -988,7 +991,15 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
           <div className="min-w-0">
             {price > 0 ? (
               <>
-                <p className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">{inr(price)}</p>
+                <p className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">{inr(price)}</span>
+                  {hasOffer && <span className="text-sm font-black text-gray-400 line-through leading-none">{inr(originalPrice)}</span>}
+                </p>
+                {hasOffer && (
+                  <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
+                    Temple gives {inr(originalPrice - price)}
+                  </p>
+                )}
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.14em] mt-1.5">Per person</p>
               </>
             ) : (
@@ -1047,6 +1058,15 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
               <div className="min-w-0">
                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Destination</p>
                 <p className="text-[13px] sm:text-sm font-bold text-gray-800 user-text">{trip.location}</p>
+              </div>
+            </div>
+          )}
+          {trip.eligibility && (
+            <div className="flex items-start gap-3 user-text-box">
+              <span className="w-9 h-9 shrink-0 rounded-xl bg-cream/70 text-saffron flex items-center justify-center"><Users size={16} /></span>
+              <div className="min-w-0">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.14em]">Who can come</p>
+                <p className="text-[13px] sm:text-sm font-bold text-gray-800 user-text">{trip.eligibility}</p>
               </div>
             </div>
           )}
@@ -1338,7 +1358,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                     </span>
                     <div className="min-w-0">
                       <p className="text-[9px] font-black text-white/45 uppercase tracking-[0.14em]">From</p>
-                      <p className="text-[13px] sm:text-sm font-black text-white tracking-tight user-text">{inr(price)} / person</p>
+                      <p className="text-[13px] sm:text-sm font-black text-white tracking-tight user-text">
+                        {inr(price)} / person
+                        {hasOffer && <span className="ml-1.5 font-black text-white/60 line-through">{inr(originalPrice)}</span>}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1685,6 +1708,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <div className="min-w-0 shrink">
               <p className="text-base sm:text-lg font-black text-gray-900 leading-none tracking-tight truncate">
                 {price > 0 ? inr(price) : 'By seva'}
+                {hasOffer && <span className="ml-1.5 text-[11px] font-black text-gray-400 line-through">{inr(originalPrice)}</span>}
               </p>
               <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.12em] mt-1 truncate">
                 {price > 0 ? 'Per person' : 'No fixed fee'}

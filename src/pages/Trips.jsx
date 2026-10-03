@@ -461,6 +461,12 @@ const TripCard = ({ trip, seatsLeft, onOpen, index }) => {
                 <span className="truncate min-w-0 user-text">{trip.durationLabel}</span>
               </span>
             )}
+            {trip.eligibility && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-navy/5 border border-navy/15 max-w-full min-w-0">
+                <Users size={12} className="text-navy shrink-0" />
+                <span className="truncate min-w-0 user-text">{trip.eligibility}</span>
+              </span>
+            )}
           </div>
         )}
 
@@ -472,6 +478,9 @@ const TripCard = ({ trip, seatsLeft, onOpen, index }) => {
                  out of the card at the narrow end of the three-column grid. */
               <div className="flex items-baseline gap-1.5 flex-wrap min-w-0">
                 <p className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-none min-w-0 user-text">{inr(trip.price)}</p>
+                {Number(trip.originalPrice) > Number(trip.price) && (
+                  <p className="text-[12px] font-black text-gray-400 line-through leading-none">{inr(trip.originalPrice)}</p>
+                )}
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.12em]">/ person</p>
               </div>
             ) : (
