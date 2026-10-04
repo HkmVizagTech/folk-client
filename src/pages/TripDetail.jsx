@@ -1019,11 +1019,6 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                   <span className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">{inr(price)}</span>
                   {hasOffer && <span className="text-sm font-black text-gray-400 line-through leading-none">{inr(originalPrice)}</span>}
                 </p>
-                {hasOffer && (
-                  <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
-                    Temple gives {inr(originalPrice - price)}
-                  </p>
-                )}
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.14em] mt-1.5">Per person</p>
               </>
             ) : (
