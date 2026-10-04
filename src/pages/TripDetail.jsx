@@ -660,7 +660,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
   const isSettled = isCashRegistration ? isCashCollected : isPaid
 
   /* ---------------- Registration modal ---------------- */
-  const emptyForm = { seats: 1, travellerNotes: '', emergencyContact: '', phone: '', email: '' }
+  const emptyForm = { seats: 1, name: '', travellerNotes: '', emergencyContact: '', phone: '', email: '' }
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(null) // 'pay' | 'cash' | null
@@ -742,6 +742,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
     if (!modalOpen) return
     setForm({
       seats: 1,
+      name: user?.fullName || user?.name || auth.currentUser?.displayName || '',
       travellerNotes: '',
       emergencyContact: '',
       phone: user?.phone || user?.mobile || auth.currentUser?.phoneNumber || '',
@@ -787,7 +788,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
       tripSlug: trip.slug || slug || '',
       tripTitle: trip.title || '',
       userId: user.uid,
-      userName: user.fullName || user.name || auth.currentUser?.displayName || 'Devotee',
+      userName: (form.name || '').trim() || user.fullName || user.name || auth.currentUser?.displayName || 'Devotee',
       userPhone: (form.phone || '').trim(),
       userEmail: (form.email || '').trim(),
       seats,
@@ -1894,6 +1895,20 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 )}
 
                 {/* Contact */}
+                <div className="space-y-2 min-w-0">
+                  <label htmlFor="trip-name" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Your name</label>
+                  <input
+                    id="trip-name"
+                    type="text"
+                    required
+                    size={1}
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="e.g. Ravi Kumar"
+                    className="w-full min-w-0 min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px]"
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 min-w-0">
                     <label htmlFor="trip-phone" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Phone</label>
@@ -1908,44 +1923,9 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                       className="w-full min-w-0 min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px]"
                     />
                   </div>
-                  <div className="space-y-2 min-w-0">
-                    <label htmlFor="trip-email" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Email</label>
-                    <input
-                      id="trip-email"
-                      type="email"
-                      size={1}
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      placeholder="you@example.com"
-                      className="w-full min-w-0 min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px]"
-                    />
-                  </div>
                 </div>
 
-                <div className="space-y-2 min-w-0">
-                  <label htmlFor="trip-emergency" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Emergency contact (optional)</label>
-                  <input
-                    id="trip-emergency"
-                    type="text"
-                    size={1}
-                    value={form.emergencyContact}
-                    onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })}
-                    placeholder="You can add this after booking"
-                    className="w-full min-w-0 min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px]"
-                  />
-                </div>
 
-                <div className="space-y-2 min-w-0">
-                  <label htmlFor="trip-notes" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Traveller notes (optional)</label>
-                  <textarea
-                    id="trip-notes"
-                    rows={3}
-                    value={form.travellerNotes}
-                    onChange={(e) => setForm({ ...form, travellerNotes: e.target.value })}
-                    placeholder="Names of co-travellers, dietary needs, boarding point…"
-                    className="w-full min-w-0 bg-cream/30 border border-saffron/10 rounded-2xl px-4 py-3 outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px] resize-none"
-                  />
-                </div>
 
                 {/* Price breakdown */}
                 <div className="rounded-2xl bg-cream/60 border border-saffron/10 p-4 sm:p-5 space-y-2.5 user-text-box">
@@ -2041,7 +2021,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                             ? 'Register & pay cash'
                             : submitMode === 'later'
                               ? 'Send my request'
-                              : `Register & pay ${inr(payNow)}`}
+                              : `Pay ${inr(payNow)} now`}
                     </span>
                   </button>
 
@@ -2053,7 +2033,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                       ? 'Your seat stays pending until the team receives the cash — it is recorded by them, never by this page.'
                       : noPaymentAvailable
                         ? 'Your seat stays pending until the yatra team confirms it.'
-                        : 'Your seat is confirmed as soon as the payment clears. Payments are verified by our server, never by this page.'}
+                        : 'The next screen is the payment page — UPI, card or net-banking. Your seat is confirmed the moment it clears, and we ask for travel details after that.'}
                   </p>
                 </div>
               </form>
