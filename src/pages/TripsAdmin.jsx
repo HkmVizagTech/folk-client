@@ -111,6 +111,12 @@ const travellerSummary = (reg) => (reg.travellers || [])
   .filter(Boolean)
   .join('\n');
 
+/** Where each traveller studies or works, one per line. */
+const studentSummary = (reg) => (reg.travellers || [])
+  .map((t) => [t.name, t.college, t.course, t.year].filter(Boolean).join(' | '))
+  .filter(Boolean)
+  .join('\n');
+
 /** Has everything a ticket needs, for every seat. */
 const detailsComplete = (reg) => {
   const seats = parseInt(reg?.seats, 10) || 0;
@@ -1320,7 +1326,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       'Amount Due (INR)', 'Payment Method', 'Payment State',
       'Online Verified (INR)', 'Order ID',
       'Cash Collected', 'Cash Amount (INR)', 'Cash Collected On', 'Cash Collected By',
-      'Status', 'Registered On', 'Travellers (name | age | gender | ID)', 'Boarding Point',
+      'Status', 'Registered On', 'Travellers (name | age | gender | ID)', 'College / Course / Year', 'Boarding Point',
       'Traveller Notes', 'Emergency Contact', 'Staff Notes',
     ]
     const rows = filteredRegs.map((r) => {
@@ -1345,6 +1351,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         r.status || 'pending',
         formatStamp(r.createdAt),
         travellerSummary(r),
+        studentSummary(r),
         r.pickup || '',
         r.travellerNotes || '',
         r.emergencyContact || '',
@@ -1989,6 +1996,7 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                                   <span key={i} className="block text-[11px] text-ink user-text">
                                     {t.name}{t.age ? `, ${t.age}` : ''}{t.gender ? `, ${t.gender}` : ''}
                                     {t.idNumber ? ` · ${t.idType || 'ID'} ${t.idNumber}` : ''}
+                                    {t.college ? <span className="block text-ink-muted">{[t.college, t.course, t.year].filter(Boolean).join(' · ')}</span> : null}
                                   </span>
                                 ))}
                                 {reg.pickup && <span className="block mt-1 text-[11px] text-ink-muted user-text">Boarding: {reg.pickup}</span>}

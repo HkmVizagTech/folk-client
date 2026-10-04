@@ -30,7 +30,11 @@ const ID_TYPES = [
 
 const GENDERS = ['Male', 'Female'];
 
-const blank = () => ({ name: '', age: '', gender: '', idType: '', idNumber: '' });
+const blank = () => ({ name: '', age: '', gender: '', idType: '', idNumber: '', college: '', course: '', year: '' });
+
+// Most FOLK members are students, so the year is a short list rather than a
+// free-text box — quicker on a phone, and tidier for the team afterwards.
+const YEARS = ['1st year', '2nd year', '3rd year', '4th year', '5th year', 'Postgraduate', 'Working', 'Other'];
 
 /** Everything a ticket needs, for every seat. */
 export const detailsComplete = (registration) => {
@@ -78,6 +82,9 @@ const TravellerDetails = ({ registration, tripTitle }) => {
           gender: t.gender || '',
           idType: t.idType || '',
           idNumber: String(t.idNumber || '').trim().slice(0, 40),
+          college: String(t.college || '').trim().slice(0, 120),
+          course: String(t.course || '').trim().slice(0, 80),
+          year: t.year || '',
         })),
         emergencyContact: String(emergency || '').trim().slice(0, 120),
         pickup: String(pickup || '').trim().slice(0, 120),
@@ -142,6 +149,22 @@ const TravellerDetails = ({ registration, tripTitle }) => {
               <div>
                 <label className={label} htmlFor={`t${i}-idnum`}>ID number</label>
                 <input id={`t${i}-idnum`} className={field} value={t.idNumber} onChange={(e) => set(i, 'idNumber', e.target.value)} placeholder="As printed on the ID" />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className={label} htmlFor={`t${i}-college`}>College or workplace</label>
+                <input id={`t${i}-college`} className={field} value={t.college} onChange={(e) => set(i, 'college', e.target.value)} placeholder="e.g. Andhra University" />
+              </div>
+              <div>
+                <label className={label} htmlFor={`t${i}-course`}>Course</label>
+                <input id={`t${i}-course`} className={field} value={t.course} onChange={(e) => set(i, 'course', e.target.value)} placeholder="e.g. B.Tech CSE" />
+              </div>
+              <div>
+                <label className={label} htmlFor={`t${i}-year`}>Year</label>
+                <select id={`t${i}-year`} className={field} value={t.year} onChange={(e) => set(i, 'year', e.target.value)}>
+                  <option value="">Select</option>
+                  {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
               </div>
             </div>
           </div>
