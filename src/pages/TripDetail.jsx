@@ -20,6 +20,7 @@ import { useAuth } from '../hooks/useAuth'
 import { callApi } from '../lib/api'
 import { getPaymentConfig, openCheckout } from '../lib/razorpay'
 import TravellerDetails from '../components/trips/TravellerDetails'
+import QuickPhoneLogin from '../components/trips/QuickPhoneLogin'
 
 /* ------------------------------------------------------------------ *
  * Local helpers (kept in-file — Trips.jsx / TripDetail.jsx are the only
@@ -891,6 +892,10 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
   }
 
   const [payingExisting, setPayingExisting] = useState(false)
+  // Signing in happens on this page; booking opens the moment it succeeds,
+  // so a boy arriving from a WhatsApp link never loses the yatra.
+  const [loginOpen, setLoginOpen] = useState(false)
+  const startBooking = () => (user ? setModalOpen(true) : setLoginOpen(true))
   /** Finish paying for a seat that was booked but never paid for. */
   const payExisting = async () => {
     if (!myRegistration || payingExisting) return
@@ -1131,13 +1136,13 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             <>
               <button
                 type="button"
-                onClick={() => onLoginClick && onLoginClick()}
+                onClick={startBooking}
                 className="w-full min-h-[52px] rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.14em] text-[11px] shadow-lg shadow-saffron/25 hover:brightness-105 transition-all inline-flex items-center justify-center gap-2"
               >
-                <Ticket size={16} /> Sign in to register
+                <Ticket size={16} /> Book with your mobile
               </button>
               <p className="text-[11px] text-gray-400 font-medium text-center leading-relaxed">
-                A free FOLK account keeps your seat, receipts and trip updates in one place.
+                We send a code on WhatsApp — no password, and it takes a moment.
               </p>
             </>
           ) : myRegistration && (myRegistration.status || '').toLowerCase() !== 'cancelled' ? (
@@ -1752,7 +1757,7 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
             </div>
             <button
               type="button"
-              onClick={() => (user ? setModalOpen(true) : onLoginClick && onLoginClick())}
+              onClick={startBooking}
               className="flex-1 min-w-0 min-h-[48px] px-3 rounded-2xl bg-gradient-to-r from-saffron to-gold-dark text-white font-black uppercase tracking-[0.12em] text-[10px] xs:text-[11px] shadow-lg shadow-saffron/25 inline-flex items-center justify-center gap-2"
             >
               <Ticket size={16} className="shrink-0" />
@@ -2126,16 +2131,28 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
     </div>
   )
 
+  const withLogin = (
+    <>
+      {page}
+      <QuickPhoneLogin
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        onSignedIn={() => setModalOpen(true)}
+        tripTitle={trip?.title}
+      />
+    </>
+  )
+
   if (isPublicView) {
     return (
       <div className="min-h-screen bg-cream">
         <PublicTopBar onLoginClick={onLoginClick} />
-        {page}
+        {withLogin}
       </div>
     )
   }
 
-  return page
+  return withLogin
 }
 
 export default TripDetail
