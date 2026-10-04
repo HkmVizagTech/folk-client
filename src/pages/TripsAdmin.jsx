@@ -2002,8 +2002,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                                 {reg.pickup && <span className="block mt-1 text-[11px] text-ink-muted user-text">Boarding: {reg.pickup}</span>}
                               </span>
                             ) : (
-                              <span className="block rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] font-bold text-amber-700">
-                                Travel details not filled in yet
+                              <span className="block rounded-lg bg-paper border border-line px-3 py-2 text-[11px] font-bold text-ink-muted">
+                                No travel details given
                               </span>
                             )}
                           </span>

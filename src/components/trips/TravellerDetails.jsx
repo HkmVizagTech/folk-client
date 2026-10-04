@@ -67,11 +67,6 @@ const TravellerDetails = ({ registration, tripTitle }) => {
 
   const save = async (e) => {
     e.preventDefault();
-    const missing = rows.findIndex((t) => !String(t.name || '').trim() || !(Number(t.age) > 0));
-    if (missing !== -1) {
-      setError(`Traveller ${missing + 1} still needs a name and age.`);
-      return;
-    }
     setSaving(true);
     setError('');
     try {
@@ -108,12 +103,12 @@ const TravellerDetails = ({ registration, tripTitle }) => {
         </span>
         <div className="min-w-0">
           <h3 className="font-display text-lg font-bold text-gray-900">
-            {done ? 'Travel details received' : 'We need your travel details'}
+            {done ? 'Travel details received' : 'Travel details (optional)'}
           </h3>
           <p className="mt-0.5 text-[14px] text-gray-500 font-medium">
             {done
               ? 'Thank you — the team has what it needs to book your tickets. You can still correct anything below.'
-              : `Your seat for ${tripTitle || 'the yatra'} is held. The team needs these to book tickets.`}
+              : `Your seat for ${tripTitle || 'the yatra'} is held. These are optional — they just help the team book tickets and know who is coming. Fill in what you can.`}
           </p>
         </div>
       </div>
@@ -182,7 +177,7 @@ const TravellerDetails = ({ registration, tripTitle }) => {
         </div>
 
         <p className="text-[12px] text-gray-500 font-medium leading-relaxed">
-          Only the FOLK team can see these, and they are used for your travel tickets. Please type the number rather than sending a photo of the card.
+          Only the FOLK team can see these, and they are used for your travel tickets. Leave anything blank if you would rather not say, and please type the ID number rather than sending a photo of the card.
         </p>
 
         {error && (
@@ -193,7 +188,7 @@ const TravellerDetails = ({ registration, tripTitle }) => {
 
         <button type="submit" disabled={saving} className="btn-primary w-full sm:w-auto">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-          {saving ? 'Saving…' : saved ? 'Saved' : done ? 'Update details' : 'Save travel details'}
+          {saving ? 'Saving…' : saved ? 'Saved' : done ? 'Update details' : 'Save details'}
         </button>
       </form>
     </section>
