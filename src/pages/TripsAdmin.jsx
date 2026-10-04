@@ -103,6 +103,22 @@ const toNumber = (value) => {
   return Number.isFinite(n) ? n : 0
 }
 
+/** Travellers as one readable cell: "Ravi | 21 | Male | aadhaar 1234…" each on its own line. */
+const travellerSummary = (reg) => (reg.travellers || [])
+  .map((t) => [t.name, t.age, t.gender, [t.idType, t.idNumber].filter(Boolean).join(' ')]
+    .filter((x) => x !== undefined && x !== null && x !== '')
+    .join(' | '))
+  .filter(Boolean)
+  .join('\n');
+
+/** Has everything a ticket needs, for every seat. */
+const detailsComplete = (reg) => {
+  const seats = parseInt(reg?.seats, 10) || 0;
+  const list = reg?.travellers || [];
+  if (!seats || list.length < seats) return false;
+  return list.slice(0, seats).every((t) => String(t?.name || '').trim() && Number(t?.age) > 0 && t?.gender);
+};
+
 const toInt = (value) => {
   const n = parseInt(value, 10)
   return Number.isFinite(n) ? n : 0
@@ -1304,7 +1320,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
       'Amount Due (INR)', 'Payment Method', 'Payment State',
       'Online Verified (INR)', 'Order ID',
       'Cash Collected', 'Cash Amount (INR)', 'Cash Collected On', 'Cash Collected By',
-      'Status', 'Registered On', 'Traveller Notes', 'Emergency Contact', 'Staff Notes',
+      'Status', 'Registered On', 'Travellers (name | age | gender | ID)', 'Boarding Point',
+      'Traveller Notes', 'Emergency Contact', 'Staff Notes',
     ]
     const rows = filteredRegs.map((r) => {
       const pay = resolvePayment(r)
@@ -1327,6 +1344,8 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
         pay.cashDone ? (pay.cashBy || '') : '',
         r.status || 'pending',
         formatStamp(r.createdAt),
+        travellerSummary(r),
+        r.pickup || '',
         r.travellerNotes || '',
         r.emergencyContact || '',
         r.staffNotes || '',
@@ -1961,6 +1980,25 @@ const TripsAdmin = ({ setActiveTab, openTrip }) => {
                             </span>
                           )}
                           <span className="col-span-2 text-ink-muted/50 user-text">Registered {formatStamp(reg.createdAt)}</span>
+                          {/* What the team needs to buy tickets. */}
+                          <span className="col-span-2 mt-1 user-text-box">
+                            {detailsComplete(reg) ? (
+                              <span className="block rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+                                <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-700 mb-1">Travellers</span>
+                                {(reg.travellers || []).map((t, i) => (
+                                  <span key={i} className="block text-[11px] text-ink user-text">
+                                    {t.name}{t.age ? `, ${t.age}` : ''}{t.gender ? `, ${t.gender}` : ''}
+                                    {t.idNumber ? ` · ${t.idType || 'ID'} ${t.idNumber}` : ''}
+                                  </span>
+                                ))}
+                                {reg.pickup && <span className="block mt-1 text-[11px] text-ink-muted user-text">Boarding: {reg.pickup}</span>}
+                              </span>
+                            ) : (
+                              <span className="block rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] font-bold text-amber-700">
+                                Travel details not filled in yet
+                              </span>
+                            )}
+                          </span>
                         </div>
                       </div>
                     </div>

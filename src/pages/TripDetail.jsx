@@ -19,6 +19,7 @@ import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
 import { callApi } from '../lib/api'
 import { getPaymentConfig, openCheckout } from '../lib/razorpay'
+import TravellerDetails from '../components/trips/TravellerDetails'
 
 /* ------------------------------------------------------------------ *
  * Local helpers (kept in-file — Trips.jsx / TripDetail.jsx are the only
@@ -1202,6 +1203,11 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 </div>
               </div>
 
+              {/* Booking asks for almost nothing so a seat can be taken fast;
+                  everything the team needs for tickets is collected here,
+                  once the seat is safe. */}
+              <TravellerDetails registration={myRegistration} tripTitle={trip.title} />
+
               {(myRegistration.status || '').toLowerCase() === 'pending' && (
                 <>
                   {/* A seat booked but not paid for: finish paying it here,
@@ -1912,15 +1918,14 @@ const TripDetail = ({ slug, openTrip, setActiveTab, onLoginClick, isPublicView =
                 </div>
 
                 <div className="space-y-2 min-w-0">
-                  <label htmlFor="trip-emergency" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Emergency contact</label>
+                  <label htmlFor="trip-emergency" className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.16em] ml-1">Emergency contact (optional)</label>
                   <input
                     id="trip-emergency"
                     type="text"
-                    required
                     size={1}
                     value={form.emergencyContact}
                     onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })}
-                    placeholder="Name & number of someone at home"
+                    placeholder="You can add this after booking"
                     className="w-full min-w-0 min-h-[48px] px-4 py-3 bg-cream/30 border border-saffron/10 rounded-xl outline-none focus:bg-white focus:border-saffron/40 transition-all font-medium text-[15px]"
                   />
                 </div>
