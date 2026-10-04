@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useFirestore } from '../hooks/useFirestore';
+import PosterHero from '../components/site/PosterHero';
+import UtilityBar from '../components/site/UtilityBar';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -327,6 +329,8 @@ const Landing = ({ onLoginClick }) => {
           solid once scrolled)
       ========================================================= */}
 
+      <UtilityBar />
+
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           solidNav
@@ -430,129 +434,7 @@ const Landing = ({ onLoginClick }) => {
       </nav>
 
 
-      {/* =========================================================
-          HERO — full-bleed, dark, photographic
-      ========================================================= */}
-
-      <section className="relative isolate min-h-[100svh] flex flex-col justify-end overflow-hidden bg-[#0B0A09]">
-
-        {/* Layered background */}
-        <div className="absolute inset-0 folk-hero-canvas" aria-hidden="true" />
-        <div className="absolute inset-0 folk-mandala opacity-[0.14] mix-blend-soft-light" aria-hidden="true" />
-
-        <motion.img
-          src="/krishna_toy.png"
-          alt=""
-          aria-hidden="true"
-          initial={{ opacity: 0, scale: 1.04 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, ease: 'easeOut' }}
-          className="pointer-events-none select-none absolute right-[-14%] sm:right-[-8%] lg:right-[2%] bottom-0 h-[58%] sm:h-[72%] lg:h-[86%] w-auto max-w-none object-contain drop-shadow-[0_40px_80px_rgba(0,0,0,0.65)]"
-        />
-
-        {/* Scrims — guarantee text contrast over the imagery */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070605] via-[#070605]/70 to-[#070605]/25" aria-hidden="true" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#070605] via-[#070605]/78 to-transparent" aria-hidden="true" />
-        <div className="absolute inset-0 folk-grain opacity-[0.28] mix-blend-overlay" aria-hidden="true" />
-
-        {/* Content */}
-        <div className="relative z-10 w-full">
-
-          <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 pt-32 sm:pt-36 lg:pt-40 pb-12 lg:pb-16">
-
-            <motion.div
-              initial={{ opacity: 0, y: 26 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.75, ease: 'easeOut' }}
-              className="max-w-3xl"
-            >
-
-              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
-                <span className="w-2 h-2 rounded-full bg-[#FF9933] shadow-[0_0_12px_3px_rgba(255,153,51,0.7)]" />
-                <span className="text-[10px] sm:text-[11px] font-bold text-white/85 uppercase tracking-[0.2em]">
-                  HKMV Folk · Visakhapatnam
-                </span>
-              </div>
-
-              <h1
-                className="mt-7 font-black tracking-[-0.03em] leading-[0.92] text-white"
-                style={{ fontSize: 'clamp(2.75rem, 8.4vw, 6.75rem)' }}
-              >
-                <span className="folk-stroke block">Connect.</span>
-                <span className="block">Participate.</span>
-                <span className="block text-[#FF9933]">Serve.</span>
-              </h1>
-
-              <p
-                className="mt-7 max-w-xl text-white/75 leading-[1.75]"
-                style={{ fontSize: 'clamp(1.0625rem, 1.35vw, 1.1875rem)' }}
-              >
-                The youth club of the Hare Krishna Movement, Visakhapatnam. Spiritual
-                sessions, workshops, seva, yatras and a circle of people your own age
-                who actually show up — all in one place.
-              </p>
-
-              <div className="mt-9 flex flex-col sm:flex-row gap-3.5 sm:gap-4">
-
-                <Button
-                  onClick={onLoginClick}
-                  className="min-h-[52px] px-8 py-4 bg-[#FF9933] text-white rounded-full font-bold text-[15px] shadow-[0_18px_45px_-14px_rgba(255,153,51,0.85)] hover:bg-[#e88822] transition-all flex items-center justify-center gap-2"
-                >
-                  Join HKMV Folk
-                  <ArrowRight size={18} />
-                </Button>
-
-                <a
-                  href="#events"
-                  className="min-h-[52px] px-8 py-4 rounded-full border border-white/25 bg-white/5 backdrop-blur-md text-white font-bold text-[15px] hover:bg-white hover:text-gray-900 hover:border-white transition-all flex items-center justify-center gap-2"
-                >
-                  See what is on
-                  <ChevronRight size={18} />
-                </a>
-
-              </div>
-
-              {/* Trust / stat strip */}
-              <div className="mt-11 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-6 max-w-2xl">
-                {heroStats.map((stat) => (
-                  <div key={stat.label} className="sm:border-l sm:border-white/15 sm:pl-5 sm:first:border-l-0 sm:first:pl-0">
-                    <div className="text-2xl sm:text-[28px] font-black text-white tracking-tight">
-                      {stat.value}
-                    </div>
-                    <p className="mt-1 text-[11px] sm:text-xs font-semibold text-white/50 uppercase tracking-[0.12em]">
-                      {stat.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-            </motion.div>
-
-          </div>
-
-          {/* Sub-brand lockup strip */}
-          <div className="relative z-10 border-t border-white/10 bg-black/35 backdrop-blur-md">
-            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 py-4 sm:py-5">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 sm:gap-x-9">
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
-                  Inside FOLK
-                </span>
-                {heroLockups.map((item) => (
-                  <span
-                    key={item.label}
-                    className="flex items-center gap-2 text-[12px] sm:text-[13px] font-semibold text-white/75"
-                  >
-                    <span className="text-[#FF9933]">{item.icon}</span>
-                    {item.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
+      <PosterHero onLoginClick={onLoginClick} />
 
       {/* =========================================================
           ABOUT + THREE/FOUR PILLARS
