@@ -340,7 +340,49 @@ const POLL_MAX_MS = 20000;
 let pollMs = POLL_MIN_MS;
 const FULL_REFRESH_MS = 60000;
 
+// ------------------------------------------------------------ read cache
+// Live listeners share one cache, so opening a screen whose data was loaded a
+// moment ago paints at once and only re-asks the server when that collection
+// changed (our own write or the change feed) or the copy is older than the TTL.
+// Identical queries asked at the same time share a single request.
+const CACHE_TTL_MS = 30000;
+const CACHE_MAX = 200;
+const cache = new Map(); // key -> { r, at, epoch, cv }
+const inflight = new Map(); // key -> { promise, epoch, cv }
+const collectionVersion = new Map();
+let epoch = 0;
+const versionOf = (c) => collectionVersion.get(c) || 0;
+
+const invalidate = (cols) => {
+  if (!cols) epoch += 1;
+  else cols.forEach((c) => collectionVersion.set(c, versionOf(c) + 1));
+};
+
+const isFresh = (e, c) => !!e && e.epoch === epoch && e.cv === versionOf(c) && Date.now() - e.at < CACHE_TTL_MS;
+
+const readCached = async (key, collectionName, fetcher) => {
+  const hit = cache.get(key);
+  if (isFresh(hit, collectionName)) return hit.r;
+  const cv = versionOf(collectionName);
+  const running = inflight.get(key);
+  if (running && running.epoch === epoch && running.cv === cv) return running.promise;
+  const entry = { epoch, cv };
+  entry.promise = fetcher()
+    .then((r) => {
+      if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value);
+      cache.set(key, { r, at: Date.now(), epoch: entry.epoch, cv: entry.cv });
+      return r;
+    })
+    .finally(() => { if (inflight.get(key) === entry) inflight.delete(key); });
+  inflight.set(key, entry);
+  return entry.promise;
+};
+
+// A different person signing in must never see the previous person's cached rows.
+try { auth.onAuthStateChanged(() => { cache.clear(); inflight.clear(); epoch += 1; }); } catch { /* auth unavailable */ }
+
 const refetch = (cols) => {
+  invalidate(cols);
   for (const l of listeners) if (!cols || cols.includes(l.collection)) l.run();
 };
 
@@ -399,17 +441,28 @@ export const onSnapshot = (target, ...args) => {
   let again = false;
   let lastJson = null;
 
+  const key = isDoc ? `d:${target.path}` : `q:${JSON.stringify(target._q)}`;
+  const fetcher = () => (isDoc ? call('dbGet', { path: target.path }) : call('dbQuery', target._q));
+  const build = (r) => (isDoc
+    ? new DocumentSnapshot(target, r.exists ? r.data : null, r.v)
+    : new QuerySnapshot(target, r.docs.map((d) => new DocumentSnapshot(new DocumentReference(target._q.collection, d.id), d.data, d.v))));
+  const publish = (snap) => {
+    const json = isDoc ? JSON.stringify([snap._data, snap._v]) : JSON.stringify(snap.docs.map((d) => [d.id, d._v, d._data]));
+    if (active && json !== lastJson) {
+      lastJson = json;
+      next && next(snap);
+    }
+  };
+
   const run = async () => {
     if (!active) return;
     if (running) { again = true; return; }
     running = true;
     try {
-      const snap = isDoc ? await getDoc(target) : await getDocs(target);
-      const json = isDoc ? JSON.stringify([snap._data, snap._v]) : JSON.stringify(snap.docs.map((d) => [d.id, d._v, d._data]));
-      if (active && json !== lastJson) {
-        lastJson = json;
-        next && next(snap);
-      }
+      // Show the last known copy straight away, then confirm it (or not) with the server.
+      const known = cache.get(key);
+      if (known && lastJson === null) publish(build(known.r));
+      publish(build(await readCached(key, collectionName, fetcher)));
     } catch (e) {
       if (active && typeof error === 'function') error(e);
       else if (active) console.warn(`[db] listener on ${collectionName} failed:`, e.message);
