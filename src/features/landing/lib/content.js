@@ -80,7 +80,7 @@ export const GALLERY_TILES = [
   { title: 'Seva', caption: 'Kitchen, outreach & distribution', Icon: Heart, tone: 'from-saffron-dark to-navy-800' },
   { title: 'Workshops', caption: 'Mind, focus & daily discipline', Icon: BookOpen, tone: 'from-marigold-dark to-navy-700' },
   { title: 'Kirtan Nights', caption: 'Music that runs past midnight', Icon: Music, tone: 'from-navy-500 to-saffron-dark' },
-  { title: 'Yatras', caption: 'Journeys across Andhra & beyond', Icon: MapPin, image: '/hero.png', position: '75% 70%', span: 'lg:col-span-2', tone: 'from-marigold to-navy-700' },
+  { title: 'Yatras', caption: 'Journeys across Andhra & beyond', Icon: MapPin, image: '/hero.png', position: '75% 70%', span: 'sm:col-span-2 lg:col-span-4', tone: 'from-marigold to-navy-700' },
 ];
 
 export const VOICES = [
