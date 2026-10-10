@@ -116,7 +116,10 @@ export const useBookingActions = ({
         closeModal()
         setNotice({ tone: 'warn', text: `Your seat is reserved, but the payment could not start: ${error.message} You can pay from this page later.` })
       } else {
-        setFormError(error.message || 'Something went wrong. Please try again.')
+        // The server refuses a booking that would exceed the capacity (failed-precondition).
+        setFormError(error.code === 'failed-precondition' && /yatra is full/i.test(error.message || '')
+          ? `${error.message}. Someone may have just taken the last seats. Message the yatra team to be added to the waitlist.`
+          : error.message || 'Something went wrong. Please try again.')
       }
     } finally {
       setSubmitting(null)

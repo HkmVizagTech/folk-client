@@ -35,12 +35,15 @@ export const useTripDetailData = (slug, cancelledId) => {
     [registrations, trip?.id],
   )
 
-  const seatsTaken = useMemo(
+  // The server keeps trip.seatsTaken (every pending|confirmed seat, whoever booked it); older
+  // servers do not send it, so fall back to counting the registrations this user can read.
+  const countedSeats = useMemo(
     () => tripRegistrations
       .filter((r) => ['pending', 'confirmed'].includes((r.status || '').toLowerCase()))
       .reduce((sum, r) => sum + (parseInt(r.seats, 10) || 1), 0),
     [tripRegistrations],
   )
+  const seatsTaken = typeof trip?.seatsTaken === 'number' ? trip.seatsTaken : countedSeats
 
   const capacity = parseInt(trip?.capacity, 10) || 0
   const seatsLeft = capacity > 0 ? Math.max(0, capacity - seatsTaken) : null

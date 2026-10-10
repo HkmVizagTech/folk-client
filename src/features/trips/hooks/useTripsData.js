@@ -61,7 +61,9 @@ export const useTripsData = () => {
   const seatsLeftFor = (trip) => {
     const capacity = parseInt(trip.capacity, 10)
     if (!capacity || capacity <= 0) return null
-    return Math.max(0, capacity - (seatsTakenByTrip[trip.id] || 0))
+    // trip.seatsTaken is maintained by the server for everyone; count locally only when it is absent.
+    const taken = typeof trip.seatsTaken === 'number' ? trip.seatsTaken : (seatsTakenByTrip[trip.id] || 0)
+    return Math.max(0, capacity - taken)
   }
 
   return {
