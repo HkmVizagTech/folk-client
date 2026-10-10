@@ -2,7 +2,7 @@ import React from 'react'
 import { KeyRound } from 'lucide-react'
 import { Badge, Button } from '../../../components/ui'
 import { Alert, PanelCard } from '../../staff-common/components'
-import AdminPasswordFields from '../../../components/auth/AdminPasswordFields'
+import AdminPasswordFields from '../../auth/components/AdminPasswordFields'
 
 const AdminAccessCard = ({ canProvision, provisioning }) => {
   const { password, confirm, setPassword, setConfirm, state, submit } = provisioning
