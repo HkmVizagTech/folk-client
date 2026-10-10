@@ -29,7 +29,7 @@ const ProgramsSection = () => (
       title="Everything FOLK Vizag"
       accent="runs through the year."
       body="Six tracks, one calendar. Members move freely between them. Most people start with a session or a festival and end up in all six."
-      action={<SectionLink href="#contact">Talk to a coordinator</SectionLink>}
+      action={<SectionLink href="/contact">Talk to a coordinator</SectionLink>}
     />
     <div className="mt-12 grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
       {PROGRAMS.map((p) => <ProgramCard key={p.title} {...p} />)}

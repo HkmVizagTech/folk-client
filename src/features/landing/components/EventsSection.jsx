@@ -46,7 +46,7 @@ const EventsSkeleton = () => (
   </div>
 );
 
-const EventsSection = ({ events, loading, onLoginClick }) => (
+const EventsSection = ({ events, loading, onLoginClick, limit = 3 }) => (
   <LandingSection id="events">
     <SectionHeading
       eyebrow="Events"
@@ -58,8 +58,8 @@ const EventsSection = ({ events, loading, onLoginClick }) => (
       {loading && !events.length ? (
         <EventsSkeleton />
       ) : events.length > 0 ? (
-        <div className="grid gap-5 sm:gap-6 md:grid-cols-3">
-          {events.slice(0, 3).map((event, i) => <EventCard key={event.id} event={event} index={i} onAction={onLoginClick} />)}
+        <div className="grid gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {events.slice(0, limit).map((event, i) => <EventCard key={event.id} event={event} index={i} onAction={onLoginClick} />)}
         </div>
       ) : (
         <div data-reveal>

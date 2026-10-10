@@ -26,6 +26,7 @@ const Gallery = lazy(() => import('./features/gallery'))
 const Calendar = lazy(() => import('./features/calendar'))
 const Contact = lazy(() => import('./features/contact'))
 const Donate = lazy(() => import('./features/donate'))
+import { PUBLIC_PAGES, PublicLayout } from './features/site'
 import { useAuth } from './hooks/useAuth'
 import UserRoleGuard from './components/auth/UserRoleGuard'
 import ScanningOverlay from './components/qr/ScanningOverlay'
@@ -55,6 +56,8 @@ const TAB_TO_PATH = {
   calendar: '/calendar',
   contact: '/contact',
   donate: '/donate',
+  programs: '/programs',
+  residency: '/residency',
 };
 
 // Longer paths first so /admin-setup isn't matched by /admin.
@@ -186,12 +189,23 @@ function App() {
       return <AdminLogin />
     }
     const tabFromUrl = pathToTab(getPathname());
-    // Landing page only for the root path when there's no cached session.
+    const publicPath = getPathname().replace(/\/+$/, '') || '/'
+    const PublicPageView = PUBLIC_PAGES[publicPath]
+    // Public website: home at the root (only without a cached session) plus
+    // one page per topic. All of them share the site header and footer.
+    if (!forceLogin && PublicPageView) {
+      const login = () => setForceLogin(true)
+      return (
+        <PublicLayout path={publicPath} onLoginClick={login}>
+          <PublicPageView onLoginClick={login} />
+        </PublicLayout>
+      )
+    }
     if (!forceLogin && showLanding && tabFromUrl === 'dashboard') {
       return (
-        <>
+        <PublicLayout path="/" onLoginClick={() => setShowLanding(false)}>
           <Landing onLoginClick={() => setShowLanding(false)} />
-        </>
+        </PublicLayout>
       )
     }
     // Trip pages are public on purpose: a /trip/<slug> link is meant to be
@@ -276,6 +290,11 @@ function App() {
         return <Contact />
       case 'donate':
         return <Donate />
+      case 'programs':
+      case 'residency': {
+        const View = PUBLIC_PAGES[tabToPath(activeTab)]
+        return <View onLoginClick={() => setActiveTab('dashboard')} />
+      }
       case 'admin':
         // The dedicated admin portal: staff get the Command Center, a signed-in
         // member gets a clear access notice (with the one-time first-admin

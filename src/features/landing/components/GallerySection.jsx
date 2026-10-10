@@ -4,9 +4,10 @@ import { GALLERY_TILES } from '../lib/content';
 import LandingSection from './LandingSection';
 import SectionHeading from './SectionHeading';
 import SectionLink from './SectionLink';
+import SiteLink from '../../../components/site/SiteLink';
 
 const Tile = ({ title, caption, Icon, image, position, span, tone }) => (
-  <a
+  <SiteLink
     data-reveal
     href="/gallery"
     className={cn('group relative flex min-h-[220px] overflow-hidden rounded-3xl shadow-card transition-shadow duration-300 hover:shadow-premium-2xl lg:min-h-[240px]', span)}
@@ -26,17 +27,17 @@ const Tile = ({ title, caption, Icon, image, position, span, tone }) => (
         <ArrowUpRight size={18} aria-hidden="true" />
       </span>
     </div>
-  </a>
+  </SiteLink>
 );
 
-const GallerySection = () => (
+const GallerySection = ({ standalone = false }) => (
   <LandingSection id="gallery">
     <SectionHeading
       eyebrow="Gallery"
       title="Moments that bring"
       accent="the club together."
       body="Festivals, youth sessions, seva shifts and the long road trips in between: a look at what an ordinary year at FOLK Vizag looks like."
-      action={<SectionLink href="/gallery">View gallery</SectionLink>}
+      action={!standalone && <SectionLink href="/gallery">View gallery</SectionLink>}
     />
     <div className="mt-12 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
       {GALLERY_TILES.map((t) => <Tile key={t.title} {...t} />)}

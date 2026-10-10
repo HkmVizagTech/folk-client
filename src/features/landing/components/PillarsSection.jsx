@@ -10,7 +10,7 @@ const PillarCard = ({ index, title, body, Icon, onAction }) => (
       <span className="absolute right-5 top-3 font-display text-[44px] font-bold leading-none text-white/25">0{index + 1}</span>
     </div>
     <div className="-mt-8 flex flex-1 flex-col px-6 pb-6 sm:px-7">
-      <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-white text-saffron-dark shadow-premium-xl transition-colors duration-300 group-hover:bg-saffron group-hover:text-white">
+      <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-white text-saffron-dark shadow-premium-xl transition-colors duration-300 group-hover:bg-saffron group-hover:text-white">
         <Icon size={24} aria-hidden="true" />
       </span>
       <Card.Title className="mt-5 text-[20px]">{title}</Card.Title>

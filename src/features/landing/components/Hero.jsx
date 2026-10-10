@@ -4,6 +4,7 @@ import { useHeroTimeline } from '../hooks/useLandingMotion';
 import { HERO_CHIPS } from '../lib/content';
 import HeroStats from './HeroStats';
 import Mandala from './Mandala';
+import SiteLink from '../../../components/site/SiteLink';
 
 const FloatingCard = ({ className, Icon, label, value }) => (
   <div data-hero="float" className={`absolute flex items-center gap-3 rounded-2xl bg-white p-3 pr-4 shadow-premium-2xl ${className}`}>
@@ -57,7 +58,7 @@ const Hero = ({ onLoginClick }) => {
                 variant="ghost"
                 className="w-full border border-white/30 text-white hover:bg-white hover:text-ink sm:w-auto"
               >
-                <a href="#events">See what is on <ChevronRight size={18} aria-hidden="true" /></a>
+                <SiteLink href="/events">See what is on <ChevronRight size={18} aria-hidden="true" /></SiteLink>
               </Button>
             </div>
           </div>

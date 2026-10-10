@@ -5,14 +5,16 @@ import { Button } from '../ui';
 import { cn } from '../../lib/utils';
 import UtilityBar from './UtilityBar';
 import { Lotus } from './Ornament';
+import SiteLink from './SiteLink';
 
 export const NAV_LINKS = [
-  { href: '/#about', label: 'About' },
-  { href: '/#programs', label: 'Programs' },
-  { href: '/#events', label: 'Events' },
+  { href: '/about', label: 'About' },
+  { href: '/programs', label: 'Programs' },
+  { href: '/events', label: 'Events' },
   { href: '/trips', label: 'Yatras' },
-  { href: '/#residency', label: 'Residency' },
-  { href: '/#contact', label: 'Contact' },
+  { href: '/residency', label: 'Residency' },
+  { href: '/gallery', label: 'Gallery' },
+  { href: '/contact', label: 'Contact' },
 ];
 
 const telHref = (phone) => `tel:${phone.replace(/\s/g, '')}`;
@@ -49,26 +51,27 @@ export const SiteHeader = ({ onLoginClick, active }) => {
         )}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:h-[72px] sm:px-6 lg:px-8">
-          <a href="/" className="flex shrink-0 items-center gap-3 rounded-lg" aria-label={`${SITE.name} home`}>
+          <SiteLink href="/" className="flex shrink-0 items-center gap-3 rounded-lg" aria-label={`${SITE.name} home`}>
             <img src="/folk_logo_blue.png" alt="" className="h-10 w-auto sm:h-12" />
             <span className="hidden leading-tight text-ink sm:block">
               <span className="block font-display text-[16px] font-semibold">{SITE.tagline}</span>
               <span className="block text-[12.5px] text-ink-muted">Hare Krishna Movement, Visakhapatnam</span>
             </span>
-          </a>
+          </SiteLink>
 
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Main">
             {NAV_LINKS.map((l) => (
-              <a
+              <SiteLink
                 key={l.href}
                 href={l.href}
+                aria-current={active === l.href ? 'page' : undefined}
                 className={cn(
                   'relative rounded-full px-3.5 py-2 text-[15px] font-semibold transition-colors',
-                  active === l.label ? 'bg-saffron-50 text-saffron-dark' : 'text-ink hover:bg-paper hover:text-saffron-dark',
+                  active === l.href ? 'bg-saffron-50 text-saffron-dark' : 'text-ink hover:bg-paper hover:text-saffron-dark',
                 )}
               >
                 {l.label}
-              </a>
+              </SiteLink>
             ))}
           </nav>
 
@@ -90,14 +93,14 @@ export const SiteHeader = ({ onLoginClick, active }) => {
           <nav className="animate-fade-in border-t border-line bg-white lg:hidden" aria-label="Main">
             <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6">
               {NAV_LINKS.map((l) => (
-                <a
+                <SiteLink
                   key={l.href}
                   href={l.href}
                   onClick={() => setOpen(false)}
                   className="flex min-h-[48px] items-center justify-between border-b border-line text-[16px] font-semibold text-ink last:border-0 hover:text-saffron-dark"
                 >
                   {l.label}
-                </a>
+                </SiteLink>
               ))}
             </div>
           </nav>
@@ -142,7 +145,7 @@ export const SiteFooter = () => {
           <ul className="mt-4 space-y-1 text-[15px]">
             {NAV_LINKS.map((l) => (
               <li key={l.href}>
-                <a href={l.href} className={cn('inline-flex min-h-[36px] items-center', linkClass)}>{l.label}</a>
+                <SiteLink href={l.href} className={cn('inline-flex min-h-[36px] items-center', linkClass)}>{l.label}</SiteLink>
               </li>
             ))}
           </ul>

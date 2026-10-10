@@ -3,6 +3,7 @@ import { Button } from '../../../components/ui';
 import { JOIN_PERKS } from '../lib/content';
 import LandingSection from './LandingSection';
 import Mandala from './Mandala';
+import SiteLink from '../../../components/site/SiteLink';
 
 const JoinCta = ({ onLoginClick }) => (
   <LandingSection id="join" containerClassName="max-w-6xl">
@@ -26,7 +27,7 @@ const JoinCta = ({ onLoginClick }) => (
             Join HKMV Folk <ArrowRight size={18} aria-hidden="true" />
           </Button>
           <Button asChild size="lg" variant="ghost" className="w-full border border-white/30 text-white hover:bg-white hover:text-ink sm:w-auto">
-            <a href="#events">Explore events <ChevronRight size={18} aria-hidden="true" /></a>
+            <SiteLink href="/events">Explore events <ChevronRight size={18} aria-hidden="true" /></SiteLink>
           </Button>
         </div>
         <ul className="mt-12 flex flex-wrap justify-center gap-x-7 gap-y-3 border-t border-white/15 pt-8">

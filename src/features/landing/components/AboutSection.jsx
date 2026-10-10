@@ -2,6 +2,7 @@ import { ArrowRight, ChevronRight, Flame } from 'lucide-react';
 import { Button } from '../../../components/ui';
 import LandingSection from './LandingSection';
 import SectionHeading from './SectionHeading';
+import SiteLink from '../../../components/site/SiteLink';
 
 const AboutSection = ({ onLoginClick }) => (
   <LandingSection id="about">
@@ -23,7 +24,7 @@ const AboutSection = ({ onLoginClick }) => (
             Become a member <ArrowRight size={17} aria-hidden="true" />
           </Button>
           <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-            <a href="#programs">Browse programs <ChevronRight size={17} aria-hidden="true" /></a>
+            <SiteLink href="/programs">Browse programs <ChevronRight size={17} aria-hidden="true" /></SiteLink>
           </Button>
         </div>
       </div>
