@@ -57,7 +57,7 @@ const ProfilePage = () => {
               ))}
             </Tabs.List>
 
-            <Tabs.Panel value="profile" className="animate-fade-in">
+            <Tabs.Panel value="profile" className="min-h-[320px]">
               <Card>
                 <Details>
                   {SECTIONS.map((s) => (
@@ -70,8 +70,8 @@ const ProfilePage = () => {
                 </Details>
               </Card>
             </Tabs.Panel>
-            <Tabs.Panel value="attendance" className="animate-fade-in"><AttendancePanel items={attendance} loading={attendanceLoading} /></Tabs.Panel>
-            <Tabs.Panel value="payments" className="animate-fade-in"><PaymentsPanel items={payments} loading={paymentsLoading} /></Tabs.Panel>
+            <Tabs.Panel value="attendance" className="min-h-[320px]"><AttendancePanel items={attendance} loading={attendanceLoading} /></Tabs.Panel>
+            <Tabs.Panel value="payments" className="min-h-[320px]"><PaymentsPanel items={payments} loading={paymentsLoading} /></Tabs.Panel>
           </Tabs>
         </div>
         <div className="order-1 lg:order-2 lg:sticky lg:top-24"><CompletionCard percent={percent} missing={missing} /></div>

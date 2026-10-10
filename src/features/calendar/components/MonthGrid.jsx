@@ -33,9 +33,13 @@ const Day = ({ dayKey, events, selected, today, onSelect }) => {
 
 const MonthGrid = ({ cursor, cells, byDay, selected, todayKey, onSelect, onMove, onToday }) => {
   const ref = useRef(null)
+  const mounted = useRef(false)
+  // Month change: a short dip-and-settle of the whole grid. The page reveal
+  // already animates the first paint, and the grid never goes fully blank.
   useGSAP(() => {
+    if (!mounted.current) { mounted.current = true; return }
     if (prefersReducedMotion()) return
-    gsap.from('[data-day]', { autoAlpha: 0, y: 6, duration: 0.3, stagger: 0.008, ease: 'power2.out', clearProps: 'all' })
+    gsap.fromTo(ref.current, { autoAlpha: 0.45, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.22, ease: 'power2.out', clearProps: 'transform,opacity,visibility' })
   }, { scope: ref, dependencies: [cursor.y, cursor.m] })
 
   return (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { db } from '../../../lib/firebase'
 // Postgres-backed shim, NOT the real Firebase SDK.
 import { doc, setDoc, serverTimestamp } from '../../../lib/pgstore'
@@ -17,7 +17,18 @@ export const useProfileForm = (user, isStaff) => {
   const { toast, show } = useToast()
   const { run, pending: saving } = useOptimisticMutation()
 
-  useEffect(() => { if (user) setForm(formFromUser(user)) }, [user])
+  // Follow the stored profile, but only when its values really changed and
+  // never while the member is typing: `user` gets a new identity on every
+  // background refresh, and resetting the form each time made the page blink
+  // and could wipe an edit in progress.
+  const stored = useRef(JSON.stringify(formFromUser(user)))
+  useEffect(() => {
+    if (!user) return
+    const next = JSON.stringify(formFromUser(user))
+    if (next === stored.current) return
+    stored.current = next
+    if (!isEditing) setForm(JSON.parse(next))
+  }, [user, isEditing])
 
   const change = useCallback((name, value) => setForm((f) => ({ ...f, [name]: value })), [])
 
