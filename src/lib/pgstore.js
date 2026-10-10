@@ -332,7 +332,12 @@ const listeners = new Set(); // { collection, run }
 let feedPos = null;
 let feedTimer = null;
 let lastFull = Date.now();
-const POLL_MS = 5000;
+const POLL_MIN_MS = 5000;
+const POLL_MAX_MS = 20000;
+// Quiet stretches back the poll off from 5s toward 20s; any change (or a
+// returning tab) snaps it back, so live updates stay quick while idle tabs
+// cost the server a quarter of the requests.
+let pollMs = POLL_MIN_MS;
 const FULL_REFRESH_MS = 60000;
 
 const refetch = (cols) => {
@@ -340,7 +345,7 @@ const refetch = (cols) => {
 };
 
 // After our own writes: refresh listeners on those collections right away.
-const touch = (cols) => refetch([...new Set(cols)]);
+const touch = (cols) => { pollMs = POLL_MIN_MS; refetch([...new Set(cols)]); };
 
 const pollFeed = async () => {
   feedTimer = null;
@@ -356,6 +361,7 @@ const pollFeed = async () => {
     } else if (r.collections.length) {
       refetch(r.collections);
     }
+    pollMs = r.reset || r.collections.length ? POLL_MIN_MS : Math.min(POLL_MAX_MS, Math.round(pollMs * 1.5));
   } catch {
     // Offline or server restarting: try again on the next tick.
   }
@@ -363,11 +369,11 @@ const pollFeed = async () => {
 };
 
 const schedule = () => {
-  if (!feedTimer && listeners.size) feedTimer = setTimeout(pollFeed, POLL_MS);
+  if (!feedTimer && listeners.size) feedTimer = setTimeout(pollFeed, pollMs);
 };
 
 if (typeof window !== 'undefined') {
-  const wake = () => { if (listeners.size) { clearTimeout(feedTimer); feedTimer = null; pollFeed(); } };
+  const wake = () => { if (listeners.size) { pollMs = POLL_MIN_MS; clearTimeout(feedTimer); feedTimer = null; pollFeed(); } };
   window.addEventListener('focus', wake);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
 }

@@ -1,31 +1,32 @@
-import React, { Suspense, lazy, useState, useEffect, useCallback, useRef } from 'react'
+import React, { Suspense, startTransition, useState, useEffect, useCallback, useRef } from 'react'
 import MainLayout from './components/layout/MainLayout'
-const AdminDashboard = lazy(() => import('./features/admin-dashboard'))
-const AdminSetup = lazy(() => import('./features/auth').then((m) => ({ default: m.AdminSetup })))
-const AdminLogin = lazy(() => import('./features/auth').then((m) => ({ default: m.AdminLogin })))
-const AdminAccessDenied = lazy(() => import('./features/auth').then((m) => ({ default: m.AdminAccessDenied })))
-const Events = lazy(() => import('./features/events'))
-const SadhanaTracker = lazy(() => import('./features/sadhana'))
-const MemberHome = lazy(() => import('./features/home'))
-const MyMembers = lazy(() => import('./features/my-members'))
-const Courses = lazy(() => import('./features/courses'))
-const Reports = lazy(() => import('./features/reports'))
-const Accommodation = lazy(() => import('./features/accommodation'))
-const Hostels = lazy(() => import('./features/hostels'))
-const Attendance = lazy(() => import('./features/attendance'))
+import { lazyPage, preloadPages } from './lib/lazyPage'
+const AdminDashboard = lazyPage(() => import('./features/admin-dashboard'))
+const AdminSetup = lazyPage(() => import('./features/auth').then((m) => ({ default: m.AdminSetup })))
+const AdminLogin = lazyPage(() => import('./features/auth').then((m) => ({ default: m.AdminLogin })))
+const AdminAccessDenied = lazyPage(() => import('./features/auth').then((m) => ({ default: m.AdminAccessDenied })))
+const Events = lazyPage(() => import('./features/events'))
+const SadhanaTracker = lazyPage(() => import('./features/sadhana'))
+const MemberHome = lazyPage(() => import('./features/home'))
+const MyMembers = lazyPage(() => import('./features/my-members'))
+const Courses = lazyPage(() => import('./features/courses'))
+const Reports = lazyPage(() => import('./features/reports'))
+const Accommodation = lazyPage(() => import('./features/accommodation'))
+const Hostels = lazyPage(() => import('./features/hostels'))
+const Attendance = lazyPage(() => import('./features/attendance'))
 import Login from './features/auth'
-const Landing = lazy(() => import('./features/landing'))
-const Devotees = lazy(() => import('./features/devotees'))
-const SevaDashboard = lazy(() => import('./features/seva'))
-const Profile = lazy(() => import('./features/profile'))
-const About = lazy(() => import('./features/about'))
-const Trips = lazy(() => import('./features/trips'))
-const TripDetail = lazy(() => import('./features/trip-detail'))
-const TripsAdmin = lazy(() => import('./features/trips-admin'))
-const Gallery = lazy(() => import('./features/gallery'))
-const Calendar = lazy(() => import('./features/calendar'))
-const Contact = lazy(() => import('./features/contact'))
-const Donate = lazy(() => import('./features/donate'))
+const Landing = lazyPage(() => import('./features/landing'))
+const Devotees = lazyPage(() => import('./features/devotees'))
+const SevaDashboard = lazyPage(() => import('./features/seva'))
+const Profile = lazyPage(() => import('./features/profile'))
+const About = lazyPage(() => import('./features/about'))
+const Trips = lazyPage(() => import('./features/trips'))
+const TripDetail = lazyPage(() => import('./features/trip-detail'))
+const TripsAdmin = lazyPage(() => import('./features/trips-admin'))
+const Gallery = lazyPage(() => import('./features/gallery'))
+const Calendar = lazyPage(() => import('./features/calendar'))
+const Contact = lazyPage(() => import('./features/contact'))
+const Donate = lazyPage(() => import('./features/donate'))
 import { PUBLIC_PAGES, PublicLayout } from './features/site'
 import { useAuth } from './hooks/useAuth'
 import UserRoleGuard from './components/auth/UserRoleGuard'
@@ -113,9 +114,13 @@ function App() {
   const [forceLogin, setForceLogin] = useState(false);
 
   // Navigation: set tab + keep the URL in sync (pushState so Back works).
+  // The state change is a transition: if the next screen's code is still
+  // loading, React keeps the current screen up instead of flashing a spinner.
   const setActiveTab = useCallback((tab) => {
-    setActiveTabState(tab);
-    if (tab !== 'trip-detail') setTripSlug(null);
+    startTransition(() => {
+      setActiveTabState(tab);
+      if (tab !== 'trip-detail') setTripSlug(null);
+    });
     const path = tabToPath(tab);
     if (getPathname() !== path) {
       window.history.pushState(null, '', path);
@@ -125,8 +130,10 @@ function App() {
   // Open one trip's landing page at /trip/<slug>.
   const openTrip = useCallback((slug) => {
     if (!slug) return;
-    setTripSlug(slug);
-    setActiveTabState('trip-detail');
+    startTransition(() => {
+      setTripSlug(slug);
+      setActiveTabState('trip-detail');
+    });
     const path = `${TRIP_DETAIL_PREFIX}${encodeURIComponent(slug)}`;
     if (getPathname() !== path) {
       window.history.pushState(null, '', path);
@@ -144,8 +151,10 @@ function App() {
     const onPopState = () => {
       const path = getPathname();
       setForceLogin(false);
-      setTripSlug(tripSlugFromPath(path));
-      setActiveTabState(pathToTab(path));
+      startTransition(() => {
+        setTripSlug(tripSlugFromPath(path));
+        setActiveTabState(pathToTab(path));
+      });
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -173,6 +182,8 @@ function App() {
       setActiveTab(isStaff ? 'admin' : 'dashboard')
     }
   }, [user, setActiveTab]);
+
+  useEffect(() => { if (user) preloadPages() }, [user])
 
   if (loading) {
     return (
@@ -321,7 +332,7 @@ function App() {
 
   return (
     <MainLayout activeTab={activeTab} setActiveTab={setActiveTab}>
-      <Suspense fallback={<Fallback />}>{renderContent()}</Suspense>
+      {renderContent()}
       <ScanningOverlay 
         isOpen={globalScanner.isOpen}
         onClose={() => setGlobalScanner({ ...globalScanner, isOpen: false })}
