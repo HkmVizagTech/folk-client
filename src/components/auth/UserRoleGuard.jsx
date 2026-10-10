@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import Login from '../../pages/Login';
+import Login from '../../features/auth';
 
 const UserRoleGuard = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();

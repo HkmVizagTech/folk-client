@@ -41,16 +41,16 @@ const UtilityBar = () => {
   const darshan = darshanState();
 
   return (
-    <div className="hidden sm:block bg-[#2B1F17] text-white/80 text-[12.5px]">
-      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 h-10 flex items-center justify-between gap-4">
+    <div className="bg-ink text-white/80 text-[12.5px]">
+      <div className="mx-auto flex h-9 max-w-7xl items-center justify-between gap-4 px-4 sm:h-10 sm:px-6 lg:px-8">
         <div className="flex items-center gap-5 min-w-0">
           {SITE.contact.phone && (
-            <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1.5 hover:text-white transition-colors">
+            <a href={`tel:${SITE.contact.phone.replace(/\s/g, '')}`} className="inline-flex min-h-[36px] items-center gap-1.5 transition-colors hover:text-marigold-light">
               <Phone size={13} aria-hidden="true" /> {SITE.contact.phone}
             </a>
           )}
           {SITE.contact.email && (
-            <a href={`mailto:${SITE.contact.email}`} className="hidden md:inline-flex items-center gap-1.5 hover:text-white transition-colors">
+            <a href={`mailto:${SITE.contact.email}`} className="hidden md:inline-flex items-center gap-1.5 transition-colors hover:text-marigold-light">
               <Mail size={13} aria-hidden="true" /> {SITE.contact.email}
             </a>
           )}
@@ -58,14 +58,14 @@ const UtilityBar = () => {
 
         <div className="flex items-center gap-4 shrink-0">
           <span className="inline-flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${darshan.open ? 'bg-emerald-400' : 'bg-white/35'}`} aria-hidden="true" />
+            <span className={`w-1.5 h-1.5 rounded-full ${darshan.open ? 'bg-emerald-400 animate-pulse' : 'bg-white/35'}`} aria-hidden="true" />
             <Clock size={13} aria-hidden="true" className="hidden md:block" />
             {darshan.text}
           </span>
           {SOCIALS.length > 0 && (
             <span className="hidden md:flex items-center gap-3 border-l border-white/15 pl-4">
               {SOCIALS.map(({ href, label, Icon }) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="hover:text-white transition-colors">
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="transition-colors hover:text-marigold-light">
                   <Icon size={14} />
                 </a>
               ))}

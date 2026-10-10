@@ -1,4 +1,4 @@
-import React from 'react';
+import { cn } from '../../lib/utils';
 
 /** Small lotus between two thin gold rules: the section divider. */
 export const Lotus = ({ className = '' }) => (
@@ -12,7 +12,7 @@ export const Lotus = ({ className = '' }) => (
 );
 
 const Ornament = ({ center = false, className = '' }) => (
-  <div className={`ornament ${center ? 'justify-center' : ''} ${className}`}>
+  <div className={cn('ornament', center && 'justify-center', className)}>
     <Lotus />
   </div>
 );

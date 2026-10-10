@@ -4,7 +4,8 @@ import { collection, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from '
 import { auth, db } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { audiencesFor, canManageEvent } from '../../content/audiences';
-import Modal, { Field, inputClass, textareaClass } from '../ui/Modal';
+import { Modal, Field, Input, Select, Textarea, Button } from '../ui';
+import { cn } from '../../lib/utils';
 
 const CATEGORIES = ['Weekly Program', 'Retreats', 'Kirtans', 'Festivals', 'Yatras', 'Seminars', 'Other'];
 
@@ -188,37 +189,37 @@ const EventModal = ({ open, onClose, event = null, defaultDate = '', onSaved }) 
       title={editing ? 'Edit program' : 'New program'}
       footer={<>
         {editing && canManageEvent(user, event) && (
-          <button type="button" onClick={remove} disabled={removing || saving} className="btn text-red-700 hover:bg-red-50 mr-auto normal-case tracking-normal text-[14px]">
-            <Trash2 size={16} /> {removing ? 'Deleting…' : 'Delete'}
-          </button>
+          <Button type="button" variant="ghost" onClick={remove} loading={removing} disabled={saving} className="mr-auto text-red-700 hover:bg-red-50 hover:text-red-700">
+            <Trash2 size={16} aria-hidden="true" /> Delete
+          </Button>
         )}
-        <button type="button" onClick={onClose} className="btn border border-line text-ink hover:bg-paper">Cancel</button>
-        <button type="submit" form="event-form" disabled={saving} className="btn-primary">
-          {saving ? 'Saving…' : editing ? 'Save changes' : 'Create program'}
-        </button>
+        <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button type="submit" form="event-form" loading={saving} disabled={removing}>
+          {editing ? 'Save changes' : 'Create program'}
+        </Button>
       </>}
     >
-      <form id="event-form" onSubmit={save} className="space-y-4">
-        {error && <p role="alert" className="rounded-md bg-red-50 text-red-700 px-4 py-3 text-[15px]">{error}</p>}
+      <form id="event-form" onSubmit={save} className="space-y-5">
+        {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-[14px] text-red-700">{error}</p>}
 
         <Field label="Title">
-          <input required className={inputClass} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Gita circle at the hostel" />
+          <Input required value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Gita circle at the hostel" />
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Date & time">
-            <input required type="datetime-local" className={inputClass} value={form.date} onChange={(e) => set('date', e.target.value)} />
+            <Input required type="datetime-local" value={form.date} onChange={(e) => set('date', e.target.value)} />
           </Field>
           <Field label="Category">
-            <select className={inputClass} value={form.category} onChange={(e) => set('category', e.target.value)}>
+            <Select value={form.category} onChange={(e) => set('category', e.target.value)}>
               {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-            </select>
+            </Select>
           </Field>
         </div>
 
         <fieldset>
-          <legend className="block mb-1.5 text-[14px] font-semibold text-ink">Who is it for?</legend>
-          <div className="grid gap-2 sm:grid-cols-3">
+          <legend className="mb-1.5 block text-[14px] font-semibold text-ink">Who is it for?</legend>
+          <div role="radiogroup" className="grid gap-2 sm:grid-cols-3">
             {choices.map((a) => {
               const Icon = AUDIENCE_ICONS[a.id] || Globe;
               const on = form.audience === a.id;
@@ -229,12 +230,15 @@ const EventModal = ({ open, onClose, event = null, defaultDate = '', onSaved }) 
                   role="radio"
                   aria-checked={on}
                   onClick={() => set('audience', a.id)}
-                  className={`text-left rounded-xl border p-3 transition-colors ${on ? 'border-saffron bg-saffron-50 ring-1 ring-saffron/30' : 'border-line hover:bg-paper'}`}
+                  className={cn(
+                    'min-h-[44px] rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron',
+                    on ? 'border-saffron bg-saffron-50 ring-1 ring-saffron/30' : 'border-line hover:bg-paper',
+                  )}
                 >
-                  <span className={`inline-flex items-center gap-2 font-semibold text-[14px] ${on ? 'text-saffron-dark' : 'text-ink'}`}>
+                  <span className={cn('inline-flex items-center gap-2 text-[14px] font-semibold', on ? 'text-saffron-dark' : 'text-ink')}>
                     <Icon size={16} aria-hidden="true" /> {a.label}
                   </span>
-                  <span className="block mt-1 text-[12px] leading-snug text-ink-muted">{a.desc}</span>
+                  <span className="mt-1 block text-[12px] leading-snug text-ink-muted">{a.desc}</span>
                 </button>
               );
             })}
@@ -245,25 +249,27 @@ const EventModal = ({ open, onClose, event = null, defaultDate = '', onSaved }) 
         </fieldset>
 
         <Field label="Location">
-          <input className={inputClass} value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="e.g. Temple hall" />
+          <Input value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="e.g. Temple hall" />
         </Field>
 
         <Field label="Description">
-          <textarea className={textareaClass} value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="What will happen, who it's for, what to bring" />
+          <Textarea value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="What will happen, who it's for, what to bring" />
         </Field>
 
-        <Field label="Photo" hint="Optional. A real photo from a past program works best.">
-          <div className="flex items-center gap-4">
-            <label className="btn border border-line text-ink hover:bg-paper normal-case tracking-normal text-[14px] cursor-pointer">
-              <ImagePlus size={17} /> Choose photo
-              <input type="file" accept="image/*" className="sr-only" onChange={onImage} />
-            </label>
-            {form.img && <img src={form.img} alt="Selected" className="h-14 w-24 object-cover rounded-md" />}
-            {form.img && (
-              <button type="button" onClick={() => set('img', '')} className="text-[13px] font-semibold text-ink-muted hover:text-ink">Remove</button>
-            )}
+        <div>
+          <p className="mb-1.5 text-[14px] font-semibold text-ink">Photo</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button asChild variant="secondary" size="sm" className="cursor-pointer">
+              <label>
+                <ImagePlus size={17} aria-hidden="true" /> Choose photo
+                <input type="file" accept="image/*" className="sr-only" onChange={onImage} />
+              </label>
+            </Button>
+            {form.img && <img src={form.img} alt="Selected" className="h-14 w-24 rounded-lg object-cover" />}
+            {form.img && <Button type="button" variant="ghost" size="sm" onClick={() => set('img', '')}>Remove</Button>}
           </div>
-        </Field>
+          <p className="mt-1 text-[13px] text-ink-muted">Optional. A real photo from a past program works best.</p>
+        </div>
       </form>
     </Modal>
   );

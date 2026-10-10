@@ -1,31 +1,31 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { Suspense, lazy, useState, useEffect, useCallback, useRef } from 'react'
 import MainLayout from './components/layout/MainLayout'
-import AdminDashboard from './pages/AdminDashboard'
-import AdminSetup from './pages/AdminSetup'
-import AdminLogin from './pages/AdminLogin'
-import AdminAccessDenied from './pages/AdminAccessDenied'
-import Events from './pages/Events'
-import SadhanaTracker from './pages/SadhanaTracker'
-import MemberHome from './pages/MemberHome'
-import MyMembers from './pages/MyMembers'
-import Courses from './pages/Courses'
-import Reports from './pages/Reports'
-import Accommodation from './pages/Accommodation'
-import Hostels from './pages/Hostels'
-import Attendance from './pages/Attendance'
-import Login from './pages/Login'
-import Landing from './pages/Landing'
-import Devotees from './pages/Devotees'
-import SevaDashboard from './pages/SevaDashboard'
-import Profile from './pages/Profile'
-import About from './pages/About'
-import Trips from './pages/Trips'
-import TripDetail from './pages/TripDetail'
-import TripsAdmin from './pages/TripsAdmin'
-import Gallery from './pages/Gallery'
-import Calendar from './pages/Calendar'
-import Contact from './pages/Contact'
-import Donate from './pages/Donate'
+const AdminDashboard = lazy(() => import('./features/admin-dashboard'))
+const AdminSetup = lazy(() => import('./features/auth').then((m) => ({ default: m.AdminSetup })))
+const AdminLogin = lazy(() => import('./features/auth').then((m) => ({ default: m.AdminLogin })))
+const AdminAccessDenied = lazy(() => import('./features/auth').then((m) => ({ default: m.AdminAccessDenied })))
+const Events = lazy(() => import('./features/events'))
+const SadhanaTracker = lazy(() => import('./features/sadhana'))
+const MemberHome = lazy(() => import('./features/home'))
+const MyMembers = lazy(() => import('./features/my-members'))
+const Courses = lazy(() => import('./features/courses'))
+const Reports = lazy(() => import('./features/reports'))
+const Accommodation = lazy(() => import('./features/accommodation'))
+const Hostels = lazy(() => import('./features/hostels'))
+const Attendance = lazy(() => import('./features/attendance'))
+import Login from './features/auth'
+const Landing = lazy(() => import('./features/landing'))
+const Devotees = lazy(() => import('./features/devotees'))
+const SevaDashboard = lazy(() => import('./features/seva'))
+const Profile = lazy(() => import('./features/profile'))
+const About = lazy(() => import('./features/about'))
+const Trips = lazy(() => import('./features/trips'))
+const TripDetail = lazy(() => import('./features/trip-detail'))
+const TripsAdmin = lazy(() => import('./features/trips-admin'))
+const Gallery = lazy(() => import('./features/gallery'))
+const Calendar = lazy(() => import('./features/calendar'))
+const Contact = lazy(() => import('./features/contact'))
+const Donate = lazy(() => import('./features/donate'))
 import { useAuth } from './hooks/useAuth'
 import UserRoleGuard from './components/auth/UserRoleGuard'
 import ScanningOverlay from './components/qr/ScanningOverlay'
@@ -84,6 +84,12 @@ const pathToTab = (path) =>
   'dashboard';
 
 const tabToPath = (tab) => TAB_TO_PATH[tab] || '/';
+
+const Fallback = () => (
+  <div className="min-h-[50vh] flex items-center justify-center">
+    <div className="w-10 h-10 border-4 border-saffron border-t-transparent rounded-full animate-spin" />
+  </div>
+)
 
 function App() {
   const { user, loading } = useAuth()
@@ -296,7 +302,7 @@ function App() {
 
   return (
     <MainLayout activeTab={activeTab} setActiveTab={setActiveTab}>
-      {renderContent()}
+      <Suspense fallback={<Fallback />}>{renderContent()}</Suspense>
       <ScanningOverlay 
         isOpen={globalScanner.isOpen}
         onClose={() => setGlobalScanner({ ...globalScanner, isOpen: false })}
@@ -306,4 +312,10 @@ function App() {
   )
 }
 
-export default App
+const AppWithSuspense = () => (
+  <Suspense fallback={<Fallback />}>
+    <App />
+  </Suspense>
+)
+
+export default AppWithSuspense
