@@ -93,10 +93,21 @@ export default {
         'soft': '0 1px 2px rgba(43,31,23,0.06), 0 1px 1px rgba(43,31,23,0.04)',
         'premium': '0 1px 3px rgba(43,31,23,0.08), 0 1px 2px rgba(43,31,23,0.05)',
         'premium-xl': '0 10px 30px -12px rgba(43,31,23,0.22)',
-        'card': '0 1px 2px rgba(43,31,23,0.05)',
+        'card': '0 1px 2px rgba(43,31,23,0.04), 0 4px 14px -8px rgba(43,31,23,0.10)',
+        'premium-2xl': '0 24px 56px -20px rgba(43,31,23,0.35)',
       },
       letterSpacing: {
         label: '0.08em',
+      },
+      keyframes: {
+        'fade-in': { from: { opacity: 0 }, to: { opacity: 1 } },
+        'sheet-up': { from: { transform: 'translateY(24px)', opacity: 0 }, to: { transform: 'translateY(0)', opacity: 1 } },
+        'pop-in': { from: { transform: 'translateY(8px) scale(.97)', opacity: 0 }, to: { transform: 'translateY(0) scale(1)', opacity: 1 } },
+      },
+      animation: {
+        'fade-in': 'fade-in 180ms ease-out',
+        'sheet-up': 'sheet-up 260ms cubic-bezier(.16,1,.3,1)',
+        'pop-in': 'pop-in 220ms cubic-bezier(.16,1,.3,1)',
       },
     },
   },

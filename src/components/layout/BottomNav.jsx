@@ -41,7 +41,7 @@ const BottomNav = ({ activeTab, setActiveTab }) => {
   return (
     <>
       <nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-[90] bg-white/95 backdrop-blur border-t border-line shadow-[0_-6px_20px_-12px_rgba(43,31,23,0.25)]"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-[90] bg-white/90 backdrop-blur-md border-t border-line/70 shadow-[0_-6px_20px_-12px_rgba(43,31,23,0.25)]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label="App"
       >
