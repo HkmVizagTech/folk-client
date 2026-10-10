@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { gsap, useGSAP, EASE, prefersReducedMotion } from '../../../lib/motion';
+import { gsap, useGSAP, EASE, enter, prefersReducedMotion } from '../../../lib/motion';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -37,18 +37,28 @@ export const useHeroTimeline = () => {
  */
 export const useScrollReveal = (deps = []) => {
   const scope = useRef(null);
+  const first = useRef(true);
   useGSAP(() => {
-    if (prefersReducedMotion()) return undefined;
-    gsap.utils.toArray('[data-parallax]', scope.current).forEach((el) => {
+    if (prefersReducedMotion() || !scope.current) return undefined;
+    gsap.utils.toArray('[data-parallax]:not([data-revealed])', scope.current).forEach((el) => {
+      el.setAttribute('data-revealed', '');
       gsap.fromTo(el, { yPercent: -6 }, {
         yPercent: 6, ease: 'none',
         scrollTrigger: { trigger: el, start: 'top bottom', end: 'bottom top', scrub: true },
       });
     });
-    const targets = gsap.utils.toArray('[data-reveal]', scope.current);
+    const targets = gsap.utils.toArray('[data-reveal]', scope.current).filter((el) => !el.hasAttribute('data-revealed'));
     if (!targets.length) return undefined;
-    gsap.set(targets, { autoAlpha: 0, y: 28 });
-    ScrollTrigger.batch(targets, {
+    targets.forEach((el) => el.setAttribute('data-revealed', ''));
+    // Late arrivals (data replacing a skeleton) that are already on screen
+    // settle in softly instead of vanishing and fading back.
+    const inView = (el) => { const r = el.getBoundingClientRect(); return r.top < window.innerHeight && r.bottom > 0; };
+    const late = first.current ? [] : targets.filter(inView);
+    enter(late, { first: false, y: 28 });
+    const hidden = targets.filter((el) => !late.includes(el));
+    first.current = false;
+    gsap.set(hidden, { autoAlpha: 0, y: 28 });
+    ScrollTrigger.batch(hidden, {
       start: 'top 90%',
       once: true,
       onEnter: (batch) => gsap.to(batch, {
@@ -56,9 +66,8 @@ export const useScrollReveal = (deps = []) => {
         clearProps: 'transform,opacity,visibility',
       }),
     });
-    const refresh = () => ScrollTrigger.refresh();
-    window.addEventListener('load', refresh);
-    return () => window.removeEventListener('load', refresh);
-  }, { scope, dependencies: deps, revertOnUpdate: true });
+    ScrollTrigger.refresh();
+    return undefined;
+  }, { scope, dependencies: deps });
   return scope;
 };

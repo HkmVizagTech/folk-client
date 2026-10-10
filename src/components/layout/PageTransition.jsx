@@ -11,7 +11,9 @@ const PageTransition = ({ children }) => {
   useGSAP(() => {
     window.scrollTo({ top: 0 });
     if (prefersReducedMotion()) return;
-    gsap.fromTo(ref.current, { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.35, ease: 'power2.out', clearProps: 'transform,opacity,visibility' });
+    // Barely-there fade: the screen's own reveals do the real entrance, so a
+    // stronger fade here would double up and read as a blank flash.
+    gsap.fromTo(ref.current, { autoAlpha: 0.85 }, { autoAlpha: 1, duration: 0.2, ease: 'power1.out', clearProps: 'opacity,visibility' });
   }, { scope: ref });
   return <div ref={ref}>{children}</div>;
 };

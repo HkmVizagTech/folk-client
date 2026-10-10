@@ -38,7 +38,7 @@ const HomeHero = ({ greeting, name, stageName, verse, rounds, target, done, stre
   }, { scope: ref })
 
   return (
-    <section ref={ref} data-reveal className="hero-devotional relative overflow-hidden rounded-3xl text-white shadow-premium-xl">
+    <section ref={ref} className="hero-devotional relative overflow-hidden rounded-3xl text-white shadow-premium-xl">
       <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-12 lg:p-10">
         <div className="min-w-0">
           <p data-hero-in className="text-[13px] font-semibold uppercase tracking-[0.14em] text-marigold-light/90">{greeting}</p>

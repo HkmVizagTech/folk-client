@@ -11,7 +11,7 @@ const Bar = ({ day, scale }) => {
     <li className="flex min-w-0 flex-1 flex-col items-center gap-2" title={`${day.label}: ${day.rounds}${day.target ? ` of ${day.target}` : ''} rounds`}>
       <span className={cn('text-[12px] font-bold tabular-nums', day.logged ? 'text-ink' : 'text-ink-muted/50')}>{day.logged ? day.rounds : '·'}</span>
       <div className="relative h-36 w-full max-w-[40px] rounded-xl bg-paper-dark sm:h-44">
-        <div data-bar style={{ height: `${pct}%` }} className={cn('absolute inset-x-0 bottom-0 origin-bottom rounded-xl', day.done ? 'bg-gradient-to-t from-saffron to-marigold' : 'bg-saffron-light/60')} />
+        <div data-bar style={{ height: `${pct}%` }} className={cn('absolute inset-x-0 bottom-0 origin-bottom rounded-xl transition-[height] duration-500 ease-out', day.done ? 'bg-gradient-to-t from-saffron to-marigold' : 'bg-saffron-light/60')} />
         {tick !== null && <span style={{ bottom: `${tick}%` }} className="absolute inset-x-[-3px] border-t-2 border-dashed border-navy/40" aria-hidden="true" />}
       </div>
       <span className={cn('inline-flex h-6 w-6 items-center justify-center rounded-full', day.done ? 'bg-saffron text-white' : 'bg-transparent')} aria-hidden="true">
@@ -26,11 +26,12 @@ const Bar = ({ day, scale }) => {
 const WeekCard = ({ days, daysKept, indexBuilding }) => {
   const ref = useRef(null)
   const scale = Math.max(16, ...days.map((d) => Math.max(d.rounds, d.target)))
-  const signature = days.map((d) => `${d.rounds}/${d.target}`).join()
+  // Bars grow in once; later log updates glide via the height transition
+  // instead of collapsing to zero and growing back.
   useGSAP(() => {
     if (prefersReducedMotion()) return
     gsap.from('[data-bar]', { scaleY: 0, duration: 0.8, ease: EASE, stagger: 0.07 })
-  }, { scope: ref, dependencies: [signature] })
+  }, { scope: ref })
 
   return (
     <Card data-reveal className="lg:col-span-7">
